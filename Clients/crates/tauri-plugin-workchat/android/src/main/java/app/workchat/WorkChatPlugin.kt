@@ -275,13 +275,16 @@ class WorkChatPlugin(private val activity: Activity) : Plugin(activity) {
     fun pick_files(invoke: Invoke) {
         val kind = argString(invoke, "kind") ?: "any"
         val i = Intent(Intent.ACTION_GET_CONTENT).addCategory(Intent.CATEGORY_OPENABLE).putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
-        if (kind == "media") {
+        if (kind == "image") {
+            i.type = "image/*"
+            i.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, false)
+        } else if (kind == "media") {
             i.type = "*/*"
             i.putExtra(Intent.EXTRA_MIME_TYPES, arrayOf("image/*", "video/*"))
         } else {
             i.type = "*/*"
         }
-        startActivityForResult(invoke, Intent.createChooser(i, if (kind == "media") "Choose photos or videos" else "Choose files"), "pickResult")
+        startActivityForResult(invoke, Intent.createChooser(i, if (kind == "image") "Choose a picture" else if (kind == "media") "Choose photos or videos" else "Choose files"), "pickResult")
     }
 
     private fun displayName(uri: Uri): String {

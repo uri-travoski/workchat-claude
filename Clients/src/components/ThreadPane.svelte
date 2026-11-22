@@ -36,7 +36,7 @@
 <aside class="pane" aria-label="Thread">
   <header>
     {#if app.phone}<button class="ib" aria-label="Back" onclick={() => (app.thread = null)}><Icon name="left" size={26} stroke={2.2} /></button>{/if}
-    <div class="ti"><h2>Thread</h2><span>{row ? (row.kind === "channel" ? "# " : "") + row.title : ""}</span></div>
+    <div class="ti"><h2>Thread</h2><span>{row ? row.title : ""}</span></div>
     <button class="ib" aria-label="Thread options" onclick={(e) => { const r = (e.currentTarget as HTMLElement).getBoundingClientRect(); menu = { x: r.right, y: r.bottom + 4 }; }}><Icon name="dots" size={22} /></button>
     {#if !app.phone}<button class="ib" aria-label="Close thread" onclick={() => (app.thread = null)}><Icon name="x" size={22} /></button>{/if}
   </header>

@@ -23,7 +23,7 @@
 <div class="list">
   {#each people as u (u.id)}
     <button class="p" onclick={() => tap(u.id)}>
-      <Avatar id={userAvatar(u)} initials={initialsOf(u.display_name)} size={40} presence={u.presence ?? null} />
+      <Avatar id={userAvatar(u)} initials={initialsOf(u.display_name)} size={40} presence={u.presence ?? null} bot={u.is_bot} />
       <span class="t"><b>{u.display_name}</b><small>{u.title ?? "@" + u.username}</small></span>
       {#if multi}<span class="ck" class:on={selected.includes(u.id)}>{#if selected.includes(u.id)}<Icon name="check" size={15} stroke={3} />{/if}</span>{/if}
     </button>

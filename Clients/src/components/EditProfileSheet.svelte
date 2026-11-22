@@ -28,7 +28,7 @@
   }
   async function picture() {
     try {
-      const [st] = await core.pickFiles("media");
+      const [st] = await core.pickFiles("image");
       if (st) app.sheet = { kind: "crop", stagedId: st.id, target: { kind: "me" } };
     } catch (e) {
       fail(e);

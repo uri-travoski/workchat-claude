@@ -4,6 +4,27 @@ Release notes for the whole WorkChat repository. The release workflow publishes 
 (`## [1.2.0]` for `v1.2.0`) as the GitHub release notes. Component details: [workchat-server/CHANGELOG.md](workchat-server/CHANGELOG.md),
 [Clients/CHANGELOG.md](Clients/CHANGELOG.md).
 
+## [1.4.0] - 2026-11-22
+
+Picture fixes, channel and bot badges, smoother image zoom.
+
+Phone and desktop:
+
+* Channel names no longer start with "#". Channel avatars show a small hash badge in the bottom corner; bot accounts (the server tells the app which users are bots) show a small robot badge.
+* Setting a channel, chat or profile picture works on Android again (the "expected raw bytes" error). Pictures can be PNG with transparency, WebP, SVG, GIF, JPEG, HEIC and more; they are saved as PNG.
+* Image viewer: pinch and wheel zoom follow your fingers or cursor smoothly, and a zoomed picture can be dragged around (one finger or the mouse).
+
+Phone:
+
+* Touch and hold a chat, then Lock now locks it (and Pin / Mark as read work again).
+
+Desktop:
+
+* The All Chats and Threads icons are 10% bigger and thicker so they match the other sidebar icons.
+* Windows: opening a document from a message is more robust (falls back to the shell's own open).
+
+Server: version bump only (1.4.0); the compose file is image-only and the image is built by GitHub Actions on every release.
+
 ## [1.3.0] - 2026-11-22
 
 Phone menu and icons, desktop fixes, Android share target.

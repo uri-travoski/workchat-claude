@@ -300,7 +300,7 @@ export const core = {
   openUrl: (url: string) => invoke<void>("open_url", { url }),
 
   // attachments
-  pickFiles: (kind: "media" | "any") => invoke<Staged[]>("pick_files", { kind }),
+  pickFiles: (kind: "media" | "image" | "any") => invoke<Staged[]>("pick_files", { kind }),
   stagePaths: (paths: string[]) => invoke<Staged[]>("stage_paths", { paths }),
   unstage: (id: string) => invoke<void>("unstage", { id }),
   setStagedMeta: (id: string, meta: { width?: number; height?: number; duration_ms?: number; poster_b64?: string }) => invoke<void>("set_staged_meta", { id, meta }),
@@ -314,11 +314,28 @@ export const core = {
   /** Sends bytes (a pasted image, a camera photo) to the core in slices and returns the staged file. */
   async stageBlob(blob: Blob, name: string): Promise<Staged> {
     const id = await invoke<string>("stage_begin", { name });
-    const SLICE = 2 * 1024 * 1024;
+    const SLICE = 1024 * 1024;
+    // Some webviews (Android) cannot send a raw body: then the bytes go as base64 text.
+    let text = false;
+    const b64 = (buf: ArrayBuffer) => {
+      const a = new Uint8Array(buf);
+      let s = "";
+      for (let i = 0; i < a.length; i += 0x8000) s += String.fromCharCode(...a.subarray(i, i + 0x8000));
+      return btoa(s);
+    };
     try {
       for (let off = 0; off < blob.size; off += SLICE) {
         const buf = await blob.slice(off, off + SLICE).arrayBuffer();
-        await invoke<void>("stage_chunk", buf, { headers: { "x-stage-id": id } });
+        if (!text) {
+          try {
+            await invoke<void>("stage_chunk", buf, { headers: { "x-stage-id": id } });
+            continue;
+          } catch (e) {
+            if (!/raw bytes/i.test(errorMessage(e))) throw e;
+            text = true;
+          }
+        }
+        await invoke<void>("stage_chunk_b64", { id, data: b64(buf) });
       }
       return await invoke<Staged>("stage_end", { id });
     } catch (e) {

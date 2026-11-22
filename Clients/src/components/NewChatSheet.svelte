@@ -21,7 +21,7 @@
   async function pickPicture() {
     app.chatDraft = { name, topic, members, avatarId: d.avatarId };
     try {
-      const [st] = await core.pickFiles("media");
+      const [st] = await core.pickFiles("image");
       if (st) app.sheet = { kind: "crop", stagedId: st.id, target: { kind: "newchat" } };
     } catch (e) {
       fail(e);

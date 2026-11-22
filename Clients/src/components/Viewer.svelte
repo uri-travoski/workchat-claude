@@ -16,12 +16,18 @@
   let tx = $state(0);
   let ty = $state(0);
   let chrome = $state(true);
+  let anim = $state(false);
   let stage = $state<HTMLDivElement>();
-  const pointers = new Map<number, { x: number; y: number }>();
-  let startDist = 0;
-  let startScale = 1;
-  let drag: { x: number; y: number; tx: number; ty: number } | null = null;
+  let imgEl = $state<HTMLImageElement>();
   let swipeX = $state(0);
+  const MAX = 8;
+
+  // Gestures: one finger or the mouse pans a zoomed picture (or swipes to the next one at 1x); two fingers pinch around
+  // their midpoint; the wheel and trackpad pinch zoom around the cursor. All offsets are measured from the stage centre.
+  const pts = new Map<number, { x: number; y: number }>();
+  let pinch: { d: number; s: number; mx: number; my: number; tx: number; ty: number } | null = null;
+  let pan: { x: number; y: number; tx: number; ty: number } | null = null;
+  let moved = 0;
 
   $effect(() => {
     item?.id;
@@ -36,82 +42,129 @@
     const i = v.index + d;
     if (i >= 0 && i < v.items.length) v.index = i;
   }
+  const centre = () => {
+    const r = stage?.getBoundingClientRect();
+    return { x: (r?.left ?? 0) + (r?.width ?? 0) / 2, y: (r?.top ?? 0) + (r?.height ?? 0) / 2 };
+  };
   function clamp() {
-    if (scale <= 1) {
+    const r = stage?.getBoundingClientRect();
+    const w = imgEl?.offsetWidth ?? r?.width ?? 0;
+    const h = imgEl?.offsetHeight ?? r?.height ?? 0;
+    if (!r || scale <= 1) {
       tx = ty = 0;
       return;
     }
-    const r = stage?.getBoundingClientRect();
-    if (!r) return;
-    const mx = (r.width * (scale - 1)) / 2;
-    const my = (r.height * (scale - 1)) / 2;
+    const mx = Math.max(0, (w * scale - r.width) / 2);
+    const my = Math.max(0, (h * scale - r.height) / 2);
     tx = Math.max(-mx, Math.min(mx, tx));
     ty = Math.max(-my, Math.min(my, ty));
   }
-  function zoom(f: number) {
-    scale = Math.max(1, Math.min(6, scale * f));
+  /** Zoom to `ns`, keeping the picture point under (px, py) (stage-centre coordinates) where it is. */
+  function zoomAt(ns: number, px: number, py: number) {
+    ns = Math.max(1, Math.min(MAX, ns));
+    const f = ns / scale;
+    tx = px - (px - tx) * f;
+    ty = py - (py - ty) * f;
+    scale = ns;
     clamp();
+  }
+  function zoomBy(f: number) {
+    anim = true;
+    zoomAt(scale * f, 0, 0);
+    setTimeout(() => (anim = false), 180);
   }
   function wheel(e: WheelEvent) {
     if (!item || !isImage(item.content_type)) return;
     e.preventDefault();
-    zoom(e.deltaY < 0 ? 1.15 : 1 / 1.15);
+    const c = centre();
+    zoomAt(scale * Math.exp(-e.deltaY * (e.ctrlKey ? 0.01 : 0.0018)), e.clientX - c.x, e.clientY - c.y);
   }
-  function dbl() {
+  function dbl(e: MouseEvent) {
+    if (!item || !isImage(item.content_type)) return;
+    const c = centre();
+    anim = true;
     if (scale > 1) {
       scale = 1;
       tx = ty = 0;
-    } else scale = 2.5;
+    } else zoomAt(2.5, e.clientX - c.x, e.clientY - c.y);
+    setTimeout(() => (anim = false), 180);
+  }
+  function startPinch() {
+    const [a, b] = [...pts.values()];
+    const c = centre();
+    pinch = { d: Math.hypot(a.x - b.x, a.y - b.y) || 1, s: scale, mx: (a.x + b.x) / 2 - c.x, my: (a.y + b.y) / 2 - c.y, tx, ty };
+    pan = null;
   }
   function down(e: PointerEvent) {
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-    pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
-    if (pointers.size === 2) {
-      const [a, b] = [...pointers.values()];
-      startDist = Math.hypot(a.x - b.x, a.y - b.y);
-      startScale = scale;
-      drag = null;
-    } else {
-      drag = { x: e.clientX, y: e.clientY, tx, ty };
+    pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    anim = false;
+    if (pts.size === 2) startPinch();
+    else {
+      pan = { x: e.clientX, y: e.clientY, tx, ty };
       swipeX = 0;
+      moved = 0;
     }
   }
   function move(e: PointerEvent) {
-    if (!pointers.has(e.pointerId)) return;
-    pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
-    if (pointers.size === 2) {
-      const [a, b] = [...pointers.values()];
-      scale = Math.max(1, Math.min(6, (startScale * Math.hypot(a.x - b.x, a.y - b.y)) / (startDist || 1)));
+    if (!pts.has(e.pointerId)) return;
+    pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pts.size >= 2 && pinch) {
+      const [a, b] = [...pts.values()];
+      const c = centre();
+      const mx = (a.x + b.x) / 2 - c.x;
+      const my = (a.y + b.y) / 2 - c.y;
+      const ns = Math.max(1, Math.min(MAX, (pinch.s * Math.hypot(a.x - b.x, a.y - b.y)) / pinch.d));
+      const f = ns / pinch.s;
+      // the picture point that was under the first midpoint follows the midpoint
+      scale = ns;
+      tx = mx - (pinch.mx - pinch.tx) * f;
+      ty = my - (pinch.my - pinch.ty) * f;
       clamp();
-    } else if (drag) {
-      const dx = e.clientX - drag.x;
+      moved = 99;
+    } else if (pan) {
+      const dx = e.clientX - pan.x;
+      const dy = e.clientY - pan.y;
+      moved = Math.max(moved, Math.abs(dx), Math.abs(dy));
       if (scale > 1) {
-        tx = drag.tx + dx;
-        ty = drag.ty + (e.clientY - drag.y);
+        tx = pan.tx + dx;
+        ty = pan.ty + dy;
         clamp();
       } else swipeX = dx;
     }
   }
   function up(e: PointerEvent) {
-    pointers.delete(e.pointerId);
-    if (pointers.size === 0 && drag) {
+    const was = pts.size;
+    pts.delete(e.pointerId);
+    if (was >= 2) {
+      pinch = null;
+      // one finger stays down: carry on panning from where it is
+      const [r] = [...pts.values()];
+      pan = r ? { x: r.x, y: r.y, tx, ty } : null;
+      if (scale <= 1.02) {
+        scale = 1;
+        tx = ty = 0;
+      }
+      return;
+    }
+    if (pan) {
       if (scale <= 1 && Math.abs(swipeX) > 70) go(swipeX < 0 ? 1 : -1);
-      else if (Math.abs(swipeX) < 6 && Math.abs(e.clientY - drag.y) < 6) {
+      else if (moved < 6) {
         const t = e.target as HTMLElement;
         // A tap on the empty backdrop closes the viewer; a tap on the picture shows or hides the toolbar.
         if (t === stage) close();
         else if (!t.closest("video")) chrome = !chrome;
       }
-      drag = null;
-      swipeX = 0;
     }
+    pan = null;
+    swipeX = 0;
   }
   function key(e: KeyboardEvent) {
     if (!v) return;
     if (e.key === "ArrowLeft") go(-1);
     else if (e.key === "ArrowRight") go(1);
-    else if (e.key === "+" || e.key === "=") zoom(1.25);
-    else if (e.key === "-") zoom(0.8);
+    else if (e.key === "+" || e.key === "=") zoomBy(1.25);
+    else if (e.key === "-") zoomBy(0.8);
   }
 
   async function save() {
@@ -139,8 +192,8 @@
         </div>
         <span class="cnt">{v.index + 1} / {count}</span>
         {#if isImage(item.content_type) && !app.phone}
-          <button class="ib" aria-label="Zoom in" onclick={() => zoom(1.4)}><Icon name="zoomin" size={22} /></button>
-          <button class="ib" aria-label="Zoom out" onclick={() => zoom(1 / 1.4)}><Icon name="zoomout" size={22} /></button>
+          <button class="ib" aria-label="Zoom in" onclick={() => zoomBy(1.4)}><Icon name="zoomin" size={22} /></button>
+          <button class="ib" aria-label="Zoom out" onclick={() => zoomBy(1 / 1.4)}><Icon name="zoomout" size={22} /></button>
         {/if}
         {#if item.message_id && item.conv_id}<button class="ib" aria-label="Show in chat" title="Show in chat" onclick={() => jumpTo(item.conv_id!, item.message_id!)}><Icon name="chat" size={22} /></button>{/if}
         <button class="ib" aria-label="Save" title="Save to Downloads" onclick={save}><Icon name="download" size={22} /></button>
@@ -151,7 +204,7 @@
     <div class="stage" bind:this={stage} role="presentation" onwheel={wheel} ondblclick={dbl} onpointerdown={down} onpointermove={move} onpointerup={up} onpointercancel={up}>
       {#if isImage(item.content_type)}
         {#key item.id}
-          <img src={mediaUrl(item.id)} alt={item.name} draggable="false" style="transform:translate({tx + (scale <= 1 ? swipeX : 0)}px,{ty}px) scale({scale})" />
+          <img bind:this={imgEl} class:anim src={mediaUrl(item.id)} alt={item.name} draggable="false" style="transform:translate({tx + (scale <= 1 ? swipeX : 0)}px,{ty}px) scale({scale})" />
         {/key}
       {:else}
         {#key item.id}
@@ -177,7 +230,8 @@
   .ti span { font-size: 12.5px; opacity: 0.75; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .cnt { font-size: 13px; opacity: 0.8; padding: 0 8px; font-variant-numeric: tabular-nums; }
   .stage { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; overflow: hidden; touch-action: none; user-select: none; }
-  .stage img { max-width: 100%; max-height: 100%; object-fit: contain; transition: transform 0.05s linear; will-change: transform; }
+  .stage img { max-width: 100%; max-height: 100%; object-fit: contain; will-change: transform; transform-origin: 50% 50%; }
+  .stage img.anim { transition: transform 0.18s ease-out; }
   .stage video { max-width: 100%; max-height: 100%; outline: none; }
   .nav { position: absolute; top: 50%; width: 50px; height: 50px; margin-top: -25px; border-radius: 50%; background: rgba(255, 255, 255, 0.14); color: #fff; display: inline-flex; align-items: center; justify-content: center; z-index: 2; }
   .nav:hover { background: rgba(255, 255, 255, 0.28); }

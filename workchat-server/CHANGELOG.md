@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.4.0
+
+Version bump only.
+
 ## 1.3.0
 
 Version bump only.

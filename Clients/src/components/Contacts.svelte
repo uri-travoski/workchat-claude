@@ -38,7 +38,7 @@
     {#each people as u (u.id)}
       <div class="p">
         <button class="who" onclick={() => (app.sheet = { kind: "profile", userId: u.id })}>
-          <Avatar id={userAvatar(u)} initials={initialsOf(u.display_name)} size={46} presence={u.presence ?? null} />
+          <Avatar id={userAvatar(u)} initials={initialsOf(u.display_name)} size={46} presence={u.presence ?? null} bot={u.is_bot} />
           <span class="t">
             <b>{u.display_name}</b>
             <span class="s">{u.title ?? "@" + u.username}</span>

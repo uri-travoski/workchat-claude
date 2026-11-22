@@ -74,7 +74,7 @@
   const hasLocal = $derived(row?.avatar_source === "local");
   async function setLocal() {
     try {
-      const [st] = await core.pickFiles("media");
+      const [st] = await core.pickFiles("image");
       if (!st) return;
       const target = row.kind === "dm" && row.peer_id ? ({ kind: "local", what: "user", id: row.peer_id } as const) : ({ kind: "local", what: "conv", id } as const);
       app.sheet = { kind: "crop", stagedId: st.id, target };
@@ -106,9 +106,9 @@
     <header>
       {#if app.phone}<button class="ib" aria-label="Back" onclick={closeConversation}><Icon name="left" size={26} stroke={2.2} /></button>{/if}
       <button class="hd" aria-label="Chat details" onclick={() => (row.kind === "dm" && row.peer_id ? (app.sheet = { kind: "profile", userId: row.peer_id }) : (app.sheet = { kind: "channelinfo", conv: id }))}>
-        <Avatar id={row.avatar} initials={row.initials} size={40} tile={row.kind === "channel"} icon={channelIcon(row.title)} presence={row.presence} />
+        <Avatar id={row.avatar} initials={row.initials} size={40} tile={row.kind === "channel"} bot={row.is_bot} icon={channelIcon(row.title)} presence={row.presence} />
         <span class="ti">
-          <h2>{#if row.kind === "channel"}# {/if}{row.title}{#if row.locked}<span class="lk" title="Locked chat, currently unlocked" aria-label="Locked chat, currently unlocked"><Icon name="lockopen" size={16} stroke={2} /></span>{/if}</h2>
+          <h2>{row.title}{#if row.locked}<span class="lk" title="Locked chat, currently unlocked" aria-label="Locked chat, currently unlocked"><Icon name="lockopen" size={16} stroke={2} /></span>{/if}</h2>
           <span class="sub" class:on={online || !!typingNames}>{subtitle}</span>
         </span>
       </button>

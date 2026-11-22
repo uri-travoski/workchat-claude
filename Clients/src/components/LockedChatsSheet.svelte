@@ -20,7 +20,7 @@
     <div class="r">
       <button class="open" onclick={() => open(r.id)}>
         <Avatar id={r.avatar} initials={r.initials} size={42} tile={r.kind === "channel"} icon={channelIcon(r.title)} />
-        <span class="t"><b>{r.kind === "channel" ? "# " : ""}{r.title}</b><small>{r.preview.kind === "none" ? "No messages yet" : r.preview.text}</small></span>
+        <span class="t"><b>{r.title}</b><small>{r.preview.kind === "none" ? "No messages yet" : r.preview.text}</small></span>
       </button>
       <button class="un" onclick={() => unlockChat(r.id)}><Icon name="lockopen" size={17} /> Unlock</button>
     </div>

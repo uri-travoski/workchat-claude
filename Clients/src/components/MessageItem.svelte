@@ -96,7 +96,7 @@
 {:else}
   <div class="msg" class:mine class:grouped={!head} class:group class:inthread={inThread} class:c-root={connector === "root"} class:c-mid={connector === "mid"} class:c-last={connector === "last"}>
     {#if (group || inThread) && !mine}
-      <span class="avwrap">{#if head || inThread}<Avatar id={userAvatar(sender)} initials={initialsOf(userName(m.sender_id))} size={inThread ? 32 : 34} />{/if}</span>
+      <span class="avwrap">{#if head || inThread}<Avatar id={userAvatar(sender)} initials={initialsOf(userName(m.sender_id))} size={inThread ? 32 : 34} bot={sender?.is_bot} />{/if}</span>
     {/if}
     <div class="col">
       <div class="bubble" class:in={!own} class:out={own} class:pending={m.pending === "sending"} class:media-only={!m.body && m.attachments.length > 0} role="presentation" oncontextmenu={ctx} onpointerdown={down} onpointerup={cancel} onpointermove={cancel} onpointercancel={cancel}>

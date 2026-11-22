@@ -255,7 +255,7 @@
         <button class="trow" onclick={() => { void openConversation(t.conv_id).then(() => openThread(t.conv_id, t.root.id)); }}>
           <Avatar id={r?.avatar} initials={r?.initials ?? "?"} size={44} tile={r?.kind === "channel"} />
           <span class="tb">
-            <span class="tt"><b>{r ? (r.kind === "channel" ? "# " : "") + r.title : "Thread"}</b><span class="tm">{listTime(t.last_reply_ts)}</span></span>
+            <span class="tt"><b>{r ? r.title : "Thread"}</b><span class="tm">{listTime(t.last_reply_ts)}</span></span>
             <span class="tp">{app.users[t.root.sender_id]?.display_name ?? ""}: {toPlain(t.root.body) || "Attachment"}</span>
             <span class="tr"><Icon name="thread" size={14} /> {t.reply_count} {t.reply_count === 1 ? "reply" : "replies"}{#if t.unread}<span class="badge">{t.unread}</span>{/if}</span>
           </span>

@@ -38,7 +38,7 @@
     {#each rows as r (r.id)}
       <button class="p" onclick={() => void pick(r.id)}>
         <Avatar id={r.avatar} initials={r.initials} size={40} tile={r.kind === "channel"} icon={channelIcon(r.title)} />
-        <span class="t"><b>{r.kind === "channel" ? "# " : ""}{r.title}</b></span>
+        <span class="t"><b>{r.title}</b></span>
       </button>
     {/each}
   </div>

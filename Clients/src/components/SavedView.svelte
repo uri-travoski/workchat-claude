@@ -38,7 +38,7 @@
   const who = (m: MessageView) => app.users[m.sender_id];
   const where = (m: MessageView) => {
     const r = app.rows[m.conv_id];
-    return r ? (r.kind === "channel" ? "# " : "") + r.title : "Chat";
+    return r ? r.title : "Chat";
   };
   // Long press (or right click) on a row: Open in chat, Unsave.
   let menu = $state<{ m: MessageView; x: number; y: number } | null>(null);

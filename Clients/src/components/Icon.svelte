@@ -96,11 +96,18 @@
     allchats: '<path d="M216 82h-34V48a14 14 0 0 0-14-14H40a14 14 0 0 0-14 14v128a6 6 0 0 0 3.42 5.41A5.86 5.86 0 0 0 32 182a6 6 0 0 0 3.77-1.33L73.71 150H74v34a14 14 0 0 0 14 14h94.29l37.94 30.67A6 6 0 0 0 224 230a5.86 5.86 0 0 0 2.58-.59A6 6 0 0 0 230 224V96a14 14 0 0 0-14-14M71.58 138a6 6 0 0 0-3.77 1.33L38 163.43V48a2 2 0 0 1 2-2h128a2 2 0 0 1 2 2v88a2 2 0 0 1-2 2ZM218 211.43l-29.81-24.1a6 6 0 0 0-3.77-1.33H88a2 2 0 0 1-2-2v-34h82a14 14 0 0 0 14-14V94h34a2 2 0 0 1 2 2Z"/>',
     thread: '<path d="M46 32h148a14 14 0 0 1 14 14v52a14 14 0 0 1-14 14H72v48a10 10 0 0 0 10 10h14v-20a14 14 0 0 1 14-14h100a14 14 0 0 1 14 14v68a6 6 0 0 1-10.24 4.24L195.51 204H110a14 14 0 0 1-14-14v-8H82a22 22 0 0 1-22-22v-48H46a14 14 0 0 1-14-14V46a14 14 0 0 1 14-14Zm0 12a2 2 0 0 0-2 2v52a2 2 0 0 0 2 2h148a2 2 0 0 0 2-2V46a2 2 0 0 0-2-2Zm64 104a2 2 0 0 0-2 2v40a2 2 0 0 0 2 2h90.49L212 203.51V150a2 2 0 0 0-2-2Z"/>',
   };
+  // Small 20x20 / 24x24 filled glyphs used as corner badges on avatars (channel hash, bot).
+  const badges: Record<string, { vb: string; d: string; rule?: boolean }> = {
+    channel: { vb: "0 0 20 20", rule: true, d: "M9.243 3.03a1 1 0 01.727 1.213L9.53 6h2.94l.56-2.243a1 1 0 111.94.486L14.53 6H17a1 1 0 110 2h-2.97l-1 4H15a1 1 0 110 2h-2.47l-.56 2.242a1 1 0 11-1.94-.485L10.47 14H7.53l-.56 2.242a1 1 0 11-1.94-.485L5.47 14H3a1 1 0 110-2h2.97l1-4H5a1 1 0 110-2h2.47l.56-2.243a1 1 0 011.213-.727zM9.03 8l-1 4h2.938l1-4H9.031z" },
+    bot: { vb: "0 0 24 24", d: "M13.5 2C13.5 2.44425 13.3069 2.84339 13 3.11805V5H18C19.6569 5 21 6.34315 21 8V18C21 19.6569 19.6569 21 18 21H6C4.34315 21 3 19.6569 3 18V8C3 6.34315 4.34315 5 6 5H11V3.11805C10.6931 2.84339 10.5 2.44425 10.5 2C10.5 1.17157 11.1716 0.5 12 0.5C12.8284 0.5 13.5 1.17157 13.5 2ZM0 10H2V16H0V10ZM24 10H22V16H24V10ZM9 14.5C9.82843 14.5 10.5 13.8284 10.5 13C10.5 12.1716 9.82843 11.5 9 11.5C8.17157 11.5 7.5 12.1716 7.5 13C7.5 13.8284 8.17157 14.5 9 14.5ZM16.5 13C16.5 12.1716 15.8284 11.5 15 11.5C14.1716 11.5 13.5 12.1716 13.5 13C13.5 13.8284 14.1716 14.5 15 14.5C15.8284 14.5 16.5 13.8284 16.5 13Z" },
+  };
   let { name, size = 20, stroke = 1.8, fill = false, class: cls = "" }: { name: string; size?: number; stroke?: number; fill?: boolean; class?: string } = $props();
 </script>
 
-{#if solid[name]}
-  <svg class={cls} width={size} height={size} viewBox="0 0 256 256" fill="currentColor" aria-hidden="true">{@html solid[name]}</svg>
+{#if badges[name]}
+  <svg class={cls} width={size} height={size} viewBox={badges[name].vb} fill="currentColor" aria-hidden="true"><path fill-rule={badges[name].rule ? "evenodd" : "nonzero"} clip-rule={badges[name].rule ? "evenodd" : "nonzero"} d={badges[name].d} /></svg>
+{:else if solid[name]}
+  <svg class={cls} width={size * 1.1} height={size * 1.1} viewBox="0 0 256 256" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true">{@html solid[name]}</svg>
 {:else}
   <svg class={cls} width={size} height={size} viewBox="0 0 24 24" fill={fill ? "currentColor" : "none"} stroke="currentColor" stroke-width={stroke} stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
     {@html paths[name] ?? ""}

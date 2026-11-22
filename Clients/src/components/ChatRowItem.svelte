@@ -40,7 +40,7 @@
 
 <div class="row" class:selected class:unread role="presentation" oncontextmenu={(e) => { e.preventDefault(); menuAt(e.clientX, e.clientY); }}>
   <button class="main" onpointerdown={down} onpointerup={cancel} onpointerleave={cancel} onpointercancel={cancel} onclick={() => { if (longFired) { longFired = false; return; } onopen(); }} aria-label={`${row.title}${unread ? ", unread" : ""}`}>
-    <Avatar id={row.avatar} initials={row.initials} size={50} tile={isChannel} icon={channelIcon(row.title)} presence={row.presence} />
+    <Avatar id={row.avatar} initials={row.initials} size={50} tile={isChannel} bot={row.is_bot} icon={channelIcon(row.title)} presence={row.presence} />
     <span class="body">
       <span class="top">
         <span class="title">{#if isChannel}<span class="hash">#</span> {/if}{row.title}</span>

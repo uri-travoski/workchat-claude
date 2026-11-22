@@ -37,7 +37,7 @@
     {#each rows as r (r.id)}
       <button class="p" onclick={() => (picked = picked.includes(r.id) ? picked.filter((x) => x !== r.id) : [...picked, r.id])}>
         <Avatar id={r.avatar} initials={r.initials} size={40} tile={r.kind === "channel"} icon={channelIcon(r.title)} />
-        <span class="t"><b>{r.kind === "channel" ? "# " : ""}{r.title}</b></span>
+        <span class="t"><b>{r.title}</b></span>
         <span class="ck" class:on={picked.includes(r.id)}>{#if picked.includes(r.id)}<Icon name="check" size={15} stroke={3} />{/if}</span>
       </button>
     {/each}

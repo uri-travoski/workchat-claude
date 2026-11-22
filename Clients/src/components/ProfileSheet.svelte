@@ -15,7 +15,7 @@
 
   async function setLocal() {
     try {
-      const [st] = await core.pickFiles("media");
+      const [st] = await core.pickFiles("image");
       if (st) app.sheet = { kind: "crop", stagedId: st.id, target: { kind: "local", what: "user", id: userId } };
     } catch (e) {
       fail(e);
@@ -31,7 +31,7 @@
 {#if u}
   <Sheet title="" onclose={closeSheet}>
     <div class="hero">
-      <Avatar id={userAvatar(u)} initials={initialsOf(u.display_name)} size={92} presence={u.presence ?? null} />
+      <Avatar id={userAvatar(u)} initials={initialsOf(u.display_name)} size={92} presence={u.presence ?? null} bot={u.is_bot} />
       <h2>{u.display_name}</h2>
       {#if u.title}<p class="role">{u.title}</p>{/if}
       <p class="st" class:on={u.presence === "online"}>{status}</p>

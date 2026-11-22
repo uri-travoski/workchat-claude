@@ -55,11 +55,9 @@
       const c = document.createElement("canvas");
       c.width = c.height = out;
       const g = c.getContext("2d")!;
-      g.fillStyle = "#fff";
-      g.fillRect(0, 0, out, out);
       g.drawImage(img, sx, sy, size, size, 0, 0, out, out);
-      const blob: Blob = await new Promise((res, rej) => c.toBlob((b) => (b ? res(b) : rej(new Error("Could not prepare the picture."))), "image/jpeg", 0.88));
-      const st = await core.stageBlob(blob, "avatar.jpg");
+      const blob: Blob = await new Promise((res, rej) => c.toBlob((b) => (b ? res(b) : rej(new Error("Could not prepare the picture."))), "image/png"));
+      const st = await core.stageBlob(blob, "avatar.png");
       const t = sheet.target;
       if (t.kind === "me") await core.setAvatar("me", null, st.id);
       else if (t.kind === "conv") await core.setAvatar("conv", t.id, st.id);
@@ -89,7 +87,7 @@
 
 <Sheet title="Crop picture" onclose={cancel}>
   <div class="stage" role="presentation" style="--v:{V}px" onpointerdown={down} onpointermove={move} onpointerup={up} onpointercancel={up} onwheel={wheel}>
-    <img bind:this={img} crossorigin="anonymous" src={mediaUrl(sheet.stagedId)} alt="" draggable="false" onload={(e) => { const i = e.currentTarget as HTMLImageElement; iw = i.naturalWidth; ih = i.naturalHeight; }} style="width:{iw * k}px;height:{ih * k}px;transform:translate(calc(-50% + {ox}px),calc(-50% + {oy}px))" />
+    <img bind:this={img} crossorigin="anonymous" src={mediaUrl(sheet.stagedId)} alt="" draggable="false" onload={(e) => { const i = e.currentTarget as HTMLImageElement; iw = i.naturalWidth || 512; ih = i.naturalHeight || 512; }} style="width:{iw * k}px;height:{ih * k}px;transform:translate(calc(-50% + {ox}px),calc(-50% + {oy}px))" />
     <span class="ring"></span>
   </div>
   <label class="z">Zoom <input type="range" min="1" max="5" step="0.01" bind:value={zoom} aria-label="Zoom" /></label>

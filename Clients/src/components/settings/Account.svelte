@@ -60,7 +60,7 @@
         {#each favs as r (r.id)}
           <button class="st-row" onclick={() => { app.tab = "chats"; void openConversation(r.id); }}>
             <Avatar id={r.avatar} initials={r.initials} size={38} tile={r.kind === "channel"} />
-            <span class="st-tx"><b>{r.kind === "channel" ? "# " : ""}{r.title}</b></span><Icon name="right" size={18} />
+            <span class="st-tx"><b>{r.title}</b></span><Icon name="right" size={18} />
           </button>
         {:else}
           <div class="st-blk"><p class="st-note">No pinned chats. Use Pin to top on a chat's menu.</p></div>

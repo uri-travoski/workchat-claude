@@ -37,7 +37,7 @@ docker compose pull && docker compose up -d
 or, without touching the file, set the image in `.env` and run the same two compose commands:
 
 ```
-WORKCHAT_IMAGE=ghcr.io/uri-travoski/workchat-claude-server:1.3.0     # a specific release (tags are the release numbers without the v)
+WORKCHAT_IMAGE=ghcr.io/uri-travoski/workchat-claude-server:1.4.0     # a specific release (tags are the release numbers without the v)
 WORKCHAT_IMAGE=ghcr.io/uri-travoski/workchat-claude-server:latest    # always the newest release: docker compose pull is then the whole update
 ```
 
@@ -132,8 +132,8 @@ Push (optional): ntfy needs only a URL (see "Reverse proxy, tunnel and ntfy run 
 Normal installs never build: they pull the published image. The Dockerfile lives in `docker/` (not in `deploy/`, which holds only the two files of a release). The build context is the repository root:
 
 ```
-docker build -f docker/Dockerfile -t workchat-server:1.3.0 .
-docker tag workchat-server:1.3.0 ghcr.io/uri-travoski/workchat-claude-server:1.3.0     # what release.yml publishes; lets deploy/docker-compose.yml run it offline
+docker build -f docker/Dockerfile -t workchat-server:1.4.0 .
+docker tag workchat-server:1.4.0 ghcr.io/uri-travoski/workchat-claude-server:1.4.0     # what release.yml publishes; lets deploy/docker-compose.yml run it offline
 docker compose -f docker/docker-compose.build.yml up -d --build                  # or: build and run a throw-away dev instance (port 8080, volume workchat-dev-data)
 ```
 The image is multi-stage (node for the admin panel, rust for the server, debian-slim runtime with ca-certificates and tini,

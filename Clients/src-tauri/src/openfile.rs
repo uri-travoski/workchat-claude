@@ -84,6 +84,20 @@ pub fn open_with(app: &Path, file: &Path) -> Result<(), String> {
     }
 }
 
+/// Windows: the path without the `\\?\` verbatim prefix (ShellExecute can refuse it).
+#[cfg(windows)]
+pub fn plain_path(p: &Path) -> String {
+    let s = p.display().to_string();
+    s.strip_prefix(r"\\?\").unwrap_or(&s).to_string()
+}
+
+/// Windows fallback: the shell's own "open this file" entry point (what a double click uses). Returns once started.
+#[cfg(windows)]
+pub fn windows_shell_open(file: &str) -> Result<(), String> {
+    use std::os::windows::process::CommandExt;
+    Command::new("rundll32.exe").arg("url.dll,FileProtocolHandler").arg(file).creation_flags(0x0800_0000).spawn().map(|_| ()).map_err(|e| e.to_string())
+}
+
 /// Windows "Open with" chooser (the system dialog) for `file`.
 #[cfg(windows)]
 pub fn windows_open_as(file: &Path) -> Result<(), String> {

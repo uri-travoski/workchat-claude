@@ -114,7 +114,7 @@
   }
   const conv = (id: string) => {
     const r = app.rows[id];
-    return r ? (r.kind === "channel" ? "# " : "") + r.title : "";
+    return r ? r.title : "";
   };
   const idx = (r: Row) => flat.indexOf(r);
 </script>

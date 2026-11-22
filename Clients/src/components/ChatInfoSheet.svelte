@@ -43,7 +43,7 @@
 
   async function pick(target: CropTarget) {
     try {
-      const [st] = await core.pickFiles("media");
+      const [st] = await core.pickFiles("image");
       if (st) app.sheet = { kind: "crop", stagedId: st.id, target };
     } catch (e) {
       fail(e);
@@ -118,13 +118,13 @@
       <div class="row2"><button class="ghost" onclick={() => { adding = false; toAdd = []; }}>Cancel</button><button class="ok" disabled={!toAdd.length || busy} onclick={addPeople}>Add {toAdd.length || ""}</button></div>
     {:else}
       <div class="hero">
-        <Avatar id={row.avatar} initials={row.initials} size={88} tile={row.kind === "channel"} icon={channelIcon(row.title)} presence={row.presence} />
+        <Avatar id={row.avatar} initials={row.initials} size={88} tile={row.kind === "channel"} bot={row.is_bot} icon={channelIcon(row.title)} presence={row.presence} />
         {#if editing}
           <label class="f">Name<input bind:value={name} maxlength="80" /></label>
           {#if row.kind === "channel"}<label class="f">Topic<input bind:value={topic} maxlength="250" placeholder="What is this channel for?" /></label>{/if}
           <div class="row2"><button class="ghost" onclick={() => (editing = false)}>Cancel</button><button class="ok" disabled={busy} onclick={saveEdit}>Save</button></div>
         {:else}
-          <h2>{row.kind === "channel" ? "# " : ""}{row.title}</h2>
+          <h2>{row.title}</h2>
           {#if row.topic}<p class="topic">{row.topic}</p>{/if}
           {#if group}<p class="sub">{row.member_count} {row.member_count === 1 ? "member" : "members"}{row.kind === "channel" ? " · Private channel" : ""}{row.archived ? " · Archived" : ""}</p>{/if}
           {#if isLocal}<p class="loc">Showing your local picture</p>{/if}
@@ -148,7 +148,7 @@
           {#if u}
             <div class="m">
               <button class="mm" onclick={() => (app.sheet = { kind: "profile", userId: mem.user_id })}>
-                <Avatar id={userAvatar(u)} initials={initialsOf(u.display_name)} size={38} presence={u.presence ?? null} />
+                <Avatar id={userAvatar(u)} initials={initialsOf(u.display_name)} size={38} presence={u.presence ?? null} bot={u.is_bot} />
                 <span><b>{u.display_name}{#if mem.role === "owner"} <i class="mgr">Manager</i>{/if}</b><small>{u.title ?? "@" + u.username}</small></span>
               </button>
               {#if canRemove(mem)}<button class="rm" aria-label={`Remove ${u.display_name}`} title="Remove" onclick={() => remove(mem.user_id)}><Icon name="x" size={17} /></button>{/if}

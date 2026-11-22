@@ -210,8 +210,10 @@ async fn pick_files(app: AppHandle, e: Eng<'_>, kind: String) -> Result<Vec<Stag
         return Ok(out);
     }
     #[allow(unreachable_code)]
-    let mut b = app.dialog().file().set_title(if kind == "media" { "Choose photos or videos" } else { "Choose files" });
-    if kind == "media" {
+    let mut b = app.dialog().file().set_title(if kind == "image" { "Choose a picture" } else if kind == "media" { "Choose photos or videos" } else { "Choose files" });
+    if kind == "image" {
+        b = b.add_filter("Pictures", &["jpg", "jpeg", "png", "gif", "webp", "svg", "bmp", "heic", "heif", "avif"]);
+    } else if kind == "media" {
         b = b.add_filter("Photos and videos", &["jpg", "jpeg", "png", "gif", "webp", "heic", "mp4", "mov", "m4v", "webm", "mkv", "3gp"]);
     }
     let picked = tauri::async_runtime::spawn_blocking(move || b.blocking_pick_files()).await.map_err(|e| CoreError::local(e.to_string()))?;
@@ -245,6 +247,14 @@ fn stage_chunk(e: Eng, request: tauri::ipc::Request<'_>) -> Result<()> {
         tauri::ipc::InvokeBody::Raw(bytes) => e.stage_chunk(&id, bytes),
         _ => Err(CoreError::local("Expected raw bytes.")),
     }
+}
+
+/// Same as `stage_chunk`, for webviews that cannot send a raw body (Android turns it into JSON): the bytes arrive as base64.
+#[tauri::command]
+fn stage_chunk_b64(e: Eng, id: String, data: String) -> Result<()> {
+    use base64::Engine as _;
+    let bytes = base64::engine::general_purpose::STANDARD.decode(data.as_bytes()).map_err(|_| CoreError::local("The picture data was damaged."))?;
+    e.stage_chunk(&id, &bytes)
 }
 
 #[tauri::command]
@@ -304,7 +314,14 @@ async fn open_attachment(app: AppHandle, e: Eng<'_>, id: String, name: String) -
         #[cfg(not(any(target_os = "linux", target_os = "macos")))]
         let res = {
             use tauri_plugin_opener::OpenerExt;
-            app.opener().open_path(p2.display().to_string(), None::<&str>).map_err(|e| e.to_string())
+            #[cfg(windows)]
+            let shown = openfile::plain_path(&p2);
+            #[cfg(not(windows))]
+            let shown = p2.display().to_string();
+            let r = app.opener().open_path(shown.clone(), None::<&str>).map_err(|e| e.to_string());
+            #[cfg(windows)]
+            let r = r.or_else(|first| openfile::windows_shell_open(&shown).map_err(|second| format!("{first}; {second}")));
+            r
         };
         #[cfg(any(target_os = "linux", target_os = "macos"))]
         let res = {
@@ -1139,6 +1156,7 @@ pub fn run() {
             stage_paths,
             stage_begin,
             stage_chunk,
+            stage_chunk_b64,
             stage_end,
             unstage,
             set_staged_meta,
