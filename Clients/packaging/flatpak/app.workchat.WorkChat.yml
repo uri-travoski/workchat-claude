@@ -6,6 +6,9 @@ runtime: org.gnome.Platform
 runtime-version: '48'
 sdk: org.gnome.Sdk
 command: workchat
+# The CI runner's flatpak-builder calls an `appstream-compose` binary the GNOME 48 SDK no longer ships.
+# The metainfo is still installed; only the pre-compiled catalog is skipped.
+appstream-compose: false
 
 finish-args:
   - --share=network
