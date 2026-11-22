@@ -1,7 +1,7 @@
 # WorkChat apps
 
 Tauri 2 desktop and mobile client for the WorkChat server. A Rust core does all networking and storage; a Svelte 5 +
-TypeScript UI (Vite) talks to it with typed commands and events. Bundle id `app.workchat`, version 1.1.0. Source and releases: https://github.com/uri-travoski/workchat-claude.
+TypeScript UI (Vite) talks to it with typed commands and events. Bundle id `app.workchat`, version 1.2.0. Source and releases: https://github.com/uri-travoski/workchat-claude.
 
 ## Layout
 
@@ -16,7 +16,7 @@ TypeScript UI (Vite) talks to it with typed commands and events. Bundle id `app.
 | `tests/` | TS tests plus `markup-cases.json`, shared by the Rust and TS markup parsers |
 | `scripts/` | `sync-proto.sh`, `gen-types.mjs`, `test-ts.sh`, `build-debug.sh`, `dev-seed.mjs` |
 | `tests/ui/` | Xvfb screenshot driver (`run.sh`) and the UI scripts that walk the app against a seeded server |
-| `docs/screenshots/c1/`, `c2/`, `c3/` | Phase C1, C2 and C3 screenshots (phone about 405x880, desktop 1280x800, `c3/android/` from the emulator) |
+| `docs/screenshots/c1/`, `c2/`, `c3/`, `d1/` | Phase C1, C2, C3 and D1 screenshots (phone about 405x880, desktop 1280x800 and 1000x700, `c3/android/` from the emulator) |
 
 ## Dev setup
 
@@ -85,7 +85,7 @@ Commands (`invoke`) - core: `app_info, check_server, login_password, login_link,
 open_conversation, load_older, send_message, retry_message, discard_message, edit_message, delete_message, react,
 mark_read, set_favourite, order_conversations, create_dm, list_files, get_thread, chat_row, typing, reconnect, open_url`.
 C2: `pick_files, stage_paths, stage_begin/chunk/end, unstage, set_staged_meta, send_files, save_attachment,
-open_attachment, voice_start/finish/cancel, audio_play, audio_ctl, get_counts, list_threads, follow_thread, read_thread,
+open_attachment (answers `{opened, path, reason}`), save_attachment_as, show_attachment_in_folder, open_attachment_with, list_saved_messages, voice_start/finish/cancel, audio_play, audio_ctl, get_counts, list_threads, follow_thread, read_thread,
 search, list_users, update_profile, forward_message, pin_message, get_pins, save_message, fetch_message, messages_around,
 set_avatar, remove_avatar, set_local_avatar, remove_local_avatar, create_conversation, add_members, update_conversation`.
 
@@ -114,8 +114,8 @@ C3 modules:
 C3 commands: `lock_status, lock_set_pin, lock_unlock, lock_relock, lock_change_pin, lock_set_timeout, lock_tick, lock_touch,
 lock_background, lock_chat, lock_forgot`, `get_notify_settings, set_notify_settings, notify_status, notify_request_permission,
 notify_test, push_info, push_register, push_endpoint, push_unregister`, `update_state, check_update, start_update,
-set_update_api`, `list_sessions` (and revoke), `get_org_settings, browse_channels, join_channel, leave_conversation,
-remove_member, get_members, hide_message, set_system_bars`. Events add `org_settings, channel_directory` and the lock and
+set_update_api`, `list_sessions` (and revoke), `get_org_settings, leave_conversation,
+remove_member, get_members, hide_message, set_system_bars`. Events add `org_settings` and the lock and
 update state events.
 
 Sending is optimistic: the message is stored in the outbox with local id `local:<client_id>`, shown immediately,
@@ -128,5 +128,28 @@ adopted into the media cache, so the sender never downloads their own file again
 Media ids in `wcmedia://localhost/<id>`: server attachment ids, plus local ones that never reach the server: `st_*`
 (staged, e.g. in the preview sheet), `up_<client>_<n>` (files of an unsent message) and `la_*` (local avatar overrides).
 
-UI: phone (< 760 px) is one screen at a time with the bottom bar Chats / Contacts / Settings. Desktop is a navy left
-rail, a top bar (brand, search, profile), the chat list column, the conversation and an optional thread pane.
+UI: phone (< 760 px) is one screen at a time with the bottom bar Chats / Contacts / Settings and the filter pills
+(All / DMs / Channels / Threads / Files). Desktop (1.2) is a navy left rail, a top bar, the chat list column, the
+conversation and an optional thread pane:
+
+- Rail (top to bottom): All Chats, DMs, Channels, Threads, Files, Saved, Contacts, and Settings at the bottom. No app tile and no
+  avatar. The active item is highlighted, the label shows as a tooltip, and All Chats / DMs / Channels / Threads carry unread badges.
+  There are no filter pills on desktop; the rail does that job (Threads, Files and Saved fill the list column).
+- Panes: the list column and the thread pane are resized by dragging their dividers (min/max widths, double-click resets, arrow keys
+  nudge, widths kept per device in `localStorage` key `workchat.panes`). The conversation keeps at least 380 px.
+- Two independent search boxes. The top bar searches messages, people and files on the server (debounced, grouped results panel,
+  Up/Down/Enter/Esc, clear button; a message hit opens its conversation and flashes the message, a person opens the profile, a file
+  opens in the viewer or its default app). The box above the list filters only the names of the chats showing in the list.
+  Locked chats are never in the results.
+- Pinned chats are dragged (whole row, or the grip with touch) to reorder; the order is saved with `POST /conversations/order`
+  (kept on the device if the server refuses). Other chats sort by recent activity, or A to Z / Z to A from the "Recent" control in the
+  section header (persisted in the preferences).
+- Saved: `GET /saved/messages` (older servers: `/saved` plus a fetch per message), with sender, chat, time, files, click to jump, unsave.
+- Locked chats that are showing while the locked area is unlocked carry an open padlock next to their name in the list and the header.
+- Attachments: photos and videos open in the in-app viewer (toolbar button "Open in default app"); every other file is downloaded to
+  the cache and opened by the system (`xdg-open`, ShellExecute, `open`). When that fails a dialog offers Open with, Save as and Show
+  in folder. Esc closes only the top-most overlay (`src/lib/overlays.ts` keeps the stack), never the window.
+- The tray icon is the plain app icon with the tooltip "WorkChat" (no unread badge); the window title still counts unread.
+- Composer shortcuts: Ctrl+B bold, Ctrl+I italic, Ctrl+Shift+X strike, Ctrl+E code, Ctrl+Alt+C code block, Ctrl+K link,
+  Ctrl+Shift+8 bullets, Ctrl+Shift+7 numbers, Ctrl+Shift+9 quote. Links are plain text (no previews) and open in the system browser.
+- All channels are private; there is no Browse and no public/private switch. Members are added by admins and channel managers.

@@ -21,5 +21,17 @@
   {"name":"one line fence","input":"```x = 1```","blocks":[{"t":"code","text":"x = 1"}]},
   {"name":"mixed blocks","input":"intro\n\n- a\n- b\n\n> q\n\n1. x","blocks":[{"t":"p","spans":[{"text":"intro"}]},{"t":"list","ordered":false,"items":[[{"text":"a"}],[{"text":"b"}]]},{"t":"quote","spans":[{"text":"q"}]},{"t":"list","ordered":true,"items":[[{"text":"x"}]]}]},
   {"name":"paragraph line break","input":"line one\nline two","blocks":[{"t":"p","spans":[{"text":"line one\nline two"}]}]},
-  {"name":"empty","input":"","blocks":[]}
+  {"name":"empty","input":"","blocks":[]},
+  {"name":"toolbar quote multi-line","input":"> wise\n> words *here*","blocks":[{"t":"quote","spans":[{"text":"wise\nwords "},{"text":"here","bold":true}]}]},
+  {"name":"toolbar bullet list with marks","input":"- *bold* item\n- _italic_ item\n- ~gone~ and `code`","blocks":[{"t":"list","ordered":false,"items":[[{"text":"bold","bold":true},{"text":" item"}],[{"text":"italic","italic":true},{"text":" item"}],[{"text":"gone","strike":true},{"text":" and "},{"text":"code","code":true}]]}]},
+  {"name":"toolbar numbered list","input":"1. first\n2. second *two*\n3. third","blocks":[{"t":"list","ordered":true,"items":[[{"text":"first"}],[{"text":"second "},{"text":"two","bold":true}],[{"text":"third"}]]}]},
+  {"name":"toolbar code block with language","input":"```js\nconst a = *1*;\n```","blocks":[{"t":"code","text":"const a = *1*;"}]},
+  {"name":"toolbar code block after text","input":"before\n```\nline 1\nline 2\n```\nafter","blocks":[{"t":"p","spans":[{"text":"before"}]},{"t":"code","text":"line 1\nline 2"},{"t":"p","spans":[{"text":"after"}]}]},
+  {"name":"markers inside inline code stay literal","input":"use `*not bold*` here","blocks":[{"t":"p","spans":[{"text":"use "},{"text":"*not bold*","code":true},{"text":" here"}]}]},
+  {"name":"each line formatted separately","input":"*one*\n*two*\n*three*","blocks":[{"t":"p","spans":[{"text":"one","bold":true},{"text":"\n"},{"text":"two","bold":true},{"text":"\n"},{"text":"three","bold":true}]}]},
+  {"name":"bold link and mention","input":"*see* https://example.com/x and @katherine.wells","blocks":[{"t":"p","spans":[{"text":"see","bold":true},{"text":" "},{"text":"https://example.com/x","link":"https://example.com/x"},{"text":" and "},{"text":"@katherine.wells","mention":"katherine.wells"}]}]},
+  {"name":"strike and italic nested","input":"~old _and slanted_~ text","blocks":[{"t":"p","spans":[{"text":"old ","strike":true},{"text":"and slanted","italic":true,"strike":true},{"text":" text"}]}]},
+  {"name":"link inside a quote","input":"> read https://example.com/docs.\nthen reply","blocks":[{"t":"quote","spans":[{"text":"read "},{"text":"https://example.com/docs","link":"https://example.com/docs"},{"text":"."}]},{"t":"p","spans":[{"text":"then reply"}]}]},
+  {"name":"spaces inside markers are plain","input":"* not bold * and _ not italic _","blocks":[{"t":"p","spans":[{"text":"* not bold * and _ not italic _"}]}]},
+  {"name":"bullet then paragraph then numbered","input":"- a\n- b\n\ntext\n\n1. x\n2. y","blocks":[{"t":"list","ordered":false,"items":[[{"text":"a"}],[{"text":"b"}]]},{"t":"p","spans":[{"text":"text"}]},{"t":"list","ordered":true,"items":[[{"text":"x"}],[{"text":"y"}]]}]}
 ]

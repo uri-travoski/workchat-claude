@@ -379,36 +379,3 @@ pub fn can_pin(conn: &Connection, auth_admin: bool, conv_id: &str, user_id: &str
     }
     Ok(load_org_settings(conn)?.channel_pins == ChannelPins::Everyone || role == "owner")
 }
-
-/// How a public channel appears in the browse list; None when the conversation is not browsable.
-pub fn browse_item(conn: &Connection, conv_id: &str) -> AppResult<Option<ChannelBrowseItem>> {
-    let row: Option<(String, Option<String>, Option<String>, Option<String>, i64, String, i64)> = conn
-        .query_row(
-            "SELECT kind, name, topic, avatar_attachment, archived, visibility, created_ms FROM conversations WHERE id=?1",
-            [conv_id],
-            |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?, r.get(4)?, r.get(5)?, r.get(6)?)),
-        )
-        .optional()?;
-    let Some((kind, name, topic, avatar, archived, vis, created_ms)) = row else { return Ok(None) };
-    if kind != "channel" || vis != "public" || archived != 0 {
-        return Ok(None);
-    }
-    let member_count: i64 = conn.query_row("SELECT COUNT(*) FROM members WHERE conv_id=?1", [conv_id], |r| r.get(0))?;
-    Ok(Some(ChannelBrowseItem { id: conv_id.to_string(), name: name.unwrap_or_default(), topic, avatar, member_count, created_ms }))
-}
-
-/// Tells everyone who is NOT in the channel how it now appears in the browse list (or that it is gone from it).
-/// `was_listed` is `browse_item(..).is_some()` from before the change; nothing is sent for conversations that
-/// were and are not browsable (private channels stay invisible).
-pub fn emit_directory(conn: &Connection, em: &mut Emitter, conv_id: &str, was_listed: bool) -> AppResult<()> {
-    let item = browse_item(conn, conv_id)?;
-    if item.is_none() && !was_listed {
-        return Ok(());
-    }
-    for u in user_ids_all_active(conn)? {
-        if !is_member(conn, conv_id, &u)? {
-            em.emit(conn, &u, EventData::ChannelDirectoryUpdate { conv_id: conv_id.to_string(), channel: item.clone() })?;
-        }
-    }
-    Ok(())
-}

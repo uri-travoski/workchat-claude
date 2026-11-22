@@ -121,3 +121,7 @@ a { color: var(--blue); }
 .scroll { overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: var(--line) transparent; }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 @media (prefers-reduced-motion: reduce) { * { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; } }
+
+/* While a pane divider is dragged: keep the resize cursor everywhere and do not select text. */
+body.resizing { cursor: col-resize; user-select: none; }
+body.resizing * { cursor: col-resize !important; }

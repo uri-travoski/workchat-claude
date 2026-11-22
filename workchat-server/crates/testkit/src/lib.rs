@@ -479,16 +479,16 @@ impl Client {
     pub async fn create_channel(&self, name: &str, members: &[String]) -> Res<ConversationSummary> {
         self.post(
             "/conversations",
-            &CreateConversation { kind: ConversationKind::Channel, name: name.into(), topic: None, members: members.to_vec(), visibility: Some(ChannelVisibility::Private), include_creator: Some(false) },
+            &CreateConversation { kind: ConversationKind::Channel, name: name.into(), topic: None, members: members.to_vec(), include_creator: Some(false) },
         )
         .await
     }
 
-    /// A channel the way an app creates it: the creator joins as manager, visibility as given (None = server default, public).
-    pub async fn new_channel(&self, name: &str, members: &[String], visibility: Option<ChannelVisibility>) -> Res<ConversationSummary> {
+    /// A channel the way an app creates it: the creator joins as manager, always private.
+    pub async fn new_channel(&self, name: &str, members: &[String]) -> Res<ConversationSummary> {
         self.post(
             "/conversations",
-            &CreateConversation { kind: ConversationKind::Channel, name: name.into(), topic: None, members: members.to_vec(), visibility, include_creator: None },
+            &CreateConversation { kind: ConversationKind::Channel, name: name.into(), topic: None, members: members.to_vec(), include_creator: None },
         )
         .await
     }
@@ -497,13 +497,13 @@ impl Client {
     pub async fn new_group(&self, name: &str, members: &[String]) -> Res<ConversationSummary> {
         self.post(
             "/conversations",
-            &CreateConversation { kind: ConversationKind::GroupDm, name: name.into(), topic: None, members: members.to_vec(), visibility: None, include_creator: None },
+            &CreateConversation { kind: ConversationKind::GroupDm, name: name.into(), topic: None, members: members.to_vec(), include_creator: None },
         )
         .await
     }
 
     pub async fn create_group(&self, name: &str, members: &[String]) -> Res<ConversationSummary> {
-        self.post("/conversations", &CreateConversation { kind: ConversationKind::GroupDm, name: name.into(), topic: None, members: members.to_vec(), visibility: None, include_creator: Some(false) }).await
+        self.post("/conversations", &CreateConversation { kind: ConversationKind::GroupDm, name: name.into(), topic: None, members: members.to_vec(), include_creator: Some(false) }).await
     }
 
     pub async fn set_org_settings(&self, req: &UpdateOrgSettings) -> Res<OrgSettings> {

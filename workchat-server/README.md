@@ -11,7 +11,7 @@ Moving from the earlier SuperChat server install? See [docs/UPGRADING.md](docs/U
 
 * **Accounts** are created by an admin only (name and password, plus a one-time login link that can be tapped, scanned as a QR code or pasted). No public sign-up.
   Roles: owner, admin, member. Disabling a user signs them out of every device at once.
-* **Conversations**: public and private channels and group chats (anyone can create them unless an admin restricts channel creation; the creator manages them; public channels can be browsed and joined), direct messages and notes to yourself.
+* **Conversations**: private channels and group chats (anyone can create them unless an admin restricts channel creation; the creator manages them; people join only by being added), direct messages and notes to yourself.
   Threads, reactions, edit and delete, mentions and `@handle` groups, pins, bookmarks, favourites, sections, mute and notify levels, drafts, save for later with labels, an Activity feed.
 * **Cloud chats**: all messages and files live on the server; a new device pulls down the whole history. Per-user ordered event log with a cursor, WebSocket live updates, idempotent sends.
 * **Files** up to 100 MB (configurable) in S3, Cloudflare R2, Backblaze B2, any S3-compatible store, Google Drive or local disk; **move all files** to another storage and verify them.

@@ -1,7 +1,7 @@
 <script lang="ts">
-  import { app, closeConversation, fail, openConversation, openThread, sortedRows } from "../lib/app.svelte";
+  import { app, closeConversation, fail, openConversation, openThread, prefs, savePrefs, sortedRows, type ChatSort } from "../lib/app.svelte";
   import { core, type ChatRow } from "../lib/core";
-  import { byActivity, isDirect, matches } from "../lib/chat";
+  import { byActivity, dropSlot, inKind, isDirect, moveId, nameMatches, sortChats } from "../lib/chat";
   import { listTime } from "../lib/format";
   import { toPlain } from "../lib/markup";
   import Avatar from "./Avatar.svelte";
@@ -9,6 +9,7 @@
   import Icon from "./Icon.svelte";
   import Menu from "./Menu.svelte";
   import FilesView from "./FilesView.svelte";
+  import SavedView from "./SavedView.svelte";
   import GlobalSearch from "./GlobalSearch.svelte";
   import { signOutAction } from "../lib/actions";
   import { lockNow, openLockedChats } from "../lib/lock";
@@ -19,42 +20,81 @@
   const threadList = $derived(Object.values(app.threads).sort((a, b) => b.last_reply_ts - a.last_reply_ts));
   const anyUnread = $derived(rows.some((r) => r.unread > 0 || r.marked_unread));
 
-  const shown = $derived.by(() => {
-    const base = app.filter === "dm" ? dms : app.filter === "channel" ? channels : rows;
-    return base.filter((r) => matches(r, app.query));
-  });
-  const pinned = $derived(shown.filter((r) => r.favourite).sort(byActivity));
-  const directs = $derived(shown.filter((r) => !r.favourite && isDirect(r)).sort(byActivity));
-  const chans = $derived(shown.filter((r) => !r.favourite && r.kind === "channel").sort(byActivity));
+  // The chat list: what the rail item (desktop) or pill (phone) selects, narrowed by the list box (names only).
+  const kind = $derived(app.filter === "dm" ? "dm" : app.filter === "channel" ? "channel" : "all");
+  const isChats = $derived(app.filter === "all" || app.filter === "dm" || app.filter === "channel");
+  const shown = $derived(rows.filter((r) => inKind(r, kind) && nameMatches(r, app.listq)));
 
-  let reorder = $state(false);
-  let order = $state<string[]>([]);
-  const pinnedView = $derived(reorder ? order.map((id) => app.rows[id]).filter(Boolean) : pinned);
-
-  function startReorder() {
-    order = pinned.map((r) => r.id);
-    reorder = true;
-  }
-  async function move(id: string, dir: -1 | 1) {
-    const i = order.indexOf(id);
-    const j = i + dir;
-    if (i < 0 || j < 0 || j >= order.length) return;
-    [order[i], order[j]] = [order[j], order[i]];
-  }
-  async function doneReorder() {
-    reorder = false;
+  // Pinned chats keep the order the person gave them (server position, else the one saved on this device).
+  const LOCAL_KEY = "workchat.pinorder";
+  let localOrder = $state<string[]>((() => {
     try {
-      await core.orderConversations(order);
-    } catch (e) {
-      fail(e);
+      return JSON.parse(localStorage.getItem(LOCAL_KEY) ?? "[]");
+    } catch {
+      return [];
+    }
+  })());
+  const pinRank = (r: ChatRow) => r.position ?? (localOrder.includes(r.id) ? 1e9 + localOrder.indexOf(r.id) : Number.MAX_SAFE_INTEGER);
+  const pinned = $derived(shown.filter((r) => r.favourite).sort((a, b) => pinRank(a) - pinRank(b) || byActivity(a, b)));
+  const rest = $derived(sortChats(shown.filter((r) => !r.favourite), prefs.chatSort));
+  const restTitle = $derived(kind === "dm" ? "DIRECT MESSAGES" : kind === "channel" ? "CHANNELS" : "ALL CHATS");
+  const sortLabel = $derived(prefs.chatSort === "az" ? "A to Z" : prefs.chatSort === "za" ? "Z to A" : "Recent");
+
+  // Drag a pinned chat (whole row with the mouse, the grip with touch) to a new place; a line shows where it will land.
+  let drag = $state<{ id: string; startY: number; dy: number; active: boolean; slot: number } | null>(null);
+  let suppressClick = false;
+  function pdown(e: PointerEvent, id: string) {
+    if (e.button !== 0 || pinned.length < 2) return;
+    const grip = (e.target as HTMLElement).closest(".grip");
+    if (e.pointerType !== "mouse" && !grip) return;
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    drag = { id, startY: e.clientY, dy: 0, active: false, slot: pinned.findIndex((r) => r.id === id) };
+  }
+  function pmove(e: PointerEvent) {
+    if (!drag) return;
+    drag.dy = e.clientY - drag.startY;
+    if (!drag.active && Math.abs(drag.dy) > 5) drag.active = true;
+    if (drag.active) {
+      const mids = [...document.querySelectorAll<HTMLElement>("[data-pin]")].map((el) => {
+        const r = el.getBoundingClientRect();
+        return r.top + r.height / 2;
+      });
+      drag.slot = dropSlot(mids, e.clientY);
     }
   }
+  async function pup() {
+    const d = drag;
+    drag = null;
+    if (!d?.active) return;
+    suppressClick = true;
+    setTimeout(() => (suppressClick = false), 0);
+    const ids = pinned.map((r) => r.id);
+    const next = moveId(ids, d.id, d.slot);
+    if (next.join() === ids.join()) return;
+    localOrder = next;
+    try {
+      await core.orderConversations(next);
+    } catch {
+      // The server has no order endpoint (or refused): keep the order on this device.
+      try {
+        localStorage.setItem(LOCAL_KEY, JSON.stringify(next));
+      } catch {
+        /* private mode */
+      }
+    }
+  }
+  const dropClass = (i: number) => (drag?.active && drag.slot === i ? "drop-top" : drag?.active && i === pinned.length - 1 && drag.slot === pinned.length ? "drop-bottom" : "");
 
   let menu = $state<{ x: number; y: number } | null>(null);
+  let sortMenu = $state<{ x: number; y: number } | null>(null);
   let searchEl = $state<HTMLInputElement>();
   $effect(() => {
     if (app.searching) searchEl?.focus();
   });
+  const setSort = (s: ChatSort) => {
+    prefs.chatSort = s;
+    savePrefs();
+  };
 
   const connLabel = $derived(app.conn === "online" ? "Online" : app.conn === "connecting" ? "Connecting…" : "Offline");
 
@@ -65,7 +105,7 @@
   const nChans = $derived(app.counts?.channels ?? channels.length);
   const nThreads = $derived(app.counts?.threads ?? threadList.length);
   const nFiles = $derived(app.counts?.files ?? 0);
-
+  const viewTitle = $derived(app.filter === "threads" ? "Threads" : app.filter === "files" ? "Files" : app.filter === "saved" ? "Saved" : app.filter === "dm" ? "DMs" : app.filter === "channel" ? "Channels" : "All Chats");
 </script>
 
 <div class="list">
@@ -82,22 +122,32 @@
   </header>
   {/if}
 
-  {#if app.searching || !app.phone}
+  {#if app.phone ? app.searching : isChats}
     <div class="search" class:desk={!app.phone}>
       <Icon name="search" size={18} />
-      <input bind:this={searchEl} placeholder="Search chats" bind:value={app.query} aria-label="Search chats" />
+      <input
+        bind:this={searchEl}
+        class="listq"
+        placeholder={app.phone ? "Search chats" : `Filter ${viewTitle === "All Chats" ? "chats" : viewTitle}`}
+        bind:value={app.listq}
+        aria-label="Filter chats by name"
+        onkeydown={(e) => { if (e.key === "Escape" && app.listq) { e.stopPropagation(); app.listq = ""; } }}
+      />
       {#if app.phone}
-        <button class="ib sm" aria-label="Close search" onclick={() => { app.searching = false; app.query = ""; }}><Icon name="x" size={18} /></button>
+        <button class="ib sm" aria-label="Close search" onclick={() => { app.searching = false; app.listq = ""; }}><Icon name="x" size={18} /></button>
       {:else}
-        {#if app.query}<button class="ib sm" aria-label="Clear search" onclick={() => (app.query = "")}><Icon name="x" size={18} /></button>{/if}
+        {#if app.listq}<button class="ib sm" aria-label="Clear filter" onclick={() => (app.listq = "")}><Icon name="x" size={18} /></button>{/if}
         <button class="ib sm" aria-label="More" onclick={(e) => { const r = (e.currentTarget as HTMLElement).getBoundingClientRect(); menu = { x: r.right, y: r.bottom + 4 }; }}><Icon name="dots" size={20} /></button>
       {/if}
     </div>
+  {:else if !app.phone}
+    <div class="vhead"><h2>{viewTitle}</h2></div>
   {/if}
 
   {#if app.lock.open}
-    <div class="lockbar" role="status"><Icon name="lock" size={15} /><span>Locked chats are showing</span><button onclick={lockNow}>Lock now</button></div>
+    <div class="lockbar" role="status"><Icon name="lockopen" size={15} /><span>Locked chats are showing</span><button onclick={lockNow}>Lock now</button></div>
   {/if}
+  {#if app.phone}
   <div class="pills" role="tablist" aria-label="Filter chats">
     <button role="tab" aria-selected={app.filter === "all"} class:on={app.filter === "all"} onclick={() => pill("all")}>All{#if anyUnread}<i class="udot"></i>{/if}</button>
     <button role="tab" aria-selected={app.filter === "dm"} class:on={app.filter === "dm"} onclick={() => pill("dm")}>DMs{#if nDms}<em>{nDms}</em>{/if}</button>
@@ -105,6 +155,7 @@
     <button role="tab" aria-selected={app.filter === "threads"} class:on={app.filter === "threads"} onclick={() => pill("threads")}>Threads{#if nThreads}<em>{nThreads}</em>{/if}{#if (app.counts?.threads_unread ?? 0) > 0}<i class="udot"></i>{/if}</button>
     <button role="tab" aria-selected={app.filter === "files"} class:on={app.filter === "files"} onclick={() => pill("files")}>Files{#if nFiles}<em>{nFiles}</em>{/if}</button>
   </div>
+  {/if}
 
   <div class="body" class:scroll={app.filter !== "files"} class:files={app.filter === "files"}>
     {#if app.filter === "threads"}
@@ -124,32 +175,61 @@
       {/each}
     {:else if app.filter === "files"}
       <FilesView />
+    {:else if app.filter === "saved"}
+      <SavedView />
     {:else}
-      {#if !shown.length && app.query.trim().length < 2}
-        <p class="empty">{app.query ? "No chats match your search." : app.conn === "connecting" ? "Loading your chats…" : "No chats yet. Tap the pencil to start one."}</p>
+      {#if !shown.length && !(app.phone && app.listq.trim().length >= 2)}
+        <p class="empty">{app.listq ? "No chats match that name." : app.conn === "connecting" ? "Loading your chats…" : "No chats yet. Tap the pencil to start one."}</p>
       {/if}
-      {#if pinned.length || reorder}
-        <div class="sec"><span><Icon name="pin" size={13} stroke={2} /> PINNED ({pinned.length})</span>
-          {#if reorder}<button class="act" onclick={doneReorder}>Done</button>{:else if pinned.length > 1}<button class="act" onclick={startReorder}>Reorder</button>{/if}</div>
-        {#each pinnedView as r, i (r.id)}
-          <ChatRowItem row={r} selected={app.selected === r.id} onopen={() => openConversation(r.id)} {reorder} first={i === 0} last={i === pinnedView.length - 1} onmove={(d) => move(r.id, d)} />
+      {#if pinned.length}
+        <div class="sec"><span><Icon name="pin" size={13} stroke={2} /> PINNED ({pinned.length})</span>{#if pinned.length > 1}<small class="hint">drag to reorder</small>{/if}</div>
+        {#each pinned as r, i (r.id)}
+          <div
+            class="prow {dropClass(i)}"
+            class:dragging={drag?.active && drag.id === r.id}
+            class:multi={pinned.length > 1}
+            data-pin={r.id}
+            role="presentation"
+            style={drag?.active && drag.id === r.id ? `transform:translateY(${drag.dy}px)` : ""}
+            onpointerdown={(e) => pdown(e, r.id)}
+            onpointermove={pmove}
+            onpointerup={pup}
+            onpointercancel={pup}
+            onclickcapture={(e) => { if (suppressClick) { e.stopPropagation(); e.preventDefault(); } }}
+          >
+            {#if pinned.length > 1}<span class="grip" aria-label="Drag to reorder" title="Drag to reorder"></span>{/if}
+            <ChatRowItem row={r} selected={app.selected === r.id} onopen={() => openConversation(r.id)} />
+          </div>
         {/each}
       {/if}
-      {#if directs.length}
-        <div class="sec"><span><Icon name="user" size={13} stroke={2} /> DIRECT MESSAGES ({directs.length})</span><span class="end"><Icon name="dots" size={16} /></span></div>
-        {#each directs as r (r.id)}<ChatRowItem row={r} selected={app.selected === r.id} onopen={() => openConversation(r.id)} />{/each}
+      {#if rest.length}
+        <div class="sec">
+          <span><Icon name={kind === "channel" ? "hash" : kind === "dm" ? "user" : "chat"} size={13} stroke={2} /> {restTitle} ({rest.length})</span>
+          <button class="sortb" aria-label={`Sort: ${sortLabel}`} aria-haspopup="menu" onclick={(e) => { const r = (e.currentTarget as HTMLElement).getBoundingClientRect(); sortMenu = { x: r.right, y: r.bottom + 4 }; }}>{sortLabel} <Icon name="down" size={13} stroke={2.2} /></button>
+        </div>
+        {#each rest as r (r.id)}<ChatRowItem row={r} selected={app.selected === r.id} onopen={() => openConversation(r.id)} />{/each}
       {/if}
-      {#if chans.length}
-        <div class="sec"><span><Icon name="megaphone" size={13} stroke={2} /> CHANNELS ({chans.length})</span><span class="end"><Icon name="hash" size={15} /></span></div>
-        {#each chans as r (r.id)}<ChatRowItem row={r} selected={app.selected === r.id} onopen={() => openConversation(r.id)} />{/each}
-      {/if}
-      {#if app.query.trim().length >= 2}<GlobalSearch q={app.query} />{/if}
+      {#if app.phone && app.listq.trim().length >= 2}<GlobalSearch q={app.listq} />{/if}
       <div class="pad"></div>
     {/if}
   </div>
 
-  {#if app.filter !== "files"}<button class="fab" aria-label="New message" onclick={() => (app.sheet = { kind: "newchat" })}><Icon name="pencil" size={24} /></button>{/if}
+  {#if isChats || app.phone}<button class="fab" aria-label="New message" onclick={() => (app.sheet = { kind: "newchat" })}><Icon name="pencil" size={24} /></button>{/if}
 </div>
+
+{#if sortMenu}
+  <Menu
+    x={sortMenu.x}
+    y={sortMenu.y}
+    right
+    onclose={() => (sortMenu = null)}
+    items={[
+      { label: "Recent activity", icon: prefs.chatSort === "recent" ? "check" : undefined, run: () => setSort("recent") },
+      { label: "Name A to Z", icon: prefs.chatSort === "az" ? "check" : undefined, run: () => setSort("az") },
+      { label: "Name Z to A", icon: prefs.chatSort === "za" ? "check" : undefined, run: () => setSort("za") },
+    ]}
+  />
+{/if}
 
 {#if menu}
   <Menu
@@ -196,8 +276,20 @@
   .body.files { display: flex; flex-direction: column; overflow: hidden; }
   .sec { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px 7px; font-size: 12px; font-weight: 700; letter-spacing: 0.07em; color: var(--text-2); background: var(--page); }
   .sec span { display: inline-flex; align-items: center; gap: 7px; }
-  .sec .end { color: var(--muted); }
-  .act { color: var(--blue); font-weight: 600; font-size: 13px; letter-spacing: 0; }
+  .hint { font-size: 11.5px; font-weight: 500; letter-spacing: 0; color: var(--muted); }
+  .sortb { display: inline-flex; align-items: center; gap: 4px; color: var(--blue); font-weight: 600; font-size: 12.5px; letter-spacing: 0; padding: 2px 6px; border-radius: 8px; }
+  .sortb:hover { background: var(--hover); }
+  .vhead { padding: 16px 18px 8px; background: var(--page); }
+  .vhead h2 { margin: 0; font-size: 18px; letter-spacing: -0.01em; }
+  .prow { position: relative; background: var(--surface); }
+  .prow.multi { cursor: grab; }
+  .prow.dragging { z-index: 3; opacity: 0.88; box-shadow: var(--shadow-pop); cursor: grabbing; }
+  .prow.drop-top::before, .prow.drop-bottom::after { content: ""; position: absolute; left: 12px; right: 12px; height: 3px; border-radius: 2px; background: var(--blue); z-index: 4; }
+  .prow.drop-top::before { top: -2px; }
+  .prow.drop-bottom::after { bottom: -2px; }
+  .grip { position: absolute; left: 3px; top: 50%; width: 10px; height: 18px; margin-top: -9px; z-index: 2; opacity: 0; transition: opacity 0.12s; touch-action: none; cursor: grab; background: radial-gradient(circle, var(--muted-2) 1.3px, transparent 1.6px) 0 0 / 5px 6px; }
+  .prow:hover .grip, .prow.dragging .grip { opacity: 1; }
+  @media (pointer: coarse) { .grip { opacity: 0.8; width: 22px; left: 0; background-position: 6px 0; } }
   .empty { margin: 36px 24px; text-align: center; color: var(--muted); }
   .pad { height: 96px; }
   .fab { position: absolute; right: 18px; bottom: 18px; width: 58px; height: 58px; border-radius: 50%; background: linear-gradient(145deg, var(--accent), var(--accent-2)); color: #fff; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 6px 18px rgba(25, 39, 63, 0.38); }

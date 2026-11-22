@@ -57,10 +57,6 @@ pub enum EventData {
     ActivityRead { read_ms: Ts },
     /// The organisation settings changed (sent to everyone).
     OrgSettingsUpdate { settings: OrgSettings },
-    /// A public channel appeared, changed or went away for people who are NOT in it (they only learn it exists through
-    /// `GET /channels/browse`). `channel` is `None` when it is no longer browsable (deleted, archived or made private).
-    /// Sent on create, rename, topic, picture, archive and visibility changes, not on every join or leave.
-    ChannelDirectoryUpdate { conv_id: String, channel: Option<ChannelBrowseItem> },
     /// The server restored data for this user; discard the cache and bootstrap again.
     Resync {},
 }
@@ -95,7 +91,6 @@ impl EventData {
             EventData::LabelsUpdate { .. } => "labels_update",
             EventData::ActivityRead { .. } => "activity_read",
             EventData::OrgSettingsUpdate { .. } => "org_settings_update",
-            EventData::ChannelDirectoryUpdate { .. } => "channel_directory_update",
             EventData::Resync {} => "resync",
         }
     }

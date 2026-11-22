@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { registerLayer } from "../lib/overlays";
   import Icon from "./Icon.svelte";
 
   import type { MenuItem } from "../lib/menu";
@@ -13,12 +14,9 @@
     const left = right ? x - w : x;
     pos = { left: Math.max(8, Math.min(left, window.innerWidth - w - 8)), top: Math.max(8, Math.min(y, window.innerHeight - h - 8)) };
   });
-  function key(e: KeyboardEvent) {
-    if (e.key === "Escape") onclose();
-  }
+  $effect(() => registerLayer(onclose));
 </script>
 
-<svelte:window onkeydown={key} />
 <div class="backdrop" role="presentation" onclick={onclose} oncontextmenu={(e) => { e.preventDefault(); onclose(); }}></div>
 <div class="menu" role="menu" bind:this={el} style="left:{pos.left}px;top:{pos.top}px">
   {#each items as it}

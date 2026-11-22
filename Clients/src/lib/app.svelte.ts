@@ -12,7 +12,8 @@ export interface PadState {
   title?: string;
   then?: () => void | Promise<void>;
 }
-export type Filter = "all" | "dm" | "channel" | "threads" | "files";
+export type Filter = "all" | "dm" | "channel" | "threads" | "files" | "saved";
+export type ChatSort = "recent" | "az" | "za";
 
 /** One media item in the full-screen viewer. */
 export interface ViewerItem {
@@ -32,7 +33,7 @@ export type Sheet =
   | { kind: "attach"; conv: string; thread: string | null }
   | { kind: "preview"; conv: string; thread: string | null; files: Staged[]; caption: string }
   | { kind: "forward"; msg: MessageView }
-  | { kind: "newchat"; step?: "menu" | "dm" | "group" | "channel" | "browse" }
+  | { kind: "newchat"; step?: "menu" | "dm" | "group" | "channel" }
   | { kind: "profile"; userId: string }
   | { kind: "crop"; stagedId: string; target: { kind: "me" } | { kind: "conv"; id: string } | { kind: "local"; what: "user" | "conv"; id: string } | { kind: "newchat" } }
   | { kind: "pins"; conv: string }
@@ -67,7 +68,8 @@ export const app = $state({
   threads: {} as Record<string, ThreadSummary>,
   tab: "chats" as Tab,
   filter: "all" as Filter,
-  query: "",
+  /** The chat list box: filters only the names of the chats showing in the list (separate from the top-bar search). */
+  listq: "",
   searching: false,
   selected: null as string | null,
   thread: null as { conv: string; root: string } | null,
@@ -79,8 +81,6 @@ export const app = $state({
   signedOutNote: "",
   counts: null as Counts | null,
   org: { channel_creation: "everyone", channel_pins: "everyone" } as OrgSettings,
-  /** Bumped when a public channel appears or goes away, so an open Browse list reloads. */
-  directoryTick: 0,
   saved: [] as string[],
   pins: {} as Record<string, string[]>,
   localAvatars: {} as Record<string, string>,
@@ -89,17 +89,19 @@ export const app = $state({
   audio: { id: "", state: "stopped" as AudioState | "stopped", pos: 0, dur: 0, speed: 1, error: "" },
   voice: { level: 0, elapsed: 0, levels: [] as number[] },
   viewer: null as { items: ViewerItem[]; index: number } | null,
+  /** A file no application could open: the fallback dialog (Open with / Save as / Show in folder). */
+  openFail: null as { id: string; name: string; reason: string } | null,
   sheet: null as Sheet | null,
   /** Global search (top bar) text and whether the results panel is open. */
   gsearch: "",
   focus: null as { conv: string; id: string } | null,
   /** The new channel / group being filled in (kept while the picture cropper is open). */
-  chatDraft: { name: "", topic: "", members: [] as string[], avatarId: "" as string, visibility: "public" as "public" | "private" },
+  chatDraft: { name: "", topic: "", members: [] as string[], avatarId: "" as string },
   lock: { pin_set: false, open: false, wait_secs: 0, attempts_left: 5, timeout_secs: 300, on_background: true } as LockStatus,
   pad: null as PadState | null,
   /** A login link opened from outside the app (deep link), waiting for the login screen. */
   pendingLink: "",
-  info: { platform: "linux", arch: "x86_64", version: "1.1.0", portable: false, appimage: false, data_dir: "" },
+  info: { platform: "linux", arch: "x86_64", version: "1.2.0", portable: false, appimage: false, data_dir: "" },
   spage: "" as SettingsPage,
   /** Update checking: the latest version found, the last answer and the download progress. */
   upd: { found: null as string | null, checking: false, info: null as UpdateInfo | null, error: "", state: "" as "" | "downloading" | "ready" | "error" | "needs_permission" | "installing", got: 0, total: 0, message: "" },
@@ -119,9 +121,11 @@ export interface Prefs {
   sendWithReturn: boolean;
   /** Download photos in chats automatically (off: tap to download). */
   autoPhotos: boolean;
+  /** Order of the unpinned chats: newest activity first, or by name. */
+  chatSort: ChatSort;
 }
 const PREFS_KEY = "workchat.prefs";
-const defaultPrefs: Prefs = { theme: "system", accent: "navy", bubbleRadius: 12, textSize: 16, sendWithReturn: false, autoPhotos: true };
+const defaultPrefs: Prefs = { theme: "system", accent: "navy", bubbleRadius: 12, textSize: 16, sendWithReturn: false, autoPhotos: true, chatSort: "recent" };
 
 function loadPrefs(): Prefs {
   try {
@@ -303,9 +307,6 @@ function onEvent(ev: CoreEvent) {
     case "org_settings":
       app.org = ev.settings;
       break;
-    case "channel_directory":
-      app.directoryTick += 1;
-      break;
     case "upload":
       app.uploads[ev.local_id] = ev.info;
       break;
@@ -373,9 +374,10 @@ function resetState() {
   app.localAvatars = {};
   app.uploads = {};
   app.viewer = null;
+  app.openFail = null;
   app.sheet = null;
   app.gsearch = "";
-  app.query = "";
+  app.listq = "";
   app.filter = "all";
   app.tab = "chats";
   app.pad = null;

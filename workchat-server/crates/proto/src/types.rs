@@ -42,7 +42,7 @@ pub enum ConversationKind {
     #[serde(rename = "self")]
     SelfNote,
     GroupDm,
-    /// A channel: private (members only) or public (anyone can browse and join), see `Conversation.visibility`.
+    /// A channel: always private. People are in it only because an owner, admin or manager added them.
     Channel,
 }
 
@@ -61,33 +61,6 @@ impl ConversationKind {
             "self" => Some(Self::SelfNote),
             "group_dm" => Some(Self::GroupDm),
             "channel" => Some(Self::Channel),
-            _ => None,
-        }
-    }
-}
-
-/// Who can find and join a channel. Group DMs, DMs and notes are always `private`.
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
-#[serde(rename_all = "snake_case")]
-pub enum ChannelVisibility {
-    /// Listed by `GET /channels/browse` for people who are not in it; anyone can `POST /conversations/{id}/join`.
-    Public,
-    /// Members only, invisible to everyone else.
-    #[default]
-    Private,
-}
-
-impl ChannelVisibility {
-    pub fn as_str(self) -> &'static str {
-        match self {
-            ChannelVisibility::Public => "public",
-            ChannelVisibility::Private => "private",
-        }
-    }
-    pub fn parse(s: &str) -> Option<Self> {
-        match s {
-            "public" => Some(Self::Public),
-            "private" => Some(Self::Private),
             _ => None,
         }
     }
@@ -180,9 +153,6 @@ pub struct Conversation {
     /// The picture of a channel or group DM that everyone sees (an attachment id with purpose `avatar`).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub avatar: Option<String>,
-    /// `public` or `private` (channels only; everything else is `private`). Channels that existed before 1.1.0 are `private`.
-    #[serde(default)]
-    pub visibility: ChannelVisibility,
 }
 
 /// A conversation plus the calling user's own state in it.
@@ -659,9 +629,6 @@ pub struct CreateConversation {
     /// The other people to add (the creator is added automatically).
     #[serde(default)]
     pub members: Vec<String>,
-    /// Channels only: `public` (default) or `private`. A `group_dm` is always private.
-    #[serde(default)]
-    pub visibility: Option<ChannelVisibility>,
     /// Admins only: set `false` to create the conversation without joining it (the admin panel does this). Default true.
     #[serde(default)]
     pub include_creator: Option<bool>,
@@ -673,9 +640,6 @@ pub struct UpdateConversation {
     pub name: Option<String>,
     pub topic: Option<String>,
     pub archived: Option<bool>,
-    /// Channels only.
-    #[serde(default)]
-    pub visibility: Option<ChannelVisibility>,
 }
 
 /// Who may create channels.
@@ -717,29 +681,6 @@ pub struct UpdateOrgSettings {
     pub channel_creation: Option<ChannelCreation>,
     #[serde(default)]
     pub channel_pins: Option<ChannelPins>,
-}
-
-/// A public channel as listed by `GET /channels/browse`.
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
-pub struct ChannelBrowseItem {
-    pub id: String,
-    pub name: String,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub topic: Option<String>,
-    /// Attachment id of the channel picture.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub avatar: Option<String>,
-    pub member_count: i64,
-    pub created_ms: Ts,
-}
-
-/// `GET /channels/browse?q=&limit=&offset=`: public, not archived channels the caller is not in, by name.
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
-pub struct ChannelBrowsePage {
-    pub channels: Vec<ChannelBrowseItem>,
-    /// All matching channels, not just this page.
-    pub total: i64,
-    pub has_more: bool,
 }
 
 /// `PUT /conversations/{id}/avatar`. Owners and admins set the picture everyone in the channel or group sees.
@@ -901,6 +842,16 @@ pub struct SavedItem {
     pub saved_ms: Ts,
     #[serde(default)]
     pub label_ids: Vec<String>,
+}
+
+/// One entry of `GET /saved/messages`: everything a "Saved" screen needs to draw a saved message without more requests.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
+pub struct SavedMessage {
+    pub item: SavedItem,
+    /// The full message, with `attachments`, reactions, forward info and so on, as `GET /messages/{id}` returns it.
+    pub message: Message,
+    /// The conversation it is in, with the caller's own state (name, kind, members, unread).
+    pub conversation: ConversationSummary,
 }
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize, JsonSchema)]

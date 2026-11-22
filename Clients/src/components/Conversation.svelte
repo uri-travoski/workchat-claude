@@ -108,7 +108,7 @@
       <button class="hd" aria-label="Chat details" onclick={() => (row.kind === "dm" && row.peer_id ? (app.sheet = { kind: "profile", userId: row.peer_id }) : (app.sheet = { kind: "channelinfo", conv: id }))}>
         <Avatar id={row.avatar} initials={row.initials} size={40} tile={row.kind === "channel"} icon={channelIcon(row.title)} presence={row.presence} />
         <span class="ti">
-          <h2>{#if row.kind === "channel"}# {/if}{row.title}</h2>
+          <h2>{#if row.kind === "channel"}# {/if}{row.title}{#if row.locked}<span class="lk" title="Locked chat, currently unlocked" aria-label="Locked chat, currently unlocked"><Icon name="lockopen" size={16} stroke={2} /></span>{/if}</h2>
           <span class="sub" class:on={online || !!typingNames}>{subtitle}</span>
         </span>
       </button>
@@ -172,6 +172,7 @@
   .hd:hover { background: var(--hover); }
   .ti { flex: 1; min-width: 0; display: flex; flex-direction: column; }
   h2 { margin: 0; font-size: 17px; font-weight: 700; letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .lk { display: inline-flex; vertical-align: -2px; margin-left: 6px; color: var(--blue); }
   .sub { font-size: 13px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .sub.on { color: var(--blue); font-weight: 600; }
   .ib { width: 40px; height: 40px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; flex: none; }

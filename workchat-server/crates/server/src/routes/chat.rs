@@ -205,11 +205,6 @@ pub async fn create_conversation(State(st): State<St>, auth: Auth, Json(req): Js
     if req.topic.as_deref().map(|t| t.chars().count() > 500).unwrap_or(false) {
         return Err(AppError::validation("topic too long"));
     }
-    let visibility = match (req.kind, req.visibility) {
-        (ConversationKind::GroupDm, Some(ChannelVisibility::Public)) => return Err(AppError::validation("a group DM is always private")),
-        (ConversationKind::GroupDm, _) => ChannelVisibility::Private,
-        (_, v) => v.unwrap_or(ChannelVisibility::Public),
-    };
     let hub = st.hub.clone();
     Ok(Json(
         st.db
@@ -223,8 +218,8 @@ pub async fn create_conversation(State(st): State<St>, auth: Auth, Json(req): Js
                 let id = new_id();
                 let now = now_ms();
                 tx.execute(
-                    "INSERT INTO conversations(id,kind,name,topic,created_by,created_ms,visibility) VALUES(?1,?2,?3,?4,?5,?6,?7)",
-                    params![id, req.kind.as_str(), name, req.topic, auth.user_id, now, visibility.as_str()],
+                    "INSERT INTO conversations(id,kind,name,topic,created_by,created_ms) VALUES(?1,?2,?3,?4,?5,?6)",
+                    params![id, req.kind.as_str(), name, req.topic, auth.user_id, now],
                 )?;
                 let mut seen = std::collections::HashSet::new();
                 if include_creator {
@@ -252,7 +247,6 @@ pub async fn create_conversation(State(st): State<St>, auth: Auth, Json(req): Js
                 }
                 let mut em = Emitter::new();
                 upsert_for_members(&tx, &mut em, &id)?;
-                org::emit_directory(&tx, &mut em, &id, false)?;
                 let s = conv_summary(&tx, &id, &auth.user_id).or_else(|_| {
                     // The creator may not be a member.
                     let conversation = load_conversation(&tx, &id)?;
@@ -323,7 +317,7 @@ pub async fn create_self(State(st): State<St>, auth: Auth) -> AppResult<Json<Con
     ))
 }
 
-/// Admins and the conversation's managers (conversation role `owner`) change name, topic, archive state and visibility.
+/// Admins and the conversation's managers (conversation role `owner`) change name, topic, and archive state.
 pub async fn update_conversation(
     State(st): State<St>,
     auth: Auth,
@@ -346,10 +340,6 @@ pub async fn update_conversation(
                 if !matches!(cr.kind, ConversationKind::Channel | ConversationKind::GroupDm) {
                     return Err(AppError::validation("only channels and group DMs can be changed"));
                 }
-                if req.visibility.is_some() && cr.kind != ConversationKind::Channel {
-                    return Err(AppError::validation("only channels have a visibility"));
-                }
-                let was_listed = org::browse_item(c, &id)?.is_some();
                 let tx = c.transaction()?;
                 if let Some(n) = &req.name {
                     let n = n.trim();
@@ -367,12 +357,8 @@ pub async fn update_conversation(
                 if let Some(a) = req.archived {
                     tx.execute("UPDATE conversations SET archived=?2 WHERE id=?1", params![id, a as i64])?;
                 }
-                if let Some(v) = req.visibility {
-                    tx.execute("UPDATE conversations SET visibility=?2 WHERE id=?1", params![id, v.as_str()])?;
-                }
                 let mut em = Emitter::new();
                 upsert_for_members(&tx, &mut em, &id)?;
-                org::emit_directory(&tx, &mut em, &id, was_listed)?;
                 let s = conv_summary(&tx, &id, &auth.user_id).or_else(|_| {
                     let conversation = load_conversation(&tx, &id)?;
                     Ok::<_, AppError>(ConversationSummary { conversation, last_read_seq: 0, marked_unread: false, unread: 0, mentions: 0 })
@@ -385,76 +371,7 @@ pub async fn update_conversation(
     ))
 }
 
-// ---------------------------------------------------------------- public channels: browse, join, leave
-
-#[derive(Deserialize)]
-pub struct BrowseParams {
-    /// Matches name and topic, case-insensitive.
-    q: Option<String>,
-    limit: Option<i64>,
-    offset: Option<i64>,
-}
-
-/// Public, not archived channels the caller is not in, by name. Private channels never appear.
-pub async fn browse_channels(State(st): State<St>, auth: Auth, Query(p): Query<BrowseParams>) -> AppResult<Json<ChannelBrowsePage>> {
-    let limit = p.limit.unwrap_or(50).clamp(1, 200);
-    let offset = p.offset.unwrap_or(0).max(0);
-    let q = p.q.unwrap_or_default().trim().to_lowercase();
-    Ok(Json(
-        st.db
-            .call(move |c| {
-                let cond = "c.kind='channel' AND c.visibility='public' AND c.archived=0
-                    AND NOT EXISTS (SELECT 1 FROM members m WHERE m.conv_id=c.id AND m.user_id=?1)
-                    AND (?2='' OR instr(lower(COALESCE(c.name,'')),?2)>0 OR instr(lower(COALESCE(c.topic,'')),?2)>0)";
-                let total: i64 = c.query_row(&format!("SELECT COUNT(*) FROM conversations c WHERE {cond}"), params![auth.user_id, q], |r| r.get(0))?;
-                let ids: Vec<String> = {
-                    let mut st = c.prepare(&format!("SELECT c.id FROM conversations c WHERE {cond} ORDER BY c.name COLLATE NOCASE, c.id LIMIT ?3 OFFSET ?4"))?;
-                    let v = st.query_map(params![auth.user_id, q, limit, offset], |r| r.get(0))?.collect::<Result<Vec<String>, _>>()?;
-                    v
-                };
-                let mut channels = vec![];
-                for id in ids {
-                    if let Some(i) = org::browse_item(c, &id)? {
-                        channels.push(i);
-                    }
-                }
-                Ok(ChannelBrowsePage { has_more: offset + (channels.len() as i64) < total, channels, total })
-            })
-            .await?,
-    ))
-}
-
-/// Joins a public channel. Private channels answer `not_found` (they stay invisible); joining twice is a no-op.
-pub async fn join_conversation(State(st): State<St>, auth: Auth, Path(id): Path<String>) -> AppResult<Json<ConversationSummary>> {
-    let hub = st.hub.clone();
-    Ok(Json(
-        st.db
-            .call(move |c| {
-                let cr = conv_row(c, &id)?;
-                if is_member(c, &id, &auth.user_id)? {
-                    return conv_summary(c, &id, &auth.user_id);
-                }
-                let public: bool = c.query_row("SELECT visibility='public' FROM conversations WHERE id=?1", [&id], |r| r.get(0))?;
-                if cr.kind != ConversationKind::Channel || !public {
-                    return Err(AppError::not_found("conversation not found"));
-                }
-                if cr.archived {
-                    return Err(AppError::forbidden("this channel is archived"));
-                }
-                let tx = c.transaction()?;
-                tx.execute("INSERT INTO members(conv_id,user_id,role,joined_ms) VALUES(?1,?2,'member',?3)", params![id, auth.user_id, now_ms()])?;
-                let mut em = Emitter::new();
-                let name = get_user(&tx, &auth.user_id)?.display_name;
-                crate::routes::social::post_system(&tx, &mut em, &id, &auth.user_id, &format!("{name} joined"))?;
-                upsert_for_members(&tx, &mut em, &id)?;
-                let s = conv_summary(&tx, &id, &auth.user_id)?;
-                tx.commit()?;
-                em.flush(&hub);
-                Ok(s)
-            })
-            .await?,
-    ))
-}
+// ---------------------------------------------------------------- leave
 
 /// Leaves a channel or group DM (not a DM or notes to self). The other members see "X left".
 pub async fn leave_conversation(State(st): State<St>, auth: Auth, Path(id): Path<String>) -> AppResult<Json<serde_json::Value>> {

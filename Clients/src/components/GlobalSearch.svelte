@@ -1,7 +1,9 @@
 <script lang="ts">
-  import { app, jumpTo, openConversation, userAvatar, userName } from "../lib/app.svelte";
+  import { app, jumpTo, userAvatar, userName } from "../lib/app.svelte";
   import { core, type SearchResponse } from "../lib/core";
-  import { fileTile } from "../lib/filetype";
+  import { fileTile, isImage, isVideo } from "../lib/filetype";
+  import { openFile } from "../lib/files";
+  import { viewerItem } from "../lib/viewer";
   import { dayLabel, fileSize } from "../lib/format";
   import { initialsOf } from "../lib/people";
   import Avatar from "./Avatar.svelte";
@@ -81,22 +83,13 @@
       <div class="h">Files</div>
       {#each res.files.slice(0, 8) as f (f.attachment.id)}
         {@const t = fileTile(f.attachment.name, f.attachment.content_type)}
-        <button class="r" onclick={() => jumpTo(f.conv_id, f.message_id)}>
+        <button class="r" onclick={() => (isImage(f.attachment.content_type) || isVideo(f.attachment.content_type) ? (app.viewer = { items: [viewerItem(f.attachment, { conv_id: f.conv_id, id: f.message_id, ts: f.ts, sender_id: f.sender_id })], index: 0 }) : void openFile(f.attachment))}>
           <span class="tile" style="color:{t.fg};background:{t.bg}"><b>{t.label}</b></span>
           <span class="t"><b>{f.attachment.name}</b><small>{fileSize(f.attachment.size)} · {convTitle(f.conv_id)}</small></span>
         </button>
       {/each}
     {/if}
-    {#if res?.channels?.length}
-      <div class="h">Channels</div>
-      {#each res.channels.slice(0, 5) as c (c.id)}
-        <button class="r" onclick={() => openConversation(c.id)}>
-          <span class="ic"><Icon name="hash" size={18} /></span>
-          <span class="t"><b>{c.name}</b><small>{c.topic ?? ""}</small></span>
-        </button>
-      {/each}
-    {/if}
-    {#if res && !error && !res.hits.length && !res.people.length && !res.files?.length && !res.channels?.length}<p class="n">No messages, people or files match "{q.trim()}".</p>
+    {#if res && !error && !res.hits.length && !res.people.length && !res.files?.length}<p class="n">No messages, people or files match "{q.trim()}".</p>
     {:else if loading && !res}<p class="n">Searching…</p>{/if}
   </div>
 {/if}

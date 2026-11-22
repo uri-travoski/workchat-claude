@@ -13,8 +13,12 @@ Open `https://your-server/admin` and sign in with an owner or admin account.
 * **Address used in login links** (Users page, owner only): the link is built from `WORKCHAT_PUBLIC_URL` when set, else from the address saved here,
   else from the address you used to open the admin panel (so it works on a bare LAN address such as `http://192.168.1.10:8080`).
 * **Downloads**: the landing page offers files found in the server's downloads folder (`WORKCHAT_DOWNLOADS_DIR`, default `<data>/downloads`;
-  `.apk`, `.AppImage`/`.deb`/`.rpm`, `.exe`/`.msi`) and lists them at `/downloads`. With an empty folder it points to `WORKCHAT_RELEASE_URL`
-  (default: the project's GitHub releases).
+  `.apk`, `.AppImage`/`.deb`/`.rpm`, `.exe`/`.msi`) and lists them at `/downloads` under the heading "Client downloads". The card always ends with
+  "Open latest release on GitHub", a link to `WORKCHAT_RELEASE_URL` (default `https://github.com/uri-travoski/workchat-claude/releases/latest`, never a
+  specific tag), also when the folder is empty.
+* **Updates card** (Overview): this server's version against the newest GitHub release, update commands, and a "Client downloads" list (heading without a
+  version; "Latest release: vX.Y.Z" is a small label under it). "Open latest release on GitHub" is shown in every state: up to date, update available,
+  no release yet, GitHub unreachable or rate limited, and when the admin panel cannot reach the server. `GET /admin/updates` returns it as `release_url`.
 * **Phones**: the whole panel works at phone width (menu button, cards instead of tables, single-pane chat viewer with a back button).
 * **Role** (owner only): each other user has a Member / Admin / Owner menu in the Users table (and on the phone cards); a confirmation says what changes.
   The change applies at once, even to devices that are signed in, and their apps update without a restart. Rules: admins see roles but cannot change them;
@@ -23,7 +27,7 @@ Open `https://your-server/admin` and sign in with an owner or admin account.
 * **Clear history** always writes a per-user backup first and refuses to proceed if the backup fails. It removes only that
   person's copy of every chat (other participants keep theirs), moves files nobody else can see into
   `backups/users/<user>/<backup>/att/` in your storage, and signs the person out everywhere.
-* **Conversations**: channels and group DMs. Channels are public (anyone can browse and join them in the app) or private (members only); admins can create them here (without joining) and switch visibility, rename, archive, manage members.
+* **Conversations**: channels and group DMs. Channels are private (members only): people are in one only because an owner, admin or manager added them. Admins can create them here (without joining), rename, archive and manage members.
 * **Settings**: *Who can create channels* (everyone, the default, or admins only) and *Who can pin messages in channels* (every member, the default, or channel managers and admins only). Saved as soon as you change a menu; apps update live.
 * **Storage**: choose backend (local, S3-compatible incl. R2 and B2, Google Drive), Test, Save (only before any file exists),
   **Move all files** to another backend (copy, verify size and checksum, switch, delete old copies; uploads pause meanwhile),

@@ -81,11 +81,6 @@
     if (!name.trim()) return fail({ message: "The name cannot be empty." });
     if (await run(core.updateConversation(conv, { name: name.trim(), topic: topic.trim() }), "Saved.")) editing = false;
   }
-  async function setVisibility(v: "public" | "private") {
-    if (v === row?.visibility) return;
-    if (v === "private" && !window.confirm("Make this channel private? People who are not members will no longer find it.")) return;
-    await run(core.updateConversation(conv, { visibility: v }), v === "public" ? "Everyone can now find and join this channel." : "This channel is now private.");
-  }
   async function archive() {
     const on = !row?.archived;
     if (on && !window.confirm("Archive this channel? It becomes read-only and leaves the channel list.")) return;
@@ -105,7 +100,7 @@
     if (await run(core.removeMember(conv, id), "Removed.")) await loadMembers();
   }
   async function leave() {
-    if (!window.confirm(`Leave ${row?.kind === "channel" ? "#" + row.title : row?.title}? ${row?.visibility === "private" || row?.kind === "group_dm" ? "You will need to be added again to come back." : "You can join again from Browse channels."}`)) return;
+    if (!window.confirm(`Leave ${row?.kind === "channel" ? "#" + row.title : row?.title}? You will need to be added again to come back.`)) return;
     if (await run(core.leaveConversation(conv))) {
       closeSheet();
       closeConversation();
@@ -131,7 +126,7 @@
         {:else}
           <h2>{row.kind === "channel" ? "# " : ""}{row.title}</h2>
           {#if row.topic}<p class="topic">{row.topic}</p>{/if}
-          {#if group}<p class="sub">{row.member_count} {row.member_count === 1 ? "member" : "members"}{row.kind === "channel" ? (row.visibility === "public" ? " · Public channel" : " · Private channel") : ""}{row.archived ? " · Archived" : ""}</p>{/if}
+          {#if group}<p class="sub">{row.member_count} {row.member_count === 1 ? "member" : "members"}{row.kind === "channel" ? " · Private channel" : ""}{row.archived ? " · Archived" : ""}</p>{/if}
           {#if isLocal}<p class="loc">Showing your local picture</p>{/if}
         {/if}
       </div>
@@ -139,10 +134,6 @@
         {#if manage && !editing}<button onclick={startEdit}><Icon name="pencil" size={19} /> Rename{row.kind === "channel" ? " or change topic" : ""}</button>{/if}
         {#if manage}<button onclick={() => pick({ kind: "conv", id: conv })}><Icon name="camera" size={19} /> Change {row.kind === "channel" ? "channel" : "group"} picture</button>{/if}
         {#if manage && row.kind === "channel"}
-          <button onclick={() => setVisibility(row.visibility === "public" ? "private" : "public")} disabled={busy}>
-            <Icon name={row.visibility === "public" ? "lock" : "globe"} size={19} /> {row.visibility === "public" ? "Make private" : "Make public"}
-            <small class="inl">{row.visibility === "public" ? "Public: anyone can find and join" : "Private: members only"}</small>
-          </button>
           <button onclick={archive} disabled={busy}><Icon name="archive" size={19} /> {row.archived ? "Restore channel" : "Archive channel"}</button>
         {/if}
         <button onclick={() => pick(localTarget)}><Icon name="image" size={19} /> {isLocal ? "Change local picture" : "Set local picture"}</button>
@@ -185,7 +176,6 @@
   .acts button:hover { background: var(--hover); }
   .acts button.danger { color: var(--danger); }
   .acts small { color: var(--muted); padding: 2px 4px; }
-  .acts .inl { margin-left: auto; padding: 0; font-size: 12.5px; }
   h4 { margin: 0; font-size: 13px; color: var(--text-2); letter-spacing: 0.06em; text-transform: uppercase; }
   h4.first { margin-bottom: 8px; }
   .mh { display: flex; align-items: center; justify-content: space-between; margin: 16px 0 4px; }

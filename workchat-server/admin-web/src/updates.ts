@@ -4,6 +4,7 @@ import { api } from "./api";
 import type { AdminUpdates } from "./api-types";
 import { copy, fmtDate, h } from "./dom";
 
+export const LATEST_RELEASE_URL = "https://github.com/uri-travoski/workchat-claude/releases/latest";
 export const UPGRADE_COMMAND = "docker compose pull && docker compose up -d";
 
 function assetLabel(name: string): string | null {
@@ -21,6 +22,10 @@ function cmdBox(cmd: string): HTMLElement {
   return h("div", { class: "row", style: "align-items:flex-start;gap:8px" },
     h("pre", { class: "mono cmd", style: "flex:1;min-width:0;margin:0;padding:8px 10px;background:var(--row);border:1px solid var(--border);border-radius:8px" }, cmd),
     h("button", { type: "button", class: "copy-cmd", onclick: () => copy(cmd) }, "Copy"));
+}
+
+function latestLink(url?: string): HTMLElement {
+  return h("p", {}, h("a", { href: url || LATEST_RELEASE_URL, rel: "noopener noreferrer", target: "_blank", id: "upd-latest-link" }, "Open latest release on GitHub"));
 }
 
 function fill(box: HTMLElement, u: AdminUpdates, refresh: () => void) {
@@ -52,11 +57,13 @@ function fill(box: HTMLElement, u: AdminUpdates, refresh: () => void) {
     h("code", {}, "WORKCHAT_IMAGE=ghcr.io/uri-travoski/workchat-claude-server:latest"), " the commands alone always get the newest release. Your data volume is kept."));
   parts.push(cmdBox(UPGRADE_COMMAND));
   const dl = (rel?.assets ?? []).map((a) => ({ a, l: assetLabel(a.name) })).filter((x) => x.l);
-  parts.push(h("h3", {}, "Client downloads" + (rel ? " in v" + rel.version : "")));
+  parts.push(h("h3", {}, "Client downloads"));
+  if (rel) parts.push(h("p", { class: "muted", id: "upd-dl-version" }, "Latest release: v" + rel.version));
   parts.push(dl.length
     ? h("ul", { id: "upd-downloads", style: "margin:0;padding-left:20px" }, ...dl.map(({ a, l }) => h("li", {}, h("a", { href: a.url, rel: "noopener noreferrer", target: "_blank" }, l!), h("span", { class: "muted" }, "  " + a.name))))
     : h("p", { class: "muted" }, "No installers were listed for this release."));
-  parts.push(h("p", { class: "muted" }, rel ? h("a", { href: rel.html_url, rel: "noopener noreferrer", target: "_blank", id: "upd-release-link" }, "Release page on GitHub") : "", ""));
+  if (rel) parts.push(h("p", { class: "muted" }, h("a", { href: rel.html_url, rel: "noopener noreferrer", target: "_blank", id: "upd-release-link" }, "Release page on GitHub")));
+  parts.push(latestLink(u.release_url));
   box.replaceChildren(...parts.filter((p): p is Node | string => !!p));
 }
 
@@ -66,7 +73,7 @@ export function updatesCard(): HTMLElement {
     try {
       fill(box, await api("GET", "/admin/updates" + (refresh ? "?refresh=true" : "")) as AdminUpdates, () => { box.querySelector("#upd-refresh")?.setAttribute("disabled", ""); load(true); });
     } catch (e: any) {
-      box.replaceChildren(h("h2", { style: "margin-top:0" }, "Updates"), h("p", { class: "muted", id: "upd-error" }, "Could not check for updates: " + (e?.message ?? String(e))), cmdBox(UPGRADE_COMMAND));
+      box.replaceChildren(h("h2", { style: "margin-top:0" }, "Updates"), h("p", { class: "muted", id: "upd-error" }, "Could not check for updates: " + (e?.message ?? String(e))), cmdBox(UPGRADE_COMMAND), h("h3", {}, "Client downloads"), latestLink());
     }
   };
   void load(false);

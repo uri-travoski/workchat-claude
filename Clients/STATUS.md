@@ -111,6 +111,23 @@ settings-phone, lock-desktop, update-desktop), Android on the emulator (AVD work
 - Android sandbox: the installer step of an update was verified only up to the system permission screen (the fake APK is not
   installable).
 
+## Phase D1 (desktop changes, release 1.2.0): done
+
+Verified under Xvfb against the seeded server (1280x800 and 1000x700, `docs/screenshots/d1/`; scripts `tests/ui/d1-*.js`, runner
+`tests/ui/d1-all.sh`) plus unit tests (see README "UI" section for the behaviour):
+
+- Resizable panes, new rail, no pills on desktop, two independent searches, Saved view, pinned drag and sorting, plain tray icon,
+  default-app opening with the fallback dialog, open padlock on unlocked locked chats, centralised Escape handling, formatting
+  toolbar fixes, public channels removed (server 1.2.0 synced), Linux arm64 packages and update asset choice, version 1.2.0.
+- Tests: `cargo test --workspace` and `npm test` (see the release report for counts).
+
+### Known limits after D1
+- The Xvfb box has no real default applications, so default-app opening was verified with a stub `xdg-open` on PATH that records its
+  argument (all six document types) and a failing stub (exit 3) for the dialog; real handlers, "Open with", "Save as" dialogs and the
+  Windows / macOS paths were not run here.
+- The viewer closing the whole app could not be reproduced on Linux/Xvfb; the fix is defensive (one Escape stack).
+- The arm64 release jobs have only been linted until the first tag run.
+
 ## Not done yet (left for later phases)
 
 C4

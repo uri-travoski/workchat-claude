@@ -1,0 +1,77 @@
+// Saved view, pinned drag-reorder (restored at the end), formatting toolbar and received markup.
+const must = (c, m) => { if (!c) throw new Error("check failed: " + m); };
+const pinIds = () => [...document.querySelectorAll("[data-pin]")].map((e) => e.getAttribute("data-pin"));
+// ---- formatting: received message from another client (curl) renders
+const dk = await api.openChat("David Kim");
+await api.wait(800);
+const last = [...document.querySelectorAll(".bubble.in")].pop();
+must(last.querySelector("strong, b, .b") , "bold rendered");
+must(last.querySelector("blockquote"), "quote rendered");
+must(last.querySelector("ul li") && last.querySelector("ol li"), "lists rendered");
+must(last.querySelector("pre code"), "code block rendered");
+must(last.querySelector("a[href='https://example.com/spec']"), "link rendered");
+last.scrollIntoView({ block: "end" });
+await api.mark("d1-format-received");
+// toolbar on a selection, as toggles, and shortcuts (real keys)
+const ta = document.querySelector("textarea[aria-label=Message]");
+ta.focus();
+ta.value = "make this bold and that italic";
+ta.dispatchEvent(new Event("input", { bubbles: true }));
+ta.setSelectionRange(5, 9);
+ta.dispatchEvent(new Event("select", { bubbles: true }));
+await api.click("button[aria-label=Bold]");
+must(ta.value === "make *this* bold and that italic", "bold on selection: " + ta.value);
+ta.setSelectionRange(ta.value.length - 6, ta.value.length);
+await api.mark("xdo:key_ctrl+i");
+await api.wait(300);
+must(ta.value.endsWith("_italic_"), "Ctrl+I: " + ta.value);
+ta.value = "line one\nline two\nline three";
+ta.dispatchEvent(new Event("input", { bubbles: true }));
+ta.setSelectionRange(0, ta.value.length);
+await api.click("button[aria-label='Bulleted list']");
+await api.click("button[aria-label='Bold']");
+await api.wait(300);
+await api.mark("d1-format-toolbar");
+ta.value = "";
+ta.dispatchEvent(new Event("input", { bubbles: true }));
+// ---- Saved view
+const items = (api.msgs[dk]?.items ?? []).filter((m) => !m.deleted).slice(-2);
+const added = [];
+for (const m of items) { if (!api.app.saved.includes(m.id)) { await api.core.saveMessage(m.id, true); added.push(m.id); } }
+await api.wait(1200);
+await api.click("nav.rail button[data-rail=saved]");
+await api.wait(1800);
+must(document.querySelectorAll(".sv .row").length >= 2, "saved rows");
+await api.mark("d1-saved-view");
+await api.openChat("Elena Vance");
+await api.click("nav.rail button[data-rail=saved]");
+await api.wait(800);
+document.querySelector(".sv .main").click();
+await api.wait(1500);
+must(api.app.selected === dk, "click jumps to the conversation");
+await api.mark("d1-saved-jump");
+await api.click("nav.rail button[data-rail=saved]");
+await api.wait(500);
+await api.click(".sv .un");
+await api.wait(1200);
+for (const id of added) await api.core.saveMessage(id, false).catch(() => {});
+await api.click("nav.rail button[data-rail=all]");
+await api.wait(800);
+// ---- pinned drag with the real mouse
+const before = pinIds();
+must(before.length >= 3, "3 pinned");
+const els = [...document.querySelectorAll("[data-pin]")].map((e) => e.getBoundingClientRect());
+const x = 280, y0 = Math.round(els[0].top + els[0].height / 2), y1 = Math.round(els[2].top + els[2].height - 4);
+const steps = [y0 + 10, y0 + 40, y0 + 90, y1 - 20, y1].map((y) => `mousemove_${x}_${y}`).join("_");
+await api.mark(`xdo:mousemove_${x}_${y0}_mousedown_1_${steps}`);
+await api.wait(300);
+await api.mark("d1-pinned-drag");
+await api.mark("xdo:mouseup_1");
+await api.wait(1500);
+const after = pinIds();
+must(after.join() !== before.join(), "order changed " + before + " -> " + after);
+must(after[2] === before[0], "first moved to the end");
+await api.mark("d1-pinned-reordered");
+await api.core.orderConversations(before);
+await api.wait(1200);
+must(pinIds().join() === before.join(), "order restored");

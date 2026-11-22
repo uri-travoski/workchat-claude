@@ -3,7 +3,32 @@
 All notable changes to the WorkChat apps. The release workflow uses the section matching the tag as the
 GitHub release notes, so add a `## [x.y.z]` heading before tagging.
 
-## [1.1.0] - Unreleased
+## [1.2.0] - 2026-11-22
+
+Desktop redesign, global search, all channels private, and Linux arm64 builds on every release.
+
+Desktop:
+
+* Left rail reorganised: All Chats, DMs, Channels, Threads, Files, Saved, Contacts; Settings at the bottom. The app tile and the avatar are removed from the rail.
+* Draggable pane dividers; the widths are remembered.
+* The filter pills are removed on desktop (the rail replaces them) and kept on phones.
+* Two independent search boxes: the top bar is a global search of messages, people and files with a results panel and jump-to-message highlight; the box above the chat list filters chat names only.
+* New Saved view.
+* Pinned chats are reordered by dragging (the Reorder button is removed). Unpinned chats sort by recent activity, with an A-Z / Z-A option.
+* The tray shows only the plain icon (no unread badge).
+* Attachments open in the system default app, with an Open with / Save as / Show in folder dialog as fallback.
+* Fix: closing the image viewer or any other overlay no longer closes the app (Esc handling is centralised).
+* Open-padlock icon on locked chats while they are unlocked.
+* Formatting toolbar fixes.
+* No link previews any more: links stay plain and clickable.
+
+Everywhere:
+
+* **Linux arm64 builds (deb, rpm, AppImage, flatpak) on every release** (`WorkChat-<ver>-linux-arm64.deb`, `-linux-aarch64.rpm`, `-linux-aarch64.AppImage`, `-linux-aarch64.flatpak`).
+* The update checker detects the CPU and picks the arm64 assets on arm64 Linux.
+* Channels no longer have a public or private choice; the browse and join screens are gone.
+
+## [1.1.0] - 2026-11-22
 
 First public release, published from https://github.com/uri-travoski/workchat-claude as "WorkChat v1.1".
 

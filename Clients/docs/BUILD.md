@@ -22,7 +22,7 @@ desktop png/ico/icns and Windows Square logos (`npx tauri icon`), opaque iOS ico
 (navy background, white bubble, monochrome layer for themed icons) and the Linux/flatpak set in `packaging/linux/`.
 Needs `rsvg-convert` and ImageMagick.
 
-## Linux (deb, rpm, AppImage, flatpak)
+## Linux (deb, rpm, AppImage, flatpak; x86_64 and arm64)
 
 Debian/Ubuntu build dependencies:
 
@@ -41,7 +41,9 @@ NO_STRIP=true APPIMAGE_EXTRACT_AND_RUN=1 npm run tauri build -- --bundles appima
   `APPIMAGE_EXTRACT_AND_RUN=1` lets linuxdeploy run without FUSE (containers, distrobox).
 - The AppImage bundles WebKitGTK but not the GStreamer plugins (`bundleMediaFramework` is false): bundling them took the AppImage from 105 MiB to 180 MiB in a local test. Video playback uses the system's GStreamer plugins (same as the deb/rpm
   dependencies); set it to `true` in `tauri.linux.conf.json` for a fully self-contained, much larger image (needs `patchelf`).
-- Build on the oldest distro you want to support (CI uses Ubuntu 22.04, glibc 2.35); binaries do not run on older glibc.
+- **arm64 (aarch64)**: build natively on an arm64 machine with the same commands and packages (cross-compiling WebKitGTK is not set up);
+  CI uses the `ubuntu-24.04-arm` runner. The outputs are `...arm64.deb`, `...aarch64.rpm`, `...aarch64.AppImage` (tauri bundles AppImages on aarch64 Linux too).
+- Build on the oldest distro you want to support (CI uses Ubuntu 22.04, glibc 2.35, for x86_64; the arm64 build runs on Ubuntu 24.04, glibc 2.39); binaries do not run on older glibc.
 - The `.deb`/`.rpm` install the `workchat://` URL handler through their `.desktop` file
   (`packaging/linux/workchat.desktop`, category Network;Chat;InstantMessaging).
 
@@ -50,9 +52,13 @@ Flatpak (wraps the prebuilt binary, GNOME runtime 48):
 ```sh
 flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
 npm run tauri build -- --bundles deb            # produces target/release/workchat
-./scripts/build-flatpak.sh                      # -> target/flatpak/WorkChat-<ver>-linux-x86_64.flatpak
+./scripts/build-flatpak.sh                      # -> target/flatpak/WorkChat-<ver>-linux-x86_64.flatpak (aarch64 on an arm64 machine)
 flatpak install --user target/flatpak/WorkChat-*.flatpak
 ```
+
+The script picks the flatpak arch from `uname -m` (`x86_64` or `aarch64`, override with `FLATPAK_ARCH`), builds the manifest for that arch
+and names the bundle `WorkChat-<ver>-linux-<arch>.flatpak`. The binary must have been built on the same CPU. The arm64 GNOME runtime
+comes from flathub as well.
 
 Validate the metadata with `appstreamcli validate --no-net packaging/flatpak/app.workchat.WorkChat.metainfo.xml`
 and `desktop-file-validate packaging/flatpak/app.workchat.WorkChat.desktop`. The binary must be built against
@@ -95,7 +101,7 @@ npx tauri android build --apk --split-per-abi --target aarch64 x86_64
 
 APKs: `src-tauri/gen/android/app/build/outputs/apk/{arm64,x86_64}/release/`. Without the env vars the release APK is left unsigned
 (`app-<abi>-release-unsigned.apk`, not installable until signed: `scripts/android-sign-local.sh`). The versionCode is set in
-`tauri.android.conf.json` (`major*1000000 + minor*1000 + patch`, 1.1.0 is 1001000). minSdk is 24.
+`tauri.android.conf.json` (`major*1000000 + minor*1000 + patch`, 1.2.0 is 1002000). minSdk is 24.
 
 Check a signature: `$ANDROID_HOME/build-tools/<ver>/apksigner verify --print-certs app-arm64-release.apk`.
 
@@ -120,7 +126,7 @@ Needs a Mac with Xcode, `rustup target add aarch64-apple-ios aarch64-apple-ios-s
 No Apple account is needed for an unsigned build:
 
 ```sh
-./scripts/ios-unsigned.sh 1.1.0 out     # -> out/WorkChat-1.1.0-ios-unsigned.ipa, out/WorkChat-1.1.0-ios-simulator.zip
+./scripts/ios-unsigned.sh 1.2.0 out     # -> out/WorkChat-1.2.0-ios-unsigned.ipa, out/WorkChat-1.2.0-ios-simulator.zip
 ```
 
 The script runs `tauri ios init` if needed, copies `packaging/ios/Info.ios.plist` (usage strings, ATS local

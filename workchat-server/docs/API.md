@@ -29,9 +29,13 @@ delete-range), backups, sessions, conversations (+members), files, storage (+tes
 All of these are per user and private unless noted. Changes reach your other devices as events `saved_update`, `saved_remove`, `labels_update` and `activity_read` (activity itself is derived from messages, so new items arrive with the message events).
 
 * **Membership (admins and channel managers).** `POST /conversations/{id}/members` with `{"user_ids": [...]}` adds people to a channel or group; `DELETE /conversations/{id}/members/{uid}` removes one.
-  Plain members get `403 forbidden`; non-members get `404 not_found` (the conversation stays invisible). A "X added Y" / "X removed Y" system message is posted. `PATCH /conversations/{id}` (admins and channel managers) takes `name`, `topic`, `archived`, `visibility`.
+  Plain members get `403 forbidden`; non-members get `404 not_found` (the conversation stays invisible). A "X added Y" / "X removed Y" system message is posted. `PATCH /conversations/{id}` (admins and channel managers) takes `name`, `topic`, `archived`.
 * **Save for later.** `GET /saved` lists saved items (newest first); `PUT /saved/{message_id}` saves (optional `{"label_ids": [...]}`), `DELETE /saved/{message_id}` removes it,
   `PUT /saved/{message_id}/labels` with `{"label_ids": [...]}` sets its labels. Only messages in conversations you belong to can be saved (`404` otherwise).
+  `GET /saved` returns only the light `SavedItem` `{message_id, conv_id, saved_ms, label_ids}` (the same list is in `Bootstrap.saved`); the apps read the message from their cache.
+  **`GET /saved/messages` (1.2.0)** returns everything a "Saved" screen needs in one call, newest saved first: `[SavedMessage]` = `{"item": SavedItem, "message": Message, "conversation": ConversationSummary}`.
+  `message` is the full `Message` (body, `attachments` with name, mime, size, image/video/voice metadata, reactions, `forwarded`, ...), exactly as `GET /messages/{id}` returns it;
+  `conversation` is the caller's `ConversationSummary` (name, kind, members). Messages in conversations you left or that you hid are left out, like in `GET /saved`.
 * **Labels.** `GET /labels`, `POST /labels` (`{"name","color"}` as `#rrggbb`), `PATCH /labels/{id}` (rename, recolour, reorder), `DELETE /labels/{id}`. Each call returns the full label list.
 * **Activity feed.** `GET /activity?limit=n` returns mentions of you, reactions to your messages and replies in threads you follow (newest first, `unread` per item, `read_ms` for the feed);
   `POST /activity/read` marks it read (optionally up to a timestamp). Items for conversations you left are not returned.
@@ -141,8 +145,8 @@ neighbouring messages. Members get `message_edit` with the new `ts`. Used by `to
 
 ## Channels, pinning, hide, broadcast replies (1.1.0, phase S2)
 
-All paths are under `/api/v1`, bearer token. Types are in `schema/api.schema.json` (`OrgSettings`, `UpdateOrgSettings`, `ChannelBrowsePage`, `ChannelBrowseItem`,
-`CreateConversation`, `UpdateConversation`, `HideMessageResponse`, `Counts`). A conversation you are not in never reveals itself: you get `not_found`, not `forbidden` (except public channels, which you can browse and join).
+All paths are under `/api/v1`, bearer token. Types are in `schema/api.schema.json` (`OrgSettings`, `UpdateOrgSettings`,
+`CreateConversation`, `UpdateConversation`, `HideMessageResponse`, `Counts`). A conversation you are not in never reveals itself: you get `not_found`, not `forbidden`. **Since 1.2.0 all channels are private**: you are in a channel only because an owner, admin or manager added you.
 
 ### Organisation settings
 
@@ -152,29 +156,24 @@ All paths are under `/api/v1`, bearer token. Types are in `schema/api.schema.jso
 
 ### Creating channels and group chats
 
-* `POST /conversations` with `CreateConversation` `{"kind": "channel"|"group_dm", "name", "topic"?, "members": [user ids], "visibility"?: "public"|"private", "include_creator"?: bool}`
+* `POST /conversations` with `CreateConversation` `{"kind": "channel"|"group_dm", "name", "topic"?, "members": [user ids], "include_creator"?: bool}`
   returns `ConversationSummary` (201 body as before). The creator is added automatically as a member with conversation role **`owner`** (this is the channel manager role that already existed:
-  `Member.role`). `members` lists the other people. `visibility` defaults to `public` for channels; a group DM is always `private` (`validation` if you ask for public).
+  `Member.role`). `members` lists the other people.
   Channels: allowed for everyone unless `channel_creation` is `admins`, then `403 forbidden` for plain members. Group DMs: always allowed for everyone and need at least two members in total
   (creator plus one, else `validation`). Non-admins cannot add bots. `include_creator` is for admins only (the admin panel sends `false`); for everyone else it is ignored and the creator joins.
-* Events: every member gets `conversation_upsert`; people outside a public channel get `channel_directory_update` (below).
-* **Channel manager** = conversation role `owner` (admins have the same power everywhere). A manager can `PATCH /conversations/{id}` (`name`, `topic`, `archived`, `visibility`; response is the caller's
+* Events: every member gets `conversation_upsert`. Nobody else hears about the channel.
+* **Channel manager** = conversation role `owner` (admins have the same power everywhere). A manager can `PATCH /conversations/{id}` (`name`, `topic`, `archived`; response is the caller's
   `ConversationSummary`), `PUT /conversations/{id}/avatar`, `POST /conversations/{id}/members {"user_ids"}`, `DELETE /conversations/{id}/members/{uid}` and always pin. Plain members get `403`,
-  non-members `404`. A manager cannot remove another manager (admins can). Works for group DMs too (not `visibility`).
-* `Conversation.visibility` is `"public"` or `"private"` on every conversation (always `private` except channels). Channels that existed before 1.1.0 stay `private`.
+  non-members `404`. A manager cannot remove another manager (admins can). Works for group DMs too.
+* **1.2.0: `Conversation.visibility` is gone.** There are no public channels. Old callers may still send `visibility` in `POST /conversations` / `PATCH /conversations/{id}`: it is ignored (nothing is rejected).
 * `GET /conversations/{id}` returns one `ConversationSummary` exactly as the list does (members only, `404` otherwise).
 
-### Public and private channels
+### Leaving, and what was removed in 1.2.0
 
-* `GET /channels/browse?q=<text>&limit=<1..200, default 50>&offset=<n>` returns `ChannelBrowsePage` `{"channels": [{"id","name","topic"?,"avatar"?,"member_count","created_ms"}], "total", "has_more"}`:
-  public, not archived channels the caller is **not** in, ordered by name; `q` matches name and topic case-insensitively. Private channels never appear.
-* `POST /conversations/{id}/join` joins a public channel and returns its `ConversationSummary` (200; repeating it is a no-op). Private (or unknown) ids answer `404 not_found`, an archived channel `403 forbidden`.
-  A system message "<name> joined" is posted; the joiner (all devices) and the members get `conversation_upsert`, everyone gets `message_new` for the system message. Fetch history with the normal messages endpoint.
+* **Removed in 1.2.0:** `GET /channels/browse`, `POST /conversations/{id}/join` (both now `404`), the event `channel_directory_update`, the types `ChannelVisibility`, `ChannelBrowseItem`, `ChannelBrowsePage`
+  and the `visibility` field of `Conversation`, `CreateConversation` and `UpdateConversation`. A channel can only be joined by being added (`POST /conversations/{id}/members`, owner, admin or manager).
 * `POST /conversations/{id}/leave` leaves a channel or group DM (managers too; `validation` for DMs and notes to self, `404` when not a member). Returns `{"ok": true}`. The leaver's devices get
   `conversation_remove {conv_id}`, the others `conversation_upsert` and the system message "<name> left". `DELETE /conversations/{id}/members/{your id}` does the same.
-* Event `channel_directory_update {conv_id, channel: ChannelBrowseItem | null}` goes to people who are not in the channel when a public channel is created, renamed, gets a topic or picture, is
-  archived/unarchived, changes visibility or is deleted; `channel: null` means "remove it from the browse list". It is not sent for every join or leave (`member_count` is as of your last
-  `GET /channels/browse`), and never for private channels.
 
 ### Pinning
 

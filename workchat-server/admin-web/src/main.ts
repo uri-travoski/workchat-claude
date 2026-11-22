@@ -153,20 +153,19 @@ const pages: Record<Tab, (el: HTMLElement, m: ServerMeta) => Promise<void>> = {
     for (const c of convs) {
       tbody.append(h("tr", {},
         h("td", {}, h("b", {}, c.name ?? "(unnamed)"), h("div", { class: "muted" }, c.topic ?? "")),
-        h("td", {}, c.kind === "channel" ? (c.visibility === "public" ? "Public channel" : "Private channel") : "Group DM"),
+        h("td", {}, c.kind === "channel" ? "Channel" : "Group DM"),
         h("td", {}, c.members.map((m) => name(m.user_id)).join(", ")),
         h("td", {}, String(c.message_count)),
         h("td", {}, c.archived ? h("span", { class: "pill warn" }, "archived") : ""),
         h("td", { class: "row" },
           h("button", { onclick: () => membersDialog(c, users, reload) }, "Members"),
           h("button", { onclick: () => renameDialog(c, reload) }, "Rename"),
-          c.kind === "channel" ? h("button", { class: "visibility-toggle", onclick: async () => { try { await api("PATCH", `/conversations/${c.id}`, { visibility: c.visibility === "public" ? "private" : "public" }); reload(); } catch (e) { fail(e); } } }, c.visibility === "public" ? "Make private" : "Make public") : "",
           h("button", { onclick: async () => { try { await api("PATCH", `/conversations/${c.id}`, { archived: !c.archived }); reload(); } catch (e) { fail(e); } } }, c.archived ? "Unarchive" : "Archive"),
           h("button", { class: "danger", onclick: () => confirmType(`Delete "${c.name}"`, `This deletes all ${c.message_count} messages and files in it for everyone. Type the name to confirm.`, c.name ?? "", async () => { await api("DELETE", `/admin/conversations/${c.id}`); reload(); }) }, "Delete"))));
     }
     el.append(h("div", { class: "card" },
       h("div", { class: "row" }, h("h2", { style: "margin:0;flex:1" }, "Channels and group DMs"), h("button", { class: "primary", onclick: () => createConvDialog(users, reload) }, "Create")),
-      h("p", { class: "muted" }, "Private channels are members only and hidden from everyone else; public channels can be found and joined by anyone in the app. Channels created here do not include you. People can also create channels themselves unless you restrict it under Settings."),
+      h("p", { class: "muted" }, "Channels are private: people are in one only because an owner, admin or manager added them. Channels created here do not include you. People can also create channels themselves unless you restrict it under Settings."),
       h("table", {}, h("thead", {}, h("tr", {}, ...["Name", "Kind", "Members", "Messages", "", "Actions"].map((x) => h("th", {}, x)))), tbody)));
   },
 
@@ -376,12 +375,11 @@ function confirmType(title: string, text: string, expect: string, action: () => 
 function createConvDialog(users: AdminUser[], reload: () => void) {
   const name = h("input", {}), topic = h("input", {});
   const kind = h("select", {}, h("option", { value: "channel" }, "Channel"), h("option", { value: "group_dm" }, "Group DM"));
-  const vis = h("select", { id: "new-conv-visibility", "aria-label": "Channel visibility" }, h("option", { value: "private" }, "Private (members only)"), h("option", { value: "public" }, "Public (anyone can join)")) as HTMLSelectElement;
   const boxes = users.filter((u) => !u.disabled && !u.deleted).map((u) => ({ u, c: h("input", { type: "checkbox", style: "width:auto" }) }));
-  dialog("Create conversation", h("div", {}, field("Kind", kind), field("Visibility (channels)", vis), field("Name", name), field("Topic", topic), h("h3", {}, "Members"),
+  dialog("Create conversation", h("div", {}, field("Kind", kind), field("Name", name), field("Topic", topic), h("h3", {}, "Members"),
     h("div", { style: "max-height:220px;overflow:auto" }, ...boxes.map(({ u, c }) => h("label", { style: "display:flex;gap:8px;align-items:center;color:var(--text)" }, c, u.display_name + " (" + u.username + ")")))), [{
     label: "Create", primary: true, action: async (close) => {
-      await api("POST", "/conversations", { kind: kind.value, name: name.value, topic: topic.value || null, members: boxes.filter((b) => b.c.checked).map((b) => b.u.id), visibility: kind.value === "channel" ? vis.value : null, include_creator: false });
+      await api("POST", "/conversations", { kind: kind.value, name: name.value, topic: topic.value || null, members: boxes.filter((b) => b.c.checked).map((b) => b.u.id), include_creator: false });
       close(); reload();
     },
   }]);

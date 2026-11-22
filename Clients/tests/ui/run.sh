@@ -25,7 +25,12 @@ sleep 1
 for i in $(seq 1 1200); do
   if [ -f "$data/mark" ]; then
     name=$(cat "$data/mark")
-    case "$name" in done) break;; error*) echo "$name"; break;; esac
+    case "$name" in
+      done) break;;
+      error*) echo "$name"; break;;
+      # xdo:<args> runs real X input (xdotool) against the window, e.g. xdo:key_Escape or xdo:mousemove_300_300_click_1
+      xdo:*) xdotool $(echo "${name#xdo:}" | tr '_' ' ') >/dev/null 2>&1 || true; echo "input ${name#xdo:}"; rm -f "$data/mark"; continue;;
+    esac
     import -window root -crop "${W}x${H}+0+0" +repage "$out/$name.png"
     echo "shot $name"
     rm -f "$data/mark"

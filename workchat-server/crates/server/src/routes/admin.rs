@@ -446,7 +446,6 @@ pub async fn delete_conversation(State(st): State<St>, Admin(_a): Admin, Path(id
             if !matches!(cr.kind, ConversationKind::Channel | ConversationKind::GroupDm) {
                 return Err(AppError::validation("only channels and group DMs can be deleted"));
             }
-            let was_listed = crate::org::browse_item(c, &id)?.is_some();
             let tx = c.transaction()?;
             let members = member_ids(&tx, &id)?;
             let mut keys = vec![];
@@ -476,8 +475,6 @@ pub async fn delete_conversation(State(st): State<St>, Admin(_a): Admin, Path(id
             for m in members {
                 em.emit(&tx, &m, EventData::ConversationRemove { conv_id: id.clone() })?;
             }
-            // People outside the channel drop it from their browse list.
-            crate::org::emit_directory(&tx, &mut em, &id, was_listed)?;
             tx.commit()?;
             em.flush(&hub);
             Ok(keys)
@@ -646,7 +643,7 @@ pub async fn get_updates(State(st): State<St>, Admin(_a): Admin, axum::extract::
 
 async fn check_updates(st: &St) -> AdminUpdates {
     let url = st.cfg.update_url.clone();
-    let mut out = AdminUpdates { current: VERSION.into(), latest: None, update_available: false, checked_ms: now_ms(), error: None, source: url.clone() };
+    let mut out = AdminUpdates { current: VERSION.into(), latest: None, update_available: false, checked_ms: now_ms(), error: None, source: url.clone(), release_url: st.cfg.release_url.clone() };
     let res = async {
         let resp = st
             .http

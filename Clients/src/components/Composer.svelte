@@ -2,7 +2,7 @@
   import { tick, untrack } from "svelte";
   import { app, fail, prefs, toast } from "../lib/app.svelte";
   import { stageBrowserFiles } from "../lib/attach";
-  import { activeFormats, applyFormat, type FormatKind } from "../lib/composer";
+  import { activeFormats, applyFormat, shortcutFor, type FormatKind } from "../lib/composer";
   import { core, type MessageView } from "../lib/core";
   import { hasFormatting } from "../lib/markup";
   import EmojiPicker from "./EmojiPicker.svelte";
@@ -230,12 +230,11 @@
     } else if (e.key === "Enter" && mod) {
       e.preventDefault();
       void send();
-    } else if (mod && e.key.toLowerCase() === "b") {
+    } else if (shortcutFor(e)) {
       e.preventDefault();
-      void format("bold");
-    } else if (mod && e.key.toLowerCase() === "i") {
-      e.preventDefault();
-      void format("italic");
+      const k = shortcutFor(e)!;
+      if (k === "link") openLink();
+      else void format(k);
     } else if (e.key === "Escape") {
       if (emojiOpen || linkOpen) emojiOpen = linkOpen = false;
       else if (editing) oncancelEdit?.();

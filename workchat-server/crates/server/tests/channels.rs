@@ -1,14 +1,10 @@
-//! Phase S2: channel creation by members, public/private channels, pinning rules, "Delete for me", "Also send to
+//! Phase S2: channel creation by members, private channels, pinning rules, "Delete for me", "Also send to
 //! channel", the single-conversation endpoint and the sessions list.
 mod common;
 use common::*;
 
 fn ids(v: &[&Client]) -> Vec<String> {
     v.iter().map(|c| c.user_id.clone()).collect()
-}
-
-async fn browse(c: &Client, query: &str) -> ChannelBrowsePage {
-    c.get(&format!("/channels/browse{query}")).await.unwrap()
 }
 
 async fn counts(c: &Client) -> Counts {
@@ -50,15 +46,13 @@ async fn members_create_channels_and_group_dms_and_become_managers() {
     let bob = s.user("bob").await;
     let carol = s.user("carol").await;
 
-    // Default: everyone can create. The creator is a member and the manager; visibility defaults to public.
-    let c = alice.new_channel("project", &ids(&[&bob]), None).await.unwrap();
+    // Default: everyone can create. The creator is a member and the manager.
+    let c = alice.new_channel("project", &ids(&[&bob])).await.unwrap();
     let id = c.conversation.id.clone();
-    assert_eq!(c.conversation.visibility, ChannelVisibility::Public);
     assert_eq!(c.conversation.kind, ConversationKind::Channel);
     assert_eq!(role_of(&c.conversation, &alice.user_id), "owner");
     assert_eq!(role_of(&c.conversation, &bob.user_id), "member");
     assert!(alice.has_conversation(&id).await && bob.has_conversation(&id).await && !carol.has_conversation(&id).await);
-    assert_eq!(alice.new_channel("hidden", &[], Some(ChannelVisibility::Private)).await.unwrap().conversation.visibility, ChannelVisibility::Private);
 
     // The manager renames, sets the topic, adds, removes and archives.
     let u: ConversationSummary = alice.patch(&format!("/conversations/{id}"), &UpdateConversation { name: Some("project-x".into()), topic: Some("ship it".into()), ..Default::default() }).await.unwrap();
@@ -86,23 +80,20 @@ async fn members_create_channels_and_group_dms_and_become_managers() {
 
     // Restricted to admins: members get forbidden, admins can still create, group DMs stay open.
     s.admin.set_org_settings(&UpdateOrgSettings { channel_creation: Some(ChannelCreation::Admins), channel_pins: None }).await.unwrap();
-    assert_eq!(alice.new_channel("nope", &[], None).await.unwrap_err().code, Some(ErrorCode::Forbidden));
-    let by_admin = s.admin.new_channel("official", &ids(&[&alice]), None).await.unwrap();
+    assert_eq!(alice.new_channel("nope", &[]).await.unwrap_err().code, Some(ErrorCode::Forbidden));
+    let by_admin = s.admin.new_channel("official", &ids(&[&alice])).await.unwrap();
     assert_eq!(role_of(&by_admin.conversation, &s.admin.user_id), "owner", "an admin creating through the app joins too");
     let g = alice.new_group("lunch", &ids(&[&bob, &carol])).await.unwrap();
     assert_eq!(g.conversation.kind, ConversationKind::GroupDm);
-    assert_eq!(g.conversation.visibility, ChannelVisibility::Private);
     assert_eq!(g.conversation.members.len(), 3);
     assert_eq!(role_of(&g.conversation, &alice.user_id), "owner");
     assert!(bob.has_conversation(&g.conversation.id).await && carol.has_conversation(&g.conversation.id).await);
-    // The group manager renames it; others cannot. A group DM cannot be public.
+    // The group manager renames it; others cannot.
     alice.patch::<ConversationSummary, _>(&format!("/conversations/{}", g.conversation.id), &UpdateConversation { name: Some("lunch club".into()), ..Default::default() }).await.unwrap();
     assert!(bob.patch::<ConversationSummary, _>(&format!("/conversations/{}", g.conversation.id), &UpdateConversation { name: Some("x".into()), ..Default::default() }).await.is_err());
-    let r = alice.post::<ConversationSummary, _>("/conversations", &CreateConversation { kind: ConversationKind::GroupDm, name: "pub".into(), topic: None, members: ids(&[&bob]), visibility: Some(ChannelVisibility::Public), include_creator: None }).await;
-    assert_eq!(r.unwrap_err().code, Some(ErrorCode::Validation));
     // A group DM needs at least one other person; DMs and notes cannot be created through this endpoint.
     assert_eq!(alice.new_group("solo", &[]).await.unwrap_err().code, Some(ErrorCode::Validation));
-    let r = alice.post::<ConversationSummary, _>("/conversations", &CreateConversation { kind: ConversationKind::Dm, name: "x".into(), topic: None, members: vec![], visibility: None, include_creator: None }).await;
+    let r = alice.post::<ConversationSummary, _>("/conversations", &CreateConversation { kind: ConversationKind::Dm, name: "x".into(), topic: None, members: vec![], include_creator: None }).await;
     assert!(r.is_err());
     // Members cannot add bots; disabled people are refused.
     s.admin.set_disabled(&carol.user_id, true).await.unwrap();
@@ -115,7 +106,7 @@ async fn single_conversation_endpoint() {
     let alice = s.user("alice").await;
     let bob = s.user("bob").await;
     let carol = s.user("carol").await;
-    let c = alice.new_channel("solo-view", &ids(&[&bob]), Some(ChannelVisibility::Private)).await.unwrap();
+    let c = alice.new_channel("solo-view", &ids(&[&bob])).await.unwrap();
     let id = c.conversation.id.clone();
     bob.mark_read(&id).await.unwrap();
     alice.send(&id, "one").await;
@@ -127,112 +118,67 @@ async fn single_conversation_endpoint() {
     assert_eq!(carol.conversation(&id).await.unwrap_err().code, Some(ErrorCode::NotFound));
 }
 
-// ------------------------------------------------------------------ 2. public and private channels
+// ------------------------------------------------------------------ 2. private-only channels
 
 #[tokio::test]
-async fn browse_join_leave_public_channels() {
+async fn channels_are_private_leave_works_and_public_endpoints_are_gone() {
     let s = TestServer::start().await;
     let alice = s.user("alice").await;
     let bob = s.user("bob").await;
     let carol = s.user("carol").await;
     let mut wb = bob.ws(bob.cursor().await).await;
-    let mut wc = carol.ws(carol.cursor().await).await;
 
-    let design = alice.new_channel("design", &[], None).await.unwrap().conversation;
-    alice.patch::<ConversationSummary, _>(&format!("/conversations/{}", design.id), &UpdateConversation { topic: Some("pixels and colour".into()), ..Default::default() }).await.unwrap();
-    let ops = alice.new_channel("ops", &ids(&[&carol]), None).await.unwrap().conversation;
-    let secret = alice.new_channel("secret", &[], Some(ChannelVisibility::Private)).await.unwrap().conversation;
-    // Pre-1.1 style channels (admin-created private ones) never show up either.
-    let legacy = s.channel("legacy", &[&alice]).await;
+    let design = alice.new_channel("design", &ids(&[&bob])).await.unwrap().conversation;
+    let ops = alice.new_channel("ops", &ids(&[&carol])).await.unwrap().conversation;
+    let ops_id = ops.id.clone();
 
-    // Everyone not in a channel hears that it exists (directory event), only for public ones.
-    wb.wait_event("directory design", |e| matches!(e, EventData::ChannelDirectoryUpdate { conv_id, channel: Some(c) } if conv_id == &design.id && c.name == "design")).await;
-    wb.wait_event("directory ops", |e| matches!(e, EventData::ChannelDirectoryUpdate { conv_id, channel: Some(_) } if conv_id == &ops.id)).await;
+    // Nobody outside a channel can see it or its history, and no directory event ever reaches them.
+    assert_eq!(bob.conversation(&ops.id).await.unwrap_err().code, Some(ErrorCode::NotFound));
+    assert_eq!(bob.history_raw(&ops.id, "").await.unwrap_err().code, Some(ErrorCode::NotFound));
     let evs = bob.events(0).await.unwrap().events;
-    assert!(!evs.iter().any(|e| matches!(&e.event, EventData::ChannelDirectoryUpdate { conv_id, .. } if conv_id == &secret.id || conv_id == &legacy)), "private channels leak no event");
-    // Carol is a member of ops, so ops is not in her directory events.
-    let evs = carol.events(0).await.unwrap().events;
-    assert!(!evs.iter().any(|e| matches!(&e.event, EventData::ChannelDirectoryUpdate { conv_id, .. } if conv_id == &ops.id)));
+    assert!(!evs.iter().any(|e| serde_json::to_string(&e.event).unwrap().contains("channel_directory")));
 
-    // Browse: names, topic, member counts; not the ones I am in, not private ones.
-    let b = browse(&bob, "").await;
-    let names: Vec<&str> = b.channels.iter().map(|c| c.name.as_str()).collect();
-    assert_eq!(names, vec!["design", "ops"]);
-    assert_eq!(b.total, 2);
-    assert!(!b.has_more);
-    let d = &b.channels[0];
-    assert_eq!((d.id.as_str(), d.topic.as_deref(), d.member_count), (design.id.as_str(), Some("pixels and colour"), 1));
-    assert_eq!(b.channels[1].member_count, 2);
-    let names: Vec<String> = browse(&carol, "").await.channels.into_iter().map(|c| c.name).collect();
-    assert_eq!(names, vec!["design"]);
-    // Search by name or topic, paging.
-    assert_eq!(browse(&bob, "?q=COLOUR").await.channels.len(), 1);
-    assert_eq!(browse(&bob, "?q=op").await.channels[0].name, "ops");
-    assert!(browse(&bob, "?q=secret").await.channels.is_empty());
-    let p1 = browse(&bob, "?limit=1").await;
-    assert_eq!((p1.channels.len(), p1.total, p1.has_more), (1, 2, true));
-    let p2 = browse(&bob, "?limit=1&offset=1").await;
-    assert_eq!((p2.channels[0].name.as_str(), p2.has_more), ("ops", false));
+    // Browse and join no longer exist.
+    let r: Result<Value, _> = bob.get("/channels/browse").await;
+    assert_eq!(r.unwrap_err().status, 404);
+    let r: Result<Value, _> = bob.get("/channels/browse?q=ops").await;
+    assert_eq!(r.unwrap_err().status, 404);
+    for id in [&ops.id, &design.id] {
+        assert_eq!(bob.post_empty::<Value>(&format!("/conversations/{id}/join")).await.unwrap_err().status, 404);
+    }
+    assert!(!bob.has_conversation(&ops.id).await);
 
-    // Private channels stay invisible: join is 404, same as a missing id.
-    assert_eq!(bob.post_empty::<Value>(&format!("/conversations/{}/join", secret.id)).await.unwrap_err().code, Some(ErrorCode::NotFound));
-    assert_eq!(bob.post_empty::<Value>(&format!("/conversations/{legacy}/join")).await.unwrap_err().code, Some(ErrorCode::NotFound));
-    assert_eq!(bob.conversation(&design.id).await.unwrap_err().code, Some(ErrorCode::NotFound));
-    assert_eq!(bob.history_raw(&design.id, "").await.unwrap_err().code, Some(ErrorCode::NotFound));
+    // Old callers still sending `visibility` are not broken: it is ignored, the channel is members-only anyway.
+    let v: Value = alice.post("/conversations", &serde_json::json!({"kind": "channel", "name": "legacy-caller", "members": [], "visibility": "public"})).await.unwrap();
+    assert!(v.get("visibility").is_none(), "no visibility field in responses any more");
+    let legacy_id = v["id"].as_str().unwrap().to_string();
+    assert_eq!(bob.conversation(&legacy_id).await.unwrap_err().code, Some(ErrorCode::NotFound));
+    let p: Value = alice.patch(&format!("/conversations/{legacy_id}"), &serde_json::json!({"topic": "t", "visibility": "public"})).await.unwrap();
+    assert_eq!(p["topic"], "t");
+    assert_eq!(bob.conversation(&legacy_id).await.unwrap_err().code, Some(ErrorCode::NotFound));
+    let r = alice.post::<Value, _>("/conversations", &serde_json::json!({"kind": "group_dm", "name": "g", "members": [bob.user_id], "visibility": "public"})).await;
+    assert!(r.is_ok(), "an unknown/obsolete field rejects nothing");
 
-    // Join: the joiner gets the conversation, members see a system message and the new member.
-    let mut wa = alice.ws(alice.cursor().await).await;
-    let before = alice.cursor().await;
-    let joined: ConversationSummary = bob.post_empty(&format!("/conversations/{}/join", design.id)).await.unwrap();
-    assert_eq!(joined.conversation.members.len(), 2);
-    assert_eq!(role_of(&joined.conversation, &bob.user_id), "member");
-    wb.wait_event("joiner upsert", |e| matches!(e, EventData::ConversationUpsert { conversation } if conversation.conversation.id == design.id)).await;
-    wa.wait_event("member sees the newcomer", |e| matches!(e, EventData::ConversationUpsert { conversation } if conversation.conversation.id == design.id && conversation.conversation.members.len() == 2)).await;
-    let texts = alice.texts(&design.id).await;
-    assert_eq!(texts.last().map(|t| t.as_str()), Some("Bob joined"));
-    assert!(alice.events(before).await.unwrap().events.iter().any(|e| matches!(&e.event, EventData::MessageNew { message } if message.body == "Bob joined")));
-    // Now bob can read and write, and the channel left his browse list.
-    bob.send(&design.id, "hello design").await;
-    assert_eq!(browse(&bob, "").await.channels.iter().map(|c| c.name.as_str()).collect::<Vec<_>>(), vec!["ops"]);
-    assert_eq!(browse(&carol, "").await.channels[0].member_count, 2);
-    // Joining twice is harmless.
-    let again: ConversationSummary = bob.post_empty(&format!("/conversations/{}/join", design.id)).await.unwrap();
-    assert_eq!(again.conversation.members.len(), 2);
-    assert_eq!(alice.texts(&design.id).await.iter().filter(|t| *t == "Bob joined").count(), 1);
+    // Being added is the only way in; the others see the system message.
+    let carol_added: Conversation = alice.post(&format!("/conversations/{}/members", design.id), &MembersRequest { user_ids: vec![carol.user_id.clone()] }).await.unwrap();
+    assert_eq!(carol_added.members.len(), 3);
 
-    // Leave: removed for the leaver (event), the others see "Bob left"; he can join again.
+    // Leave: removed for the leaver (event), the others see "Bob left"; he cannot come back by himself.
     let r: Value = bob.post_empty(&format!("/conversations/{}/leave", design.id)).await.unwrap();
     assert_eq!(r["ok"], true);
     wb.wait_event("leaver removed", |e| matches!(e, EventData::ConversationRemove { conv_id } if conv_id == &design.id)).await;
     assert!(!bob.has_conversation(&design.id).await);
     assert_eq!(alice.texts(&design.id).await.last().map(|t| t.as_str()), Some("Bob left"));
-    assert!(browse(&bob, "").await.channels.iter().any(|c| c.name == "design"));
     assert_eq!(bob.post_empty::<Value>(&format!("/conversations/{}/leave", design.id)).await.unwrap_err().code, Some(ErrorCode::NotFound));
-    bob.post_empty::<ConversationSummary>(&format!("/conversations/{}/join", design.id)).await.unwrap();
-    // The manager can leave too (admins can still manage the channel); DMs cannot be left.
-    alice.post_empty::<Value>(&format!("/conversations/{}/leave", design.id)).await.unwrap();
-    assert!(!alice.has_conversation(&design.id).await);
+    assert_eq!(bob.post_empty::<Value>(&format!("/conversations/{}/join", design.id)).await.unwrap_err().status, 404);
+    // A group DM can be left too; DMs cannot.
+    let g = alice.new_group("trio", &ids(&[&bob, &carol])).await.unwrap().conversation.id;
+    bob.post_empty::<Value>(&format!("/conversations/{g}/leave")).await.unwrap();
     let dm = bob.open_dm(&carol.user_id).await.unwrap();
     assert_eq!(bob.post_empty::<Value>(&format!("/conversations/{dm}/leave")).await.unwrap_err().code, Some(ErrorCode::Validation));
-
-    // Visibility changes by the manager move the channel in and out of the directory (event for outsiders).
-    let ops_id = ops.id.clone();
-    alice.patch::<ConversationSummary, _>(&format!("/conversations/{ops_id}"), &UpdateConversation { visibility: Some(ChannelVisibility::Private), ..Default::default() }).await.unwrap();
-    wb.wait_event("ops left the directory", |e| matches!(e, EventData::ChannelDirectoryUpdate { conv_id, channel: None } if conv_id == &ops_id)).await;
-    assert!(browse(&bob, "").await.channels.is_empty());
-    assert_eq!(bob.post_empty::<Value>(&format!("/conversations/{ops_id}/join")).await.unwrap_err().code, Some(ErrorCode::NotFound));
-    alice.patch::<ConversationSummary, _>(&format!("/conversations/{ops_id}"), &UpdateConversation { visibility: Some(ChannelVisibility::Public), name: Some("operations".into()), ..Default::default() }).await.unwrap();
-    wb.wait_event("ops is back, renamed", |e| matches!(e, EventData::ChannelDirectoryUpdate { conv_id, channel: Some(c) } if conv_id == &ops_id && c.name == "operations")).await;
-    // Archived channels cannot be joined and are not listed; unarchiving brings them back.
-    alice.patch::<ConversationSummary, _>(&format!("/conversations/{ops_id}"), &UpdateConversation { archived: Some(true), ..Default::default() }).await.unwrap();
-    wb.wait_event("archived leaves the directory", |e| matches!(e, EventData::ChannelDirectoryUpdate { conv_id, channel: None } if conv_id == &ops_id)).await;
-    assert!(browse(&bob, "?q=operations").await.channels.is_empty());
-    assert_eq!(bob.post_empty::<Value>(&format!("/conversations/{ops_id}/join")).await.unwrap_err().code, Some(ErrorCode::Forbidden));
-    // Deleting a channel removes it from the directory as well.
-    alice.patch::<ConversationSummary, _>(&format!("/conversations/{ops_id}"), &UpdateConversation { archived: Some(false), ..Default::default() }).await.unwrap();
-    wc.wait_event("back", |e| matches!(e, EventData::ConversationUpsert { conversation } if conversation.conversation.id == ops_id && !conversation.conversation.archived)).await;
+    // Deleting a channel works as before.
     let _: Value = s.admin.delete(&format!("/admin/conversations/{ops_id}")).await.unwrap();
-    wb.wait_event("deleted channel leaves the directory", |e| matches!(e, EventData::ChannelDirectoryUpdate { conv_id, channel: None } if conv_id == &ops_id)).await;
+    assert!(!carol.has_conversation(&ops_id).await);
 }
 
 // ------------------------------------------------------------------ 3. pinning
@@ -267,7 +213,7 @@ async fn pinning_rules() {
     assert_eq!(pin(&dave, &dm, &m.id).await.unwrap_err().code, Some(ErrorCode::NotFound));
 
     // Channels: members pin by default, with the PinsUpdate event to everyone.
-    let ch = alice.new_channel("pinboard", &ids(&[&bob, &carol]), None).await.unwrap().conversation.id;
+    let ch = alice.new_channel("pinboard", &ids(&[&bob, &carol])).await.unwrap().conversation.id;
     let m = alice.send(&ch, "pin me").await;
     let mut wa = alice.ws(alice.cursor().await).await;
     assert_eq!(pin(&bob, &ch, &m.id).await.unwrap().len(), 1);
@@ -297,7 +243,7 @@ async fn delete_for_me_hides_everywhere_for_that_user_only() {
     let bob = s.user("bob").await;
     let bob2 = s.login("bob").await; // second device
     let carol = s.user("carol").await;
-    let ch = alice.new_channel("hide-me", &ids(&[&bob, &carol]), None).await.unwrap().conversation.id;
+    let ch = alice.new_channel("hide-me", &ids(&[&bob, &carol])).await.unwrap().conversation.id;
     let keep = alice.send(&ch, "keep this").await;
     let gone = alice.send_file(&ch, "zebra report", "zebra.pdf", b"%PDF-1.4 zebra".to_vec()).await;
     let own = bob.send(&ch, "my own words").await;
@@ -392,7 +338,7 @@ async fn thread_reply_also_sent_to_channel_is_one_message() {
     let s = TestServer::start().await;
     let alice = s.user("alice").await;
     let bob = s.user("bob").await;
-    let ch = alice.new_channel("broadcast", &ids(&[&bob]), None).await.unwrap().conversation.id;
+    let ch = alice.new_channel("broadcast", &ids(&[&bob])).await.unwrap().conversation.id;
     let root = alice.send(&ch, "root").await;
     let mut wb = bob.ws(bob.cursor().await).await;
     let req = SendMessage { client_id: "bc-1".into(), body: "this matters to everyone".into(), thread_root: Some(root.id.clone()), reply_to: None, mentions: vec![], attachment_ids: vec![], also_send_to_channel: true };
@@ -436,7 +382,10 @@ async fn thread_reply_also_sent_to_channel_is_one_message() {
 fn schema_file_is_current_and_has_the_new_types() {
     let generated = serde_json::to_value(proto::api_schema()).unwrap();
     let defs = generated["definitions"].as_object().unwrap();
-    for t in ["Counts", "OrgSettings", "UpdateOrgSettings", "ChannelBrowsePage", "ChannelBrowseItem", "HideMessageResponse", "ChannelVisibility", "SessionInfo", "ConversationSummary"] {
+    for gone in ["ChannelBrowsePage", "ChannelBrowseItem", "ChannelVisibility"] {
+        assert!(!defs.contains_key(gone), "{gone} must be gone from the schema");
+    }
+    for t in ["Counts", "OrgSettings", "UpdateOrgSettings", "HideMessageResponse", "SessionInfo", "ConversationSummary"] {
         assert!(defs.contains_key(t), "{t} is missing from the generated schema");
     }
     let file = std::fs::read_to_string(concat!(env!("CARGO_MANIFEST_DIR"), "/../../schema/api.schema.json")).unwrap();

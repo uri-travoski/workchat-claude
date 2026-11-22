@@ -96,10 +96,16 @@ try {
     assert.match(await page.textContent("#upd-notes"), /Updates card in the admin panel/);
     const cmds = await page.$$eval("#updates-card pre.cmd", (n) => n.map((x) => x.textContent));
     assert.deepEqual(cmds, ["docker compose pull && docker compose up -d"]);
-    assert.match(await page.textContent("#updates-card"), /WORKCHAT_IMAGE=ghcr\.io\/uri-travoski\/workchat-server:9\.9\.9/);
+    assert.match(await page.textContent("#updates-card"), /WORKCHAT_IMAGE=ghcr\.io\/uri-travoski\/workchat-claude-server:9\.9\.9/);
     const links = await page.$$eval("#upd-downloads a", (n) => n.map((x) => [x.textContent, x.href]));
     assert.deepEqual(links.map((l) => l[0]), ["Android (APK)", "Linux (AppImage)", "Linux (.deb)", "Windows (installer)", "Windows (portable)"]);
     assert.ok(links.every((l) => l[1].startsWith("https://github.com/uri-travoski/workchat-claude/releases/download/v9.9.9/")));
+    const LATEST = "https://github.com/uri-travoski/workchat-claude/releases/latest";
+    assert.equal((await page.textContent("#updates-card h3:has-text('Client downloads')")).trim(), "Client downloads", "heading has no version");
+    assert.doesNotMatch(await page.textContent("#updates-card"), /Client downloads in/);
+    assert.match(await page.textContent("#upd-dl-version"), /Latest release: v9\.9\.9/);
+    assert.equal(await page.getAttribute("#upd-latest-link", "href"), LATEST);
+    assert.equal((await page.textContent("#upd-latest-link")).trim(), "Open latest release on GitHub");
     assert.equal(await page.getAttribute("#upd-release-link", "href"), "https://github.com/uri-travoski/workchat-claude/releases/tag/v9.9.9");
     // The server (not the browser) asked, and said who it is.
     assert.equal(seen.length, 1);
@@ -124,6 +130,7 @@ try {
     assert.equal((await page.textContent("#upd-status")).trim(), "Up to date");
     assert.equal((await page.$("#upd-notes")), null, "no release notes when nothing is new");
     assert.ok(await page.$("#updates-card pre.cmd"), "the update commands stay available");
+    assert.equal(await page.getAttribute("#upd-latest-link", "href"), "https://github.com/uri-travoski/workchat-claude/releases/latest");
     await page.screenshot({ path: path.join(shots, "admin-updates-current.png"), fullPage: true });
     assert.deepEqual(errors, []);
     await ctx.close();
@@ -136,10 +143,12 @@ try {
     assert.equal((await page.textContent("#upd-status")).trim(), "Could not check");
     assert.match(await page.textContent("#upd-error"), /limiting update checks/);
     assert.ok(await page.$("#updates-card pre.cmd"));
+    assert.equal(await page.getAttribute("#upd-latest-link", "href"), "https://github.com/uri-travoski/workchat-claude/releases/latest", "link stays in the error state");
     await ctx.close();
     await stopServer();
     const m = await overview("none", { width: 390, height: 844 });
     assert.match(await m.page.textContent("#upd-error"), /No release has been published yet/);
+    assert.equal(await m.page.getAttribute("#upd-latest-link", "href"), "https://github.com/uri-travoski/workchat-claude/releases/latest", "link stays when no release exists");
     assert.ok(await m.page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), "no horizontal scroll on a phone");
     await m.page.screenshot({ path: path.join(shots, "admin-updates-phone.png"), fullPage: true });
     assert.deepEqual(errors.concat(m.errors), []);

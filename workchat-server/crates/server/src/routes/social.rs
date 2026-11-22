@@ -136,6 +136,23 @@ pub async fn list_saved(State(st): State<St>, auth: Auth) -> J<Vec<SavedItem>> {
     Ok(Json(st.db.call(move |c| saved::load_saved(c, &auth.user_id)).await?))
 }
 
+/// The saved items with their full message and conversation (same visibility rules as `GET /saved`), newest saved first.
+pub async fn list_saved_messages(State(st): State<St>, auth: Auth) -> J<Vec<SavedMessage>> {
+    Ok(Json(
+        st.db
+            .call(move |c| {
+                let mut out = vec![];
+                for item in saved::load_saved(c, &auth.user_id)? {
+                    let message = load_message(c, &item.message_id)?;
+                    let conversation = conv_summary(c, &item.conv_id, &auth.user_id)?;
+                    out.push(SavedMessage { item, message, conversation });
+                }
+                Ok(out)
+            })
+            .await?,
+    ))
+}
+
 pub async fn save_message(State(st): State<St>, auth: Auth, Path(id): Path<String>, body: Option<Json<SaveRequest>>) -> J<SavedItem> {
     let hub = st.hub.clone();
     let req = body.map(|b| b.0).unwrap_or_default();

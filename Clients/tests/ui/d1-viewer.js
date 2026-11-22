@@ -1,0 +1,22 @@
+// Viewer regression: closing the viewer (X, Esc as a real key press, click on the backdrop) must never close the app.
+await api.openChat("David Kim");
+await api.scrollTo(".album", -1, "center");
+await api.click(".album .cell");
+await api.wait(800);
+await api.mark("viewer-open");
+await api.click("button[aria-label='Close']");
+await api.wait(500);
+await api.mark("viewer-closed-x");
+await api.click(".album .cell");
+await api.wait(800);
+await api.mark("xdo:key_Escape");
+await api.wait(1200);
+await api.mark("viewer-closed-esc");
+await api.click(".album .cell");
+await api.wait(800);
+await api.mark("xdo:mousemove_150_500_click_1");
+await api.wait(1200);
+await api.mark("viewer-after-click");
+const open = () => !!document.querySelector(".viewer");
+if (open()) throw new Error("viewer still open after clicking the backdrop");
+if (!document.querySelector("section.conv")) throw new Error("app state lost");

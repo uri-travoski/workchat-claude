@@ -3,6 +3,7 @@
   import type { Attachment } from "../lib/core";
   import { duration as fmt } from "../lib/format";
   import { cycleSpeed, isCurrent, isPlaying, seek, togglePlay } from "../lib/player.svelte";
+  import { openFile } from "../lib/files";
   import Icon from "./Icon.svelte";
 
   let { a, voice = true, mine = false }: { a: Attachment; voice?: boolean; mine?: boolean } = $props();
@@ -67,7 +68,7 @@
     </div>
     <div class="meta"><span class="t">{label}</span>{#if cur && app.audio.state !== "ended"}<button class="spd" aria-label="Playback speed" onclick={cycleSpeed}>{app.audio.speed === 1 ? "1x" : app.audio.speed + "x"}</button>{/if}</div>
   </div>
-  {#if voice}<span class="micico"><Icon name="mic" size={16} /></span>{/if}
+  {#if voice}<span class="micico"><Icon name="mic" size={16} /></span>{:else}<button class="opn" aria-label={`Open ${a.name} in default app`} title="Open in default app" onclick={() => void openFile(a)}><Icon name="external" size={17} /></button>{/if}
 </div>
 
 <style>
@@ -75,6 +76,8 @@
   .play { width: 40px; height: 40px; border-radius: 50%; flex: none; display: inline-flex; align-items: center; justify-content: center; background: var(--accent); color: #fff; }
   .mine .play { background: rgba(255, 255, 255, 0.22); color: #fff; }
   .mid { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+  .opn { width: 32px; height: 32px; border-radius: 50%; flex: none; display: inline-flex; align-items: center; justify-content: center; color: inherit; opacity: 0.75; }
+  .opn:hover { opacity: 1; background: rgba(127, 127, 127, 0.18); }
   .name { font-size: 14px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .wave { position: relative; display: flex; align-items: center; gap: 2px; height: 30px; cursor: pointer; touch-action: none; }
   .wave i { flex: 1; min-width: 2px; border-radius: 2px; background: color-mix(in srgb, var(--muted-2) 80%, transparent); }

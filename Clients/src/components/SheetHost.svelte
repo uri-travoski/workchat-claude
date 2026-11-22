@@ -16,6 +16,7 @@
   import PreviewSheet from "./PreviewSheet.svelte";
   import ProfileSheet from "./ProfileSheet.svelte";
   import Viewer from "./Viewer.svelte";
+  import OpenFailDialog from "./OpenFailDialog.svelte";
 
   const s = $derived(app.sheet);
 </script>
@@ -41,3 +42,4 @@
   {/key}
 {/if}
 <Viewer />
+<OpenFailDialog />

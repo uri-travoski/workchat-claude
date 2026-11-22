@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.2.0 (unreleased)
+
+Channels are private only; public channel browse/join removed.
+
+* Removed: `Conversation.visibility`, `visibility` in `CreateConversation` / `UpdateConversation` (an old caller that still sends it is not rejected, the field is ignored), `GET /channels/browse`,
+  `POST /conversations/{id}/join` (both `404` now), the event `channel_directory_update`, the types `ChannelVisibility`, `ChannelBrowseItem`, `ChannelBrowsePage`, and the admin panel's public/private
+  choice, "Make public / Make private" buttons and "Public channel" label. `POST /conversations/{id}/leave` stays for channels and group DMs. A channel is joined only by being added by an owner, admin or manager.
+* Migration: nothing is dropped. Existing databases keep all channels; the old `conversations.visibility` column (1.1.0 databases) is left in place but unused and every row is set to `private`;
+  new databases do not have it. Backups made by 1.1.0 (full snapshots and per-user data with `visibility`) still restore; the field is ignored.
+* New: `GET /saved/messages` returns each saved message in full (attachments) with its conversation, for a "Saved" screen.
+* The server never fetched link previews, so there was nothing to remove there; the apps just show the plain link.
+* Admin Updates card and `/downloads`: the heading is just "Client downloads" (the release version is a small "Latest release: vX.Y.Z" label), and a link "Open latest release on GitHub"
+  (`WORKCHAT_RELEASE_URL`, default `.../releases/latest`) is always shown, including the error, no-release and server-offline states. `AdminUpdates` gains `release_url`. Tests: `updates.rs`, `tests/ui/admin-updates.mjs`.
+* Tests: `channels.rs` (404 for browse/join, legacy `visibility` ignored, leave), `backups.rs` (1.1.0 snapshot restore), `db.rs` (migration), `social.rs` (`/saved/messages`).
+
 ## 1.1.0 (unreleased)
 
 What the new WorkChat apps need ([docs/API.md](docs/API.md#phone-and-desktop-apps-110)).

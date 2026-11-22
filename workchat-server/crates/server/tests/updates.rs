@@ -76,6 +76,7 @@ async fn newer_release_is_offered_with_notes_and_assets() {
     assert_eq!(u.current, VERSION);
     assert!(u.update_available && u.error.is_none(), "{u:?}");
     assert_eq!(u.source, url);
+    assert_eq!(u.release_url, "https://example.invalid/releases", "the configured release_url is always sent");
     let r = u.latest.unwrap();
     assert_eq!(r.version, "99.0.0");
     assert_eq!(r.tag, "v99.0.0");
@@ -127,6 +128,10 @@ async fn prerelease_draft_none_rate_limit_and_offline_are_reported() {
     let u = card(&server_for("http://127.0.0.1:1/releases/latest").await, false).await;
     assert!(u.error.unwrap().contains("could not reach"), "offline wording");
     assert!(!u.update_available && u.latest.is_none());
+    assert_eq!(u.release_url, "https://example.invalid/releases", "the link is there when offline too");
+    // Default config points at the latest-release page, not a tag.
+    let d = std::fs::read_to_string(concat!(env!("CARGO_MANIFEST_DIR"), "/src/config.rs")).unwrap();
+    assert!(d.contains("\"https://github.com/uri-travoski/workchat-claude/releases/latest\".into()"));
 }
 
 #[tokio::test]

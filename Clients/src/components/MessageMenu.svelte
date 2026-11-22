@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { registerLayer } from "../lib/overlays";
   import { untrack } from "svelte";
   import { app, fail, openThread, toast } from "../lib/app.svelte";
   import { core, type MessageView } from "../lib/core";
@@ -58,9 +59,10 @@
     const h = el?.offsetHeight ?? 360;
     pos = { left: Math.max(8, Math.min(x, window.innerWidth - w - 8)), top: Math.max(8, Math.min(y, window.innerHeight - h - 8)) };
   });
+  $effect(() => registerLayer(close));
 </script>
 
-<svelte:window onkeydown={(e) => e.key === "Escape" && close()} />
+
 <div class="back" class:phone={app.phone} role="presentation" onclick={close} oncontextmenu={(e) => { e.preventDefault(); close(); }}></div>
 <div class="menu" class:phone={app.phone} role="menu" bind:this={el} style={app.phone ? "" : `left:${pos.left}px;top:${pos.top}px`}>
   {#if app.phone}<span class="grab"></span>{/if}

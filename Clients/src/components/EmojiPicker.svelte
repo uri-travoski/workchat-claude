@@ -1,11 +1,12 @@
 <script lang="ts">
+  import { registerLayer } from "../lib/overlays";
   import { EMOJI } from "../lib/emoji";
 
   let { onpick, onclose, inline = false }: { onpick: (e: string) => void; onclose: () => void; inline?: boolean } = $props();
   let cat = $state(0);
+  $effect(() => registerLayer(onclose));
 </script>
 
-<svelte:window onkeydown={(e) => e.key === "Escape" && onclose()} />
 {#if !inline}<div class="backdrop" role="presentation" onclick={onclose}></div>{/if}
 <div class="picker" class:inline role="dialog" aria-label="Emoji">
   <div class="tabs">

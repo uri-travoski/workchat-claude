@@ -177,3 +177,25 @@ async fn activity_feed_lists_mentions_reactions_and_thread_replies_with_read_sta
     bob.react(&mine.id, "\u{2764}\u{FE0F}", true).await.unwrap();
     assert_eq!(feed(&alice).await.unread, 1);
 }
+
+/// `GET /saved/messages`: the saved item with its full message (attachments included) and its conversation.
+#[tokio::test(flavor = "multi_thread")]
+async fn saved_messages_endpoint_returns_message_attachments_and_conversation() {
+    let s = TestServer::start().await;
+    let alice = s.user("alice").await;
+    let bob = s.user("bob").await;
+    let ch = s.channel("design", &[&alice, &bob]).await;
+    let plain = alice.send(&ch, "plain").await;
+    let withfile = alice.send_file(&ch, "with file", "note.txt", b"hello".to_vec()).await;
+    save(&bob, &plain.id, None).await.unwrap();
+    save(&bob, &withfile.id, None).await.unwrap();
+    let list: Vec<SavedMessage> = bob.get("/saved/messages").await.unwrap();
+    assert_eq!(list.len(), 2);
+    assert_eq!(list[0].item.message_id, withfile.id, "newest saved first");
+    assert_eq!(list[0].message.body, "with file");
+    assert_eq!(list[0].message.attachments.len(), 1);
+    assert_eq!(list[0].message.attachments[0].name, "note.txt");
+    assert_eq!(list[0].conversation.conversation.id, ch);
+    assert_eq!(list[0].conversation.conversation.name.as_deref(), Some("design"));
+    assert!(alice.get::<Vec<SavedMessage>>("/saved/messages").await.unwrap().is_empty());
+}

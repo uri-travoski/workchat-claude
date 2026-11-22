@@ -498,7 +498,7 @@ mod tests {
     #[test]
     fn counts_leave_locked_chats_out() {
         let s = Store::open_memory().unwrap();
-        let conv = |id: &str, kind| Conversation { visibility: Default::default(), id: id.into(), kind, name: Some(id.into()), topic: None, archived: false, created_ms: 1, members: vec![], last_seq: 1, last_message_ts: None, avatar: None };
+        let conv = |id: &str, kind| Conversation { id: id.into(), kind, name: Some(id.into()), topic: None, archived: false, created_ms: 1, members: vec![], last_seq: 1, last_message_ts: None, avatar: None };
         for (id, kind, unread) in [("a", ConversationKind::Dm, 3), ("b", ConversationKind::Channel, 2)] {
             s.upsert_conv(&ConversationSummary { conversation: conv(id, kind), last_read_seq: 0, marked_unread: false, unread, mentions: 1 }).unwrap();
         }

@@ -3,10 +3,6 @@
 export type ConversationKind = ("dm" | "group_dm") | "self" | "channel";
 export type Presence = "online" | "away" | "dnd" | "offline";
 export type Role = "owner" | "admin" | "member";
-/**
- * Who can find and join a channel. Group DMs, DMs and notes are always `private`.
- */
-export type ChannelVisibility = "public" | "private";
 export type FormFieldKind = "text" | "multiline" | "boolean" | "select" | "multi_select";
 export type MessageKind = "text" | "file" | "system";
 /**
@@ -258,11 +254,6 @@ export type EventData =
       type: "org_settings_update";
     }
   | {
-      channel?: ChannelBrowseItem | null;
-      conv_id: string;
-      type: "channel_directory_update";
-    }
-  | {
       type: "resync";
     };
 export type ScheduledState = "pending" | "sent" | "cancelled" | "failed";
@@ -329,8 +320,6 @@ export interface WorkChatAPI {
   bootstrap: Bootstrap;
   bot_home: BotHome;
   bot_profile: BotProfile;
-  channel_browse_item: ChannelBrowseItem;
-  channel_browse_page: ChannelBrowsePage;
   clear_history: ClearHistoryResponse;
   client_ws: ClientWsMsg;
   conv_pref: ConvPref;
@@ -373,6 +362,7 @@ export interface WorkChatAPI {
   release_info: ReleaseInfo;
   restore_request: RestoreRequest;
   restore_response: RestoreResponse;
+  saved_messages: SavedMessage[];
   schedule_request: ScheduleRequest;
   scheduled: ScheduledMessage;
   search: SearchResponse;
@@ -470,10 +460,6 @@ export interface AdminConversation {
   message_count: number;
   name?: string | null;
   topic?: string | null;
-  /**
-   * `public` or `private` (channels only; everything else is `private`). Channels that existed before 1.1.0 are `private`.
-   */
-  visibility?: ChannelVisibility & string;
 }
 export interface Member {
   /**
@@ -611,6 +597,10 @@ export interface AdminUpdates {
    * The newest published release (drafts and pre-releases skipped), even when it is not newer.
    */
   latest?: ReleaseInfo | null;
+  /**
+   * The GitHub "latest release" page (the configured `release_url`), always shown as a link in the card.
+   */
+  release_url?: string;
   /**
    * The address that was checked.
    */
@@ -773,10 +763,6 @@ export interface ConversationSummary {
   name?: string | null;
   topic?: string | null;
   unread: number;
-  /**
-   * `public` or `private` (channels only; everything else is `private`). Channels that existed before 1.1.0 are `private`.
-   */
-  visibility?: ChannelVisibility & string;
 }
 /**
  * A file in the Files browser / file search (F-05, SR-03).
@@ -1230,31 +1216,6 @@ export interface BotProfile {
   home: BotHome;
   user: User;
 }
-/**
- * A public channel as listed by `GET /channels/browse`.
- */
-export interface ChannelBrowseItem {
-  /**
-   * Attachment id of the channel picture.
-   */
-  avatar?: string | null;
-  created_ms: number;
-  id: string;
-  member_count: number;
-  name: string;
-  topic?: string | null;
-}
-/**
- * `GET /channels/browse?q=&limit=&offset=`: public, not archived channels the caller is not in, by name.
- */
-export interface ChannelBrowsePage {
-  channels: ChannelBrowseItem[];
-  has_more: boolean;
-  /**
-   * All matching channels, not just this page.
-   */
-  total: number;
-}
 export interface ClearHistoryResponse {
   attachments_moved: number;
   backup_id: string;
@@ -1346,10 +1307,6 @@ export interface CreateConversation {
   members?: string[];
   name: string;
   topic?: string | null;
-  /**
-   * Channels only: `public` (default) or `private`. A `group_dm` is always private.
-   */
-  visibility?: ChannelVisibility | null;
 }
 export interface CreateIncomingWebhook {
   conv_id: string;
@@ -1640,6 +1597,20 @@ export interface RestoreResponse {
   users_restored: number;
   warnings: string[];
 }
+/**
+ * One entry of `GET /saved/messages`: everything a "Saved" screen needs to draw a saved message without more requests.
+ */
+export interface SavedMessage {
+  /**
+   * The conversation it is in, with the caller's own state (name, kind, members, unread).
+   */
+  conversation: ConversationSummary;
+  item: SavedItem;
+  /**
+   * The full message, with `attachments`, reactions, forward info and so on, as `GET /messages/{id}` returns it.
+   */
+  message: Message;
+}
 export interface ScheduleRequest {
   attachment_ids?: string[];
   body: string;
@@ -1736,10 +1707,6 @@ export interface UpdateConversation {
   archived?: boolean | null;
   name?: string | null;
   topic?: string | null;
-  /**
-   * Channels only.
-   */
-  visibility?: ChannelVisibility | null;
 }
 /**
  * `PUT /admin/org-settings`: only the given fields change.
@@ -1793,10 +1760,6 @@ export interface ViewerConversation {
    */
   title: string;
   topic?: string | null;
-  /**
-   * `public` or `private` (channels only; everything else is `private`). Channels that existed before 1.1.0 are `private`.
-   */
-  visibility?: ChannelVisibility & string;
 }
 /**
  * Admin viewer: a page of a conversation's messages plus reply counts for the thread badges.

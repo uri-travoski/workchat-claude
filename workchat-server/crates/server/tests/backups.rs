@@ -248,3 +248,42 @@ async fn deleted_accounts_come_back_from_backup() {
     let alice2 = s.login("alice").await;
     assert!(alice2.texts(&dm).await.contains(&"before deletion".to_string()));
 }
+
+/// A full backup made by 1.1.0 (its `conversations` table still has the `visibility` column, with public channels in
+/// it) restores on a 1.2.0 server: every channel is kept, the old column is ignored and all channels are members-only.
+#[tokio::test]
+async fn full_backup_from_1_1_0_with_visibility_still_restores() {
+    let dir = tempfile::tempdir().unwrap();
+    // Build a 1.1.0-shaped snapshot: today's schema plus the legacy column holding public values.
+    let old = workchat_server::db::Db::open(&dir.path().join("old.db")).unwrap();
+    let snap = dir.path().join("snapshot.db");
+    let snap2 = snap.clone();
+    old.call(move |c| {
+        c.execute_batch(
+            "ALTER TABLE conversations ADD COLUMN visibility TEXT NOT NULL DEFAULT 'private';
+             INSERT INTO conversations(id,kind,name,created_ms,visibility) VALUES('pub1','channel','town-square',1,'public');
+             INSERT INTO conversations(id,kind,name,created_ms,visibility) VALUES('priv1','channel','secret',2,'private');",
+        )?;
+        c.execute("VACUUM INTO ?1", [snap2.to_string_lossy().to_string()])?;
+        Ok(())
+    })
+    .await
+    .unwrap();
+    drop(old);
+
+    let (st, _url) = fresh_server(dir.path()).await;
+    workchat_server::fullbackup::import_snapshot(&st, &snap).await.unwrap();
+    let rows: Vec<(String, String)> = st
+        .db
+        .call(|c| {
+            let mut s = c.prepare("SELECT id,name FROM conversations ORDER BY id")?;
+            let v = s.query_map([], |r| Ok((r.get(0)?, r.get(1)?)))?.collect::<Result<Vec<_>, _>>()?;
+            Ok(v)
+        })
+        .await
+        .unwrap();
+    assert_eq!(rows, vec![("priv1".to_string(), "secret".to_string()), ("pub1".to_string(), "town-square".to_string())]);
+    // Reading them back through the normal query path works (no visibility needed anywhere).
+    let sum = st.db.call(|c| workchat_server::queries::load_conversation(c, "pub1")).await.unwrap();
+    assert_eq!(sum.name.as_deref(), Some("town-square"));
+}

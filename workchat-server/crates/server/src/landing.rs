@@ -124,15 +124,15 @@ fn sub(st: &St) -> String {
 
 fn download_card(st: &St, base: &str) -> String {
     let files = downloads(st);
-    let mut h = String::from(r#"<div class="card" id="dl"><h2>Do not have the app yet?</h2>"#);
+    let mut h = String::from(r#"<div class="card" id="dl"><h2>Client downloads</h2>"#);
     if files.is_empty() {
-        h += &format!(r#"<a class="btn" href="{u}" rel="noreferrer noopener">Download the app (Android, Linux, Windows)</a>"#, u = esc(&st.cfg.release_url));
+        h += r#"<p class="mut">No installers are hosted on this server. Get the app (Android, Linux, Windows) from GitHub.</p>"#;
     } else {
         for (label, name) in files {
             h += &format!(r#"<a class="btn" href="{b}/downloads/{n}">Download for {l} <span class="mut">({n})</span></a>"#, b = esc(base), n = esc(&name), l = label);
         }
     }
-    h += "</div>";
+    h += &format!(r#"<p class="mut" style="margin:0"><a id="dl-latest" href="{u}" rel="noreferrer noopener">Open latest release on GitHub</a></p></div>"#, u = esc(&st.cfg.release_url));
     h
 }
 

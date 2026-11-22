@@ -1,6 +1,7 @@
 <script lang="ts">
   import { app, fail, jumpTo, userName } from "../lib/app.svelte";
   import { core, type FileHit } from "../lib/core";
+  import { openFile } from "../lib/files";
   import { docLine, fileTile, isImage, isVideo } from "../lib/filetype";
   import { dayLabel, duration, fileSize } from "../lib/format";
   import { mediaUrl, posterUrl } from "../lib/media";
@@ -104,10 +105,11 @@
       {#each items as f (f.attachment.id)}
         {@const t = fileTile(f.attachment.name, f.attachment.content_type)}
         <div class="row">
-          <button class="main" onclick={() => jumpTo(f.conv_id, f.message_id)}>
+          <button class="main" title="Open" onclick={() => void openFile(f.attachment)}>
             <span class="tile" style="color:{t.fg};background:{t.bg}"><Icon name="file" size={19} /><b>{t.label}</b></span>
             <span class="tx"><b>{f.attachment.name}</b><small>{docLine(f.attachment.size, f.attachment.meta?.pages, fileSize)} · {userName(f.sender_id)} · {dayLabel(f.ts)}</small></span>
           </button>
+          <button class="dl" aria-label="Show in chat" title="Show in chat" onclick={() => jumpTo(f.conv_id, f.message_id)}><Icon name="chat" size={19} /></button>
           <button class="dl" aria-label="Save to Downloads" title="Save to Downloads" onclick={() => save(f)}><Icon name="download" size={19} /></button>
         </div>
       {/each}
@@ -118,6 +120,7 @@
           <button class="main" onclick={() => jumpTo(f.conv_id, f.message_id)}>
             <span class="tx"><b>{f.attachment.name}</b><small>{f.attachment.meta?.duration_ms ? duration(f.attachment.meta.duration_ms) + " · " : ""}{userName(f.sender_id)} · {dayLabel(f.ts)}</small></span>
           </button>
+          <button class="dl" aria-label="Open in default app" title="Open in default app" onclick={() => void openFile(f.attachment)}><Icon name="external" size={19} /></button>
         </div>
       {/each}
     {/if}

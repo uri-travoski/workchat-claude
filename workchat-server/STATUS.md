@@ -1,5 +1,10 @@
 # Status
 
+## 1.2.0 (unreleased): channels are private only
+
+* Public channels are gone: no `visibility`, no browse, no join, no `channel_directory_update`. Old databases and 1.1.0 backups keep every channel (all private). `GET /saved/messages` added for a Saved view.
+  No link previews exist on the server (nothing to remove). Version 1.2.0 in Cargo.toml and deploy/docker-compose.yml. Details in CHANGELOG.md.
+
 ## 1.1.0 (unreleased): phase S1 for the WorkChat apps
 
 * Added what the apps need: profile title and phone, contacts search, `GET /me/counts`, richer `GET /threads` and `GET /files`, read receipts, the `unifiedpush` push kind,

@@ -502,4 +502,7 @@ pub struct AdminUpdates {
     pub error: Option<String>,
     /// The address that was checked.
     pub source: String,
+    /// The GitHub "latest release" page (the configured `release_url`), always shown as a link in the card.
+    #[serde(default)]
+    pub release_url: String,
 }

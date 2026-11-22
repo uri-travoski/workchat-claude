@@ -11,11 +11,37 @@ export interface Edit {
 
 const MARK: Record<string, string> = { bold: "*", italic: "_", strike: "~", code: "`" };
 
-function inline(text: string, start: number, end: number, m: string): Edit {
-  if (start === end) {
-    // Empty selection: insert a pair and put the caret between.
-    return { text: text.slice(0, start) + m + m + text.slice(end), start: start + 1, end: start + 1 };
+/** Selection edge without surrounding whitespace: a marker next to a space is not a marker ("* word *" is plain text). */
+function trimSel(text: string, start: number, end: number): [number, number] {
+  while (start < end && /\s/.test(text[start])) start++;
+  while (end > start && /\s/.test(text[end - 1])) end--;
+  return [start, end];
+}
+
+/** Toggle with nothing selected: an empty pair is removed, the caret before a closing marker steps out of the run,
+ *  inside a run the markers are removed, anywhere else a pair is inserted with the caret between. */
+function caret(text: string, pos: number, m: string): Edit {
+  const ls = text.lastIndexOf("\n", pos - 1) + 1;
+  let le = text.indexOf("\n", pos);
+  if (le < 0) le = text.length;
+  const line = text.slice(ls, le);
+  const at = pos - ls;
+  const marks: number[] = [];
+  for (let i = 0; i < line.length; i++) if (line[i] === m) marks.push(i);
+  for (let k = 0; k + 1 < marks.length; k += 2) {
+    const [o, c] = [marks[k], marks[k + 1]];
+    if (at <= o || at > c) continue;
+    if (c === o + 1) return { text: text.slice(0, ls + o) + text.slice(ls + c + 1), start: ls + o, end: ls + o }; // empty pair
+    if (at === c) return { text: text, start: pos + 1, end: pos + 1 }; // step out of the run
+    const out = text.slice(0, ls + o) + line.slice(o + 1, c) + text.slice(ls + c + 1);
+    return { text: out, start: pos - 1, end: pos - 1 }; // unwrap
   }
+  return { text: text.slice(0, pos) + m + m + text.slice(pos), start: pos + 1, end: pos + 1 };
+}
+
+function single(text: string, start0: number, end0: number, m: string): Edit {
+  const [start, end] = trimSel(text, start0, end0);
+  if (start >= end) return caret(text, start0, m);
   const sel = text.slice(start, end);
   // The markers sit just outside the selection: remove them.
   if (start >= m.length && text.slice(start - m.length, start) === m && text.slice(end, end + m.length) === m) {
@@ -27,6 +53,33 @@ function inline(text: string, start: number, end: number, m: string): Edit {
     return { text: text.slice(0, start) + inner + text.slice(end), start, end: start + inner.length };
   }
   return { text: text.slice(0, start) + m + sel + m + text.slice(end), start: start + 1, end: end + 1 };
+}
+
+/** A selection over several lines is formatted line by line, after any list or quote prefix (a mark never spans a line break). */
+function multi(text: string, start: number, end: number, m: string): Edit {
+  const lines = text.slice(start, end).split("\n");
+  const split = (l: string) => {
+    const pre = /^\s*(?:(?:- |• |\d{1,3}\. |> ?))?/.exec(l)![0];
+    const rest = l.slice(pre.length);
+    const t = rest.trim();
+    return { pre, lead: rest.length - rest.trimStart().length, t, tail: rest.slice(rest.length - (rest.length - rest.trimEnd().length)) };
+  };
+  const wrapped = (t: string) => t.length >= 2 * m.length && t.startsWith(m) && t.endsWith(m);
+  const parts = lines.map(split);
+  const body = parts.filter((p) => p.t !== "");
+  const all = body.length > 0 && body.every((p) => wrapped(p.t));
+  const out = parts.map((p) => {
+    if (p.t === "") return p.pre + " ".repeat(p.lead);
+    const t = all ? p.t.slice(m.length, p.t.length - m.length) : wrapped(p.t) ? p.t : m + p.t + m;
+    return p.pre + " ".repeat(p.lead) + t + p.tail;
+  });
+  const joined = out.join("\n");
+  return { text: text.slice(0, start) + joined + text.slice(end), start, end: start + joined.length };
+}
+
+function inline(text: string, start: number, end: number, m: string): Edit {
+  if (start === end) return caret(text, start, m);
+  return text.slice(start, end).includes("\n") ? multi(text, start, end, m) : single(text, start, end, m);
 }
 
 const BULLET = /^(- |• )/;
@@ -58,6 +111,9 @@ function lineEdit(text: string, start: number, end: number, kind: "bullet" | "nu
 
 function codeBlock(text: string, start: number, end: number): Edit {
   const sel = text.slice(start, end);
+  // The selection is already a fenced block: remove the fences.
+  const fenced = /^```[^\n]*\n([\s\S]*?)\n?```$/.exec(sel);
+  if (fenced) return { text: text.slice(0, start) + fenced[1] + text.slice(end), start, end: start + fenced[1].length };
   const lead = start > 0 && text[start - 1] !== "\n" ? "\n" : "";
   const trail = end < text.length && text[end] !== "\n" ? "\n" : "";
   const ins = `${lead}\`\`\`\n${sel}\n\`\`\`${trail}`;
@@ -103,4 +159,23 @@ export function activeFormats(text: string, start: number, end: number): Set<For
   if (NUMBER.test(line)) on.add("numbered");
   if (QUOTE.test(line)) on.add("quote");
   return on;
+}
+
+/** Keyboard shortcut to toolbar action. `code` is the physical key (so Shift+7 works on every layout). */
+export function shortcutFor(e: { key: string; code?: string; ctrlKey: boolean; metaKey?: boolean; shiftKey: boolean; altKey: boolean }): FormatKind | null {
+  if (!(e.ctrlKey || e.metaKey)) return null;
+  const k = e.key.toLowerCase();
+  if (e.altKey) return e.code === "KeyC" || k === "c" ? "codeblock" : null;
+  if (e.shiftKey) {
+    if (k === "x") return "strike";
+    if (e.code === "Digit7") return "numbered";
+    if (e.code === "Digit8") return "bullet";
+    if (e.code === "Digit9") return "quote";
+    return null;
+  }
+  if (k === "b") return "bold";
+  if (k === "i") return "italic";
+  if (k === "e") return "code";
+  if (k === "k") return "link";
+  return null;
 }

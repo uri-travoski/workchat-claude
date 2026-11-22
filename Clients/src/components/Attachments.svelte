@@ -6,6 +6,7 @@
   import { duration, fileSize } from "../lib/format";
   import { mediaUrl, posterUrl } from "../lib/media";
   import { openMedia } from "../lib/viewer";
+  import { openFile } from "../lib/files";
   import Icon from "./Icon.svelte";
   import VoiceBubble from "./VoiceBubble.svelte";
 
@@ -44,13 +45,7 @@
       fail(e);
     }
   }
-  async function open(id: string, name: string) {
-    try {
-      await core.openAttachment(id, name);
-    } catch (e) {
-      fail(e);
-    }
-  }
+  const open = (id: string, name: string) => void openFile({ id, name });
   const ratio = (a: { meta?: { width?: number | null; height?: number | null } | null }) => {
     const w = a.meta?.width;
     const h = a.meta?.height;
@@ -114,8 +109,10 @@
       </button>
     {/if}
     <div class="drow">
-      <span class="tile" style="color:{tile.fg};background:{tile.bg}"><Icon name="file" size={20} stroke={1.9} /><b>{tile.label}</b></span>
-      <span class="dt"><b>{a.removed ? "File removed" : a.name}</b>{#if !a.removed}<small>{docLine(a.size, a.meta?.pages, fileSize)}</small>{/if}</span>
+      <button class="dmain" disabled={a.removed || a.id.startsWith("up_")} aria-label={`Open ${a.name}`} title="Open" onclick={() => open(a.id, a.name)}>
+        <span class="tile" style="color:{tile.fg};background:{tile.bg}"><Icon name="file" size={20} stroke={1.9} /><b>{tile.label}</b></span>
+        <span class="dt"><b>{a.removed ? "File removed" : a.name}</b>{#if !a.removed}<small>{docLine(a.size, a.meta?.pages, fileSize)}</small>{/if}</span>
+      </button>
       {#if !a.removed && !a.id.startsWith("up_")}<button class="dl" aria-label={`Download ${a.name}`} title="Save to Downloads" onclick={() => save(a.id, a.name)}><Icon name="download" size={19} stroke={2} /></button>{/if}
     </div>
   </div>
@@ -147,6 +144,8 @@
   .pdfprev { display: block; width: 100%; height: 118px; overflow: hidden; padding: 0; background: #fff; border-bottom: 1px solid rgba(127, 127, 127, 0.2); }
   .pdfprev img { width: 100%; height: 100%; object-fit: cover; object-position: top; display: block; }
   .drow { display: flex; align-items: center; gap: 11px; padding: 9px 10px; }
+  .dmain { flex: 1; min-width: 0; display: flex; align-items: center; gap: 11px; text-align: left; padding: 0; color: inherit; }
+  .dmain:not(:disabled):hover .dt b { text-decoration: underline; }
   .tile { width: 42px; height: 46px; border-radius: 9px; display: inline-flex; flex-direction: column; align-items: center; justify-content: center; gap: 0; flex: none; }
   .tile b { font-size: 9.5px; letter-spacing: 0.03em; line-height: 1; margin-top: 1px; }
   .dt { display: flex; flex-direction: column; min-width: 0; flex: 1; }

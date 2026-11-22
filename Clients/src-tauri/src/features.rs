@@ -570,6 +570,26 @@ impl Engine {
         Ok(MessageView::server(m))
     }
 
+    /// `GET /saved/messages`: saved messages with their message and chat, newest saved first. Locked chats are left out.
+    pub async fn list_saved_messages(&self) -> Result<Vec<MessageView>> {
+        match self.api()?.get::<Vec<SavedMessage>>("/saved/messages", &[]).await {
+            Ok(list) => Ok(list.into_iter().filter(|s| self.guard(&s.message.conv_id).is_ok()).map(|s| MessageView::server(s.message)).collect()),
+            Err(e) => {
+                // An older server (before 1.2) has no `/saved/messages`: read the light list and fetch each message.
+                tracing::info!("saved/messages unavailable ({e}); falling back to /saved");
+                let mut items: Vec<SavedItem> = self.store.kv_get("saved")?.unwrap_or_default();
+                items.sort_by(|a, b| b.saved_ms.cmp(&a.saved_ms));
+                let mut out = vec![];
+                for it in items {
+                    if let Ok(m) = self.fetch_message(&it.message_id).await {
+                        out.push(m);
+                    }
+                }
+                Ok(out)
+            }
+        }
+    }
+
     /// Messages around `seq` of a conversation, to show a search hit in its context.
     pub async fn messages_around(&self, conv: &str, around_seq: i64) -> Result<Vec<MessageView>> {
         self.guard(conv)?;
@@ -680,14 +700,13 @@ impl Engine {
 
     // ---------------------------------------------------------------- creating chats
 
-    pub async fn create_conversation(&self, kind: &str, name: &str, topic: Option<String>, members: Vec<String>, visibility: Option<String>, avatar_staged: Option<String>) -> Result<String> {
+    pub async fn create_conversation(&self, kind: &str, name: &str, topic: Option<String>, members: Vec<String>, avatar_staged: Option<String>) -> Result<String> {
         let api = self.api()?;
         let kind = ConversationKind::parse(kind).ok_or_else(|| CoreError::local("Unknown chat type."))?;
         // The server adds the creator (as the chat's manager); `members` lists the other people.
         let me = self.me_id();
         let members: Vec<String> = members.into_iter().filter(|m| *m != me).collect();
-        let visibility = if kind == ConversationKind::Channel { visibility.as_deref().and_then(ChannelVisibility::parse) } else { None };
-        let req = CreateConversation { kind, name: name.trim().to_string(), topic: topic.filter(|t| !t.trim().is_empty()), members, visibility, include_creator: None };
+        let req = CreateConversation { kind, name: name.trim().to_string(), topic: topic.filter(|t| !t.trim().is_empty()), members, include_creator: None };
         let cs: ConversationSummary = api.json(Method::POST, "/conversations", &[], Some(serde_json::to_value(&req)?)).await?;
         self.store.upsert_conv(&cs)?;
         self.emit_row(&cs.conversation.id);
@@ -723,23 +742,6 @@ impl Engine {
         self.store.upsert_conv(&cs)?;
         self.emit_row(conv);
         Ok(())
-    }
-
-    /// `GET /channels/browse`: public channels the person has not joined.
-    pub async fn browse_channels(&self, q: &str, limit: u32, offset: u32) -> Result<ChannelBrowsePage> {
-        let mut query = vec![("limit", limit.clamp(1, 200).to_string()), ("offset", offset.to_string())];
-        if !q.trim().is_empty() {
-            query.push(("q", q.trim().to_string()));
-        }
-        self.api()?.get("/channels/browse", &query).await
-    }
-
-    pub async fn join_channel(&self, conv: &str) -> Result<String> {
-        let cs: ConversationSummary = self.api()?.json(Method::POST, &format!("/conversations/{conv}/join"), &[], None).await?;
-        self.store.upsert_conv(&cs)?;
-        self.emit_row(&cs.conversation.id);
-        self.counts_wake.notify_one();
-        Ok(cs.conversation.id)
     }
 
     pub async fn leave_conversation(&self, conv: &str) -> Result<()> {

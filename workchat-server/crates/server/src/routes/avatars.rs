@@ -119,7 +119,6 @@ pub async fn set_conv_avatar(State(st): State<St>, auth: Auth, Path(id): Path<St
                 if !matches!(cr.kind, ConversationKind::Channel | ConversationKind::GroupDm) {
                     return Err(AppError::validation("only channels and group DMs have a picture"));
                 }
-                let listed = crate::org::browse_item(c, &id)?.is_some();
                 let tx = c.transaction()?;
                 if req.avatar.is_empty() {
                     tx.execute("UPDATE conversations SET avatar_attachment=NULL WHERE id=?1", [&id])?;
@@ -129,7 +128,6 @@ pub async fn set_conv_avatar(State(st): State<St>, auth: Auth, Path(id): Path<St
                 }
                 let mut em = Emitter::new();
                 upsert_for_members(&tx, &mut em, &id)?;
-                crate::org::emit_directory(&tx, &mut em, &id, listed)?;
                 tx.commit()?;
                 em.flush(&hub);
                 conv_summary(c, &id, &auth.user_id)

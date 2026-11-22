@@ -219,9 +219,6 @@ pub fn apply_events(store: &Store, events: &[Event]) -> Result<Applied> {
                 // Who may pin here depends on it.
                 all_rows = true;
             }
-            EventData::ChannelDirectoryUpdate { conv_id, channel } => {
-                out.events.push(CoreEvent::ChannelDirectory { conv_id: conv_id.clone(), channel: channel.clone() });
-            }
             EventData::Resync {} => out.resync = true,
             // Not shown in C1 (bookmarks, drafts, scheduled, saved, labels, activity, removed files).
             _ => {}
@@ -294,7 +291,7 @@ mod tests {
             members.push(Member { user_id: o.into(), role: "member".into(), last_read_seq: None });
         }
         ConversationSummary {
-            conversation: Conversation { visibility: Default::default(), id: id.into(), kind, name: if kind == ConversationKind::Channel { Some("general".into()) } else { None }, topic: None, archived: false, created_ms: 1, members, last_seq: 0, last_message_ts: None, avatar: None },
+            conversation: Conversation { id: id.into(), kind, name: if kind == ConversationKind::Channel { Some("general".into()) } else { None }, topic: None, archived: false, created_ms: 1, members, last_seq: 0, last_message_ts: None, avatar: None },
             last_read_seq: 0,
             marked_unread: false,
             unread: 0,

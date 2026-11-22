@@ -226,8 +226,8 @@ pub fn apply_user_doc(conn: &mut Connection, hub: &Hub, doc: &Value, replace: bo
             Some(l) => l,
             None => {
                 tx.execute(
-                    "INSERT INTO conversations(id,kind,name,topic,archived,created_by,created_ms,dm_key,last_seq,last_ts,visibility) VALUES(?1,?2,?3,?4,?5,?6,?7,?8,0,NULL,?9)",
-                    params![doc_id, kind, s(c, "name"), s(c, "topic"), b(c, "archived") as i64, uid, i(c, "created_ms").unwrap_or_else(now_ms), dm_key, if s(c, "visibility").as_deref() == Some("public") { "public" } else { "private" }],
+                    "INSERT INTO conversations(id,kind,name,topic,archived,created_by,created_ms,dm_key,last_seq,last_ts) VALUES(?1,?2,?3,?4,?5,?6,?7,?8,0,NULL)",
+                    params![doc_id, kind, s(c, "name"), s(c, "topic"), b(c, "archived") as i64, uid, i(c, "created_ms").unwrap_or_else(now_ms), dm_key],
                 )?;
                 resp.conversations_created += 1;
                 // Members of a conversation we had to re-create come back too (if their accounts exist).

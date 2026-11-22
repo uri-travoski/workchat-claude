@@ -10,11 +10,7 @@
     row,
     selected = false,
     onopen,
-    reorder = false,
-    onmove,
-    first = false,
-    last = false,
-  }: { row: ChatRow; selected?: boolean; onopen: () => void; reorder?: boolean; onmove?: (dir: -1 | 1) => void; first?: boolean; last?: boolean } = $props();
+  }: { row: ChatRow; selected?: boolean; onopen: () => void } = $props();
 
   const unread = $derived(row.unread > 0 || row.marked_unread);
   const isChannel = $derived(row.kind === "channel");
@@ -29,7 +25,7 @@
     app.sheet = { kind: "chatactions", conv: row.id, x, y };
   }
   function down(e: PointerEvent) {
-    if (e.pointerType === "mouse" || reorder) return;
+    if (e.pointerType === "mouse") return;
     longFired = false;
     const [x, y] = [e.clientX, e.clientY];
     press = setTimeout(() => {
@@ -41,12 +37,13 @@
   const cancel = () => clearTimeout(press);
 </script>
 
-<div class="row" class:selected class:unread role="presentation" oncontextmenu={(e) => { e.preventDefault(); if (!reorder) menuAt(e.clientX, e.clientY); }}>
+<div class="row" class:selected class:unread role="presentation" oncontextmenu={(e) => { e.preventDefault(); menuAt(e.clientX, e.clientY); }}>
   <button class="main" onpointerdown={down} onpointerup={cancel} onpointerleave={cancel} onpointercancel={cancel} onclick={() => { if (longFired) { longFired = false; return; } onopen(); }} aria-label={`${row.title}${unread ? ", unread" : ""}`}>
     <Avatar id={row.avatar} initials={row.initials} size={50} tile={isChannel} icon={channelIcon(row.title)} presence={row.presence} />
     <span class="body">
       <span class="top">
         <span class="title">{#if isChannel}<span class="hash">#</span> {/if}{row.title}</span>
+        {#if row.locked}<span class="lk" title="Locked chat, currently unlocked" aria-label="Locked chat, currently unlocked"><Icon name="lockopen" size={15} stroke={2} /></span>{/if}
         {#if verified}<svg class="verified" width="16" height="16" viewBox="0 0 24 24" aria-label="Owner"><circle cx="12" cy="12" r="11" fill="var(--blue)" /><path d="m7.5 12.3 3 3 6-6.3" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" /></svg>{/if}
         {#if chip}<span class="role">{chip}</span>{/if}
         <span class="time" class:blue={unread}>{listTime(row.last_ts)}</span>
@@ -60,7 +57,6 @@
         <span class="meta">
           {#if row.has_pending}<span class="pend" title="Sending"><Icon name="retry" size={14} /></span>{/if}
           {#if row.last_own && !row.has_pending}<span class="ticks" class:blue={row.last_delivered}><Icon name={row.last_delivered ? "checks" : "check"} size={16} stroke={2} /></span>{/if}
-          {#if row.locked}<span class="lk" title="Locked"><Icon name="lock" size={14} /></span>{/if}
           {#if row.favourite}<span class="pin"><Icon name="pin" size={15} stroke={1.6} fill /></span>{/if}
           {#if p.chip}<span class="chip">{p.chip}</span>{/if}
           {#if row.unread > 0}<span class="badge" class:muted={row.muted}>{row.unread > 99 ? "99+" : row.unread}</span>{:else if row.marked_unread}<span class="badge dotb"></span>{/if}
@@ -68,12 +64,6 @@
       </span>
     </span>
   </button>
-  {#if reorder}
-    <span class="mover">
-      <button aria-label="Move up" disabled={first} onclick={() => onmove?.(-1)}><Icon name="up" size={18} /></button>
-      <button aria-label="Move down" disabled={last} onclick={() => onmove?.(1)}><Icon name="down" size={18} /></button>
-    </span>
-  {/if}
 </div>
 
 <style>
@@ -105,8 +95,4 @@
   .badge { min-width: 22px; height: 22px; padding: 0 6px; border-radius: 11px; background: var(--badge); color: #fff; font-size: 12.5px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; }
   .badge.muted { background: var(--muted-2); }
   .badge.dotb { min-width: 12px; width: 12px; height: 12px; padding: 0; }
-  .mover { display: flex; flex-direction: column; padding-right: 10px; }
-  .mover button { padding: 4px; color: var(--muted); border-radius: 6px; }
-  .mover button:disabled { opacity: 0.3; cursor: default; }
-  .mover button:not(:disabled):hover { background: var(--hover); }
 </style>

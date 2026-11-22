@@ -11,6 +11,7 @@ pub mod markup;
 pub mod media;
 pub mod mediainfo;
 pub mod notify;
+pub mod openfile;
 pub mod portable;
 pub mod player;
 pub mod store;
@@ -128,6 +129,11 @@ async fn create_dm(e: Eng<'_>, user_id: String) -> Result<String> {
 #[tauri::command]
 async fn list_files(e: Eng<'_>, kind: Option<String>, q: Option<String>, offset: Option<i64>, limit: Option<i64>) -> Result<Vec<FileHit>> {
     e.list_files(kind, q, offset, limit.unwrap_or(100).clamp(1, 200)).await
+}
+
+#[tauri::command]
+async fn list_saved_messages(e: Eng<'_>) -> Result<Vec<MessageView>> {
+    e.list_saved_messages().await
 }
 
 #[tauri::command]
@@ -279,20 +285,99 @@ async fn save_attachment(app: AppHandle, e: Eng<'_>, id: String, name: String) -
     Ok(p.display().to_string())
 }
 
-/// Opens the file with the system's default app (a copy with its real name, in the cache).
+/// Opens the file with the system's default app (a copy with its real name, in the cache). Never fails silently:
+/// when no app opens it the answer says so and the UI offers Open with / Save as / Show in folder.
 #[tauri::command]
-async fn open_attachment(app: AppHandle, e: Eng<'_>, id: String, name: String) -> Result<()> {
+async fn open_attachment(app: AppHandle, e: Eng<'_>, id: String, name: String) -> Result<openfile::OpenOutcome> {
+    let dir = e.dir.join("open").join(&id);
+    let p = e.export_attachment_to(&id, &name, &dir).await?;
+    let path = p.display().to_string();
+    #[cfg(target_os = "android")]
+    {
+        let path2 = path.clone();
+        tauri::async_runtime::spawn_blocking(move || tauri_plugin_workchat::call::<_, serde_json::Value>(&app, "view_file", serde_json::json!({"path": path2}))).await.map_err(|e| CoreError::local(e.to_string()))?.map_err(CoreError::local)?;
+        return Ok(openfile::OpenOutcome { opened: true, path, reason: String::new() });
+    }
+    #[allow(unreachable_code)]
+    {
+        let p2 = p.clone();
+        #[cfg(not(any(target_os = "linux", target_os = "macos")))]
+        let res = {
+            use tauri_plugin_opener::OpenerExt;
+            app.opener().open_path(p2.display().to_string(), None::<&str>).map_err(|e| e.to_string())
+        };
+        #[cfg(any(target_os = "linux", target_os = "macos"))]
+        let res = {
+            let _ = &app;
+            tauri::async_runtime::spawn_blocking(move || openfile::open_default(&p2)).await.map_err(|e| CoreError::local(e.to_string()))?
+        };
+        Ok(match res {
+            Ok(()) => openfile::OpenOutcome { opened: true, path, reason: String::new() },
+            Err(reason) => openfile::OpenOutcome { opened: false, path, reason },
+        })
+    }
+}
+
+/// Fallback "Save as...": asks where, copies the cached file there. Returns the saved path, or None when cancelled.
+#[tauri::command]
+async fn save_attachment_as(app: AppHandle, e: Eng<'_>, id: String, name: String) -> Result<Option<String>> {
+    use tauri_plugin_dialog::{DialogExt, FilePath};
+    let dir = e.dir.join("open").join(&id);
+    let p = e.export_attachment_to(&id, &name, &dir).await?;
+    let start = app.path().download_dir().ok();
+    let mut b = app.dialog().file().set_title("Save as").set_file_name(&name);
+    if let Some(d) = start {
+        b = b.set_directory(d);
+    }
+    let picked = tauri::async_runtime::spawn_blocking(move || b.blocking_save_file()).await.map_err(|e| CoreError::local(e.to_string()))?;
+    let Some(FilePath::Path(dest)) = picked else { return Ok(None) };
+    std::fs::copy(&p, &dest).map_err(|e| CoreError::local(format!("Could not save the file: {e}")))?;
+    Ok(Some(dest.display().to_string()))
+}
+
+/// Fallback "Show in folder": the file manager with the cached copy selected (or its folder).
+#[tauri::command]
+async fn show_attachment_in_folder(app: AppHandle, e: Eng<'_>, id: String, name: String) -> Result<()> {
     use tauri_plugin_opener::OpenerExt;
     let dir = e.dir.join("open").join(&id);
     let p = e.export_attachment_to(&id, &name, &dir).await?;
-    #[cfg(target_os = "android")]
-    {
-        let path = p.display().to_string();
-        tauri::async_runtime::spawn_blocking(move || tauri_plugin_workchat::call::<_, serde_json::Value>(&app, "view_file", serde_json::json!({"path": path}))).await.map_err(|e| CoreError::local(e.to_string()))?.map_err(CoreError::local)?;
+    if app.opener().reveal_item_in_dir(&p).is_ok() {
         return Ok(());
     }
+    let parent = p.parent().map(|d| d.to_path_buf()).unwrap_or_else(|| dir.clone());
+    #[cfg(any(target_os = "linux", target_os = "macos"))]
+    {
+        return openfile::open_default(&parent).map_err(CoreError::local);
+    }
     #[allow(unreachable_code)]
-    app.opener().open_path(p.display().to_string(), None::<&str>).map_err(|e| CoreError::local(e.to_string()))
+    app.opener().open_path(parent.display().to_string(), None::<&str>).map_err(|e| CoreError::local(e.to_string()))
+}
+
+/// Fallback "Open with...": the system chooser on Windows; elsewhere pick a program, then run it on the file.
+#[tauri::command]
+async fn open_attachment_with(app: AppHandle, e: Eng<'_>, id: String, name: String) -> Result<bool> {
+    use tauri_plugin_dialog::{DialogExt, FilePath};
+    let dir = e.dir.join("open").join(&id);
+    let p = e.export_attachment_to(&id, &name, &dir).await?;
+    #[cfg(windows)]
+    {
+        let _ = &app;
+        openfile::windows_open_as(&p).map_err(CoreError::local)?;
+        return Ok(true);
+    }
+    #[allow(unreachable_code)]
+    {
+        let mut b = app.dialog().file().set_title("Open with...");
+        if cfg!(target_os = "macos") {
+            b = b.set_directory("/Applications");
+        } else if cfg!(target_os = "linux") {
+            b = b.set_directory("/usr/bin");
+        }
+        let picked = tauri::async_runtime::spawn_blocking(move || b.blocking_pick_file()).await.map_err(|e| CoreError::local(e.to_string()))?;
+        let Some(FilePath::Path(prog)) = picked else { return Ok(false) };
+        tauri::async_runtime::spawn_blocking(move || openfile::open_with(&prog, &p)).await.map_err(|e| CoreError::local(e.to_string()))?.map_err(CoreError::local)?;
+        Ok(true)
+    }
 }
 
 // ---------------------------------------------------------------- voice and playback
@@ -414,8 +499,8 @@ fn remove_local_avatar(e: Eng, kind: String, target: String) -> Result<()> {
     e.remove_local_avatar(&kind, &target)
 }
 #[tauri::command]
-async fn create_conversation(e: Eng<'_>, kind: String, name: String, topic: Option<String>, members: Vec<String>, visibility: Option<String>, avatar_staged: Option<String>) -> Result<String> {
-    e.create_conversation(&kind, &name, topic, members, visibility, avatar_staged).await
+async fn create_conversation(e: Eng<'_>, kind: String, name: String, topic: Option<String>, members: Vec<String>, avatar_staged: Option<String>) -> Result<String> {
+    e.create_conversation(&kind, &name, topic, members, avatar_staged).await
 }
 #[tauri::command]
 fn get_members(e: Eng, conv_id: String) -> Result<Vec<Member>> {
@@ -425,14 +510,6 @@ fn get_members(e: Eng, conv_id: String) -> Result<Vec<Member>> {
 #[tauri::command]
 async fn remove_member(e: Eng<'_>, conv_id: String, user_id: String) -> Result<()> {
     e.remove_member(&conv_id, &user_id).await
-}
-#[tauri::command]
-async fn browse_channels(e: Eng<'_>, q: Option<String>, limit: Option<u32>, offset: Option<u32>) -> Result<ChannelBrowsePage> {
-    e.browse_channels(&q.unwrap_or_default(), limit.unwrap_or(50), offset.unwrap_or(0)).await
-}
-#[tauri::command]
-async fn join_channel(e: Eng<'_>, conv_id: String) -> Result<String> {
-    e.join_channel(&conv_id).await
 }
 #[tauri::command]
 async fn leave_conversation(e: Eng<'_>, conv_id: String) -> Result<()> {
@@ -451,9 +528,8 @@ async fn add_members(e: Eng<'_>, conv_id: String, user_ids: Vec<String>) -> Resu
     e.add_members(&conv_id, user_ids).await
 }
 #[tauri::command]
-async fn update_conversation(e: Eng<'_>, conv_id: String, name: Option<String>, topic: Option<String>, archived: Option<bool>, visibility: Option<String>) -> Result<()> {
-    let visibility = visibility.as_deref().and_then(ChannelVisibility::parse);
-    e.update_conversation(&conv_id, UpdateConversation { name, topic, archived, visibility }).await
+async fn update_conversation(e: Eng<'_>, conv_id: String, name: Option<String>, topic: Option<String>, archived: Option<bool>) -> Result<()> {
+    e.update_conversation(&conv_id, UpdateConversation { name, topic, archived }).await
 }
 
 
@@ -1062,6 +1138,10 @@ pub fn run() {
             send_files,
             save_attachment,
             open_attachment,
+            list_saved_messages,
+            save_attachment_as,
+            show_attachment_in_folder,
+            open_attachment_with,
             voice_start,
             voice_finish,
             voice_cancel,
@@ -1088,8 +1168,6 @@ pub fn run() {
             add_members,
             remove_member,
             get_members,
-            browse_channels,
-            join_channel,
             leave_conversation,
             hide_message,
             get_org_settings,

@@ -1,0 +1,28 @@
+// Locked chats while the locked area is unlocked: open-padlock icon in the list and the conversation header.
+const must = (c, m) => { if (!c) throw new Error("check failed: " + m); };
+const id = Object.values(api.app.rows).find((r) => r.title === "Marcus Brody").id;
+await api.core.lockSetPin("135790", "135790");
+await api.core.lockChat(id, true);
+await api.core.lockRelock();
+await api.refreshLock();
+await api.loadSnapshot();
+await api.wait(800);
+must(!api.app.rows[id], "locked chat hidden while locked");
+await api.mark("d1-lock-hidden");
+await api.core.lockUnlock("135790");
+await api.refreshLock();
+await api.core.reconnect().catch(() => {});
+await api.wait(1500);
+await api.loadSnapshot();
+await api.wait(800);
+must(api.app.rows[id]?.locked, "locked chat visible and flagged");
+await api.openChat("Marcus Brody");
+await api.wait(600);
+must(document.querySelector(".list .row .lk"), "padlock in the list");
+must(document.querySelector("section.conv header .lk"), "padlock in header");
+document.querySelector(".list .row .lk").scrollIntoView({ block: "center" });
+await api.wait(300);
+await api.mark("d1-lock-padlock");
+await api.core.lockChat(id, false);
+await api.refreshLock();
+await api.core.lockRelock();

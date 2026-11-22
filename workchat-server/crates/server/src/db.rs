@@ -65,8 +65,7 @@ CREATE TABLE IF NOT EXISTS conversations(
   dm_key TEXT UNIQUE,
   last_seq INTEGER NOT NULL DEFAULT 0,
   last_ts INTEGER,
-  avatar_attachment TEXT,
-  visibility TEXT NOT NULL DEFAULT 'private'
+  avatar_attachment TEXT
 );
 CREATE TABLE IF NOT EXISTS members(
   conv_id TEXT NOT NULL,
@@ -471,9 +470,11 @@ fn migrate(conn: &Connection) -> anyhow::Result<()> {
     if !has_column(conn, "conversations", "avatar_attachment")? {
         conn.execute("ALTER TABLE conversations ADD COLUMN avatar_attachment TEXT", [])?;
     }
-    if !has_column(conn, "conversations", "visibility")? {
-        // Channels that exist before 1.1.0 were all private and stay private.
-        conn.execute("ALTER TABLE conversations ADD COLUMN visibility TEXT NOT NULL DEFAULT 'private'", [])?;
+    // 1.2.0 removed public channels. The 1.1.0 `visibility` column is left in place on existing databases (dropping it
+    // would make restores of old backups and downgrades riskier) but nothing reads it any more; make every row `private`
+    // so even a downgrade cannot expose a channel. Databases from before 1.1.0 never get the column.
+    if has_column(conn, "conversations", "visibility")? {
+        conn.execute("UPDATE conversations SET visibility='private' WHERE visibility!='private'", [])?;
     }
     if !has_column(conn, "messages", "also_channel")? {
         conn.execute("ALTER TABLE messages ADD COLUMN also_channel INTEGER NOT NULL DEFAULT 0", [])?;
@@ -497,9 +498,7 @@ fn migrate(conn: &Connection) -> anyhow::Result<()> {
 mod tests {
     use super::*;
 
-    /// A database from before 1.1.0 (no `visibility`, no `also_channel`) is upgraded in place; its channels stay private.
-    #[test]
-    fn migration_keeps_old_channels_private() {
+    fn old_db() -> Connection {
         let conn = Connection::open_in_memory().unwrap();
         conn.execute_batch(
             "CREATE TABLE conversations(id TEXT PRIMARY KEY, kind TEXT NOT NULL, name TEXT, topic TEXT, archived INTEGER NOT NULL DEFAULT 0, created_by TEXT, created_ms INTEGER NOT NULL, dm_key TEXT UNIQUE, last_seq INTEGER NOT NULL DEFAULT 0, last_ts INTEGER);
@@ -511,11 +510,35 @@ mod tests {
              INSERT INTO messages(id,conv_id,seq,sender_id,body,ts) VALUES('m1','c1',1,'u','hi',1);",
         )
         .unwrap();
+        conn
+    }
+
+    /// A database from before 1.1.0 (no `visibility`) is upgraded in place and keeps its channels; no column is added.
+    #[test]
+    fn migration_keeps_pre_1_1_channels() {
+        let conn = old_db();
         migrate(&conn).unwrap();
         migrate(&conn).unwrap(); // running it twice is harmless
-        let vis: String = conn.query_row("SELECT visibility FROM conversations WHERE id='c1'", [], |r| r.get(0)).unwrap();
-        assert_eq!(vis, "private");
+        assert!(!has_column(&conn, "conversations", "visibility").unwrap());
+        let n: i64 = conn.query_row("SELECT COUNT(*) FROM conversations WHERE id='c1' AND kind='channel'", [], |r| r.get(0)).unwrap();
+        assert_eq!(n, 1);
         let also: i64 = conn.query_row("SELECT also_channel FROM messages WHERE id='m1'", [], |r| r.get(0)).unwrap();
         assert_eq!(also, 0);
+    }
+
+    /// A 1.1.0 database with public channels: every channel is kept, all become private, nothing is dropped.
+    #[test]
+    fn migration_makes_1_1_public_channels_private() {
+        let conn = old_db();
+        conn.execute_batch(
+            "ALTER TABLE conversations ADD COLUMN visibility TEXT NOT NULL DEFAULT 'private';
+             INSERT INTO conversations(id,kind,name,created_ms,visibility) VALUES('c2','channel','pub',2,'public');",
+        )
+        .unwrap();
+        migrate(&conn).unwrap();
+        let n: i64 = conn.query_row("SELECT COUNT(*) FROM conversations", [], |r| r.get(0)).unwrap();
+        assert_eq!(n, 2);
+        let pubs: i64 = conn.query_row("SELECT COUNT(*) FROM conversations WHERE visibility!='private'", [], |r| r.get(0)).unwrap();
+        assert_eq!(pubs, 0);
     }
 }

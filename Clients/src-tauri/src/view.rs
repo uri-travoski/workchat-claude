@@ -129,10 +129,8 @@ pub struct ChatRow {
     pub avatar_source: Option<String>,
     /// The person may pin messages here (any member, unless the organisation limits channel pins to managers).
     pub can_pin: bool,
-    /// The person manages this chat: an admin, or its owner (channel manager). Rename, topic, picture, members, visibility, archive.
+    /// The person manages this chat: an admin, or its owner (channel manager). Rename, topic, picture, members, archive.
     pub can_manage: bool,
-    /// `public` (listed in Browse channels) or `private`.
-    pub visibility: String,
     /// The chat is locked (only seen while the locked area is open).
     pub locked: bool,
 }
@@ -202,8 +200,6 @@ pub enum CoreEvent {
     Update { state: String, got: u64, total: u64, message: String },
     /// Organisation settings changed (who may create channels, who may pin).
     OrgSettings { settings: OrgSettings },
-    /// A public channel appeared, changed or went away in Browse channels (`channel` is none when it is gone).
-    ChannelDirectory { conv_id: String, channel: Option<ChannelBrowseItem> },
 }
 
 // ---------------------------------------------------------------- chat rows
@@ -395,7 +391,6 @@ pub fn build_row(store: &Store, ctx: &RowCtx, cs: &ConversationSummary) -> Resul
         locked: ctx.locked.contains(&c.id),
         can_pin: can_pin,
         can_manage,
-        visibility: c.visibility.as_str().to_string(),
     })
 }
 
@@ -454,7 +449,7 @@ mod tests {
         store.kv_set("user_id", &"u1").unwrap();
         let mut c = ctx();
         c.overrides.insert(("user".into(), "u2".into()), "att9".into());
-        let conv = Conversation { visibility: Default::default(), id: "c1".into(), kind: ConversationKind::Dm, name: None, topic: None, archived: false, created_ms: 1, members: vec![Member { user_id: "u1".into(), role: "member".into(), last_read_seq: None }, Member { user_id: "u2".into(), role: "member".into(), last_read_seq: None }], last_seq: 1, last_message_ts: Some(5), avatar: None };
+        let conv = Conversation { id: "c1".into(), kind: ConversationKind::Dm, name: None, topic: None, archived: false, created_ms: 1, members: vec![Member { user_id: "u1".into(), role: "member".into(), last_read_seq: None }, Member { user_id: "u2".into(), role: "member".into(), last_read_seq: None }], last_seq: 1, last_message_ts: Some(5), avatar: None };
         let cs = ConversationSummary { conversation: conv, last_read_seq: 0, marked_unread: false, unread: 2, mentions: 0 };
         store.upsert_message(&msg("hi", vec![])).unwrap();
         let row = build_row(&store, &c, &cs).unwrap();

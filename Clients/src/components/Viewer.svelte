@@ -3,7 +3,9 @@
   import { core } from "../lib/core";
   import { isImage } from "../lib/filetype";
   import { dayLabel, clock, fileSize } from "../lib/format";
+  import { openFile } from "../lib/files";
   import { mediaUrl } from "../lib/media";
+  import { registerLayer } from "../lib/overlays";
   import Icon from "./Icon.svelte";
 
   const v = $derived(app.viewer);
@@ -28,6 +30,7 @@
   });
 
   const close = () => (app.viewer = null);
+  $effect(() => (v ? registerLayer(close) : undefined));
   function go(d: number) {
     if (!v) return;
     const i = v.index + d;
@@ -93,15 +96,19 @@
     pointers.delete(e.pointerId);
     if (pointers.size === 0 && drag) {
       if (scale <= 1 && Math.abs(swipeX) > 70) go(swipeX < 0 ? 1 : -1);
-      else if (Math.abs(swipeX) < 6 && Math.abs(e.clientY - drag.y) < 6 && !(e.target as HTMLElement).closest("video")) chrome = !chrome;
+      else if (Math.abs(swipeX) < 6 && Math.abs(e.clientY - drag.y) < 6) {
+        const t = e.target as HTMLElement;
+        // A tap on the empty backdrop closes the viewer; a tap on the picture shows or hides the toolbar.
+        if (t === stage) close();
+        else if (!t.closest("video")) chrome = !chrome;
+      }
       drag = null;
       swipeX = 0;
     }
   }
   function key(e: KeyboardEvent) {
     if (!v) return;
-    if (e.key === "Escape") close();
-    else if (e.key === "ArrowLeft") go(-1);
+    if (e.key === "ArrowLeft") go(-1);
     else if (e.key === "ArrowRight") go(1);
     else if (e.key === "+" || e.key === "=") zoom(1.25);
     else if (e.key === "-") zoom(0.8);
@@ -116,12 +123,7 @@
     }
   }
   async function open() {
-    if (!item) return;
-    try {
-      await core.openAttachment(item.id, item.name);
-    } catch (e) {
-      fail(e);
-    }
+    if (item) await openFile(item);
   }
 </script>
 
@@ -130,7 +132,7 @@
   <div class="viewer" role="dialog" aria-modal="true" aria-label="Media viewer">
     {#if chrome}
       <header>
-        <button class="ib" aria-label="Close" onclick={close}><Icon name="left" size={26} stroke={2.2} /></button>
+        <button class="ib" aria-label="Close" onclick={close}><Icon name={app.phone ? "left" : "x"} size={26} stroke={2.2} /></button>
         <div class="ti">
           <b>{item.sender_id ? userName(item.sender_id) : item.name}</b>
           <span>{item.ts ? `${dayLabel(item.ts)}, ${clock(item.ts)}` : fileSize(item.size)} · {item.name}</span>
@@ -142,7 +144,7 @@
         {/if}
         {#if item.message_id && item.conv_id}<button class="ib" aria-label="Show in chat" title="Show in chat" onclick={() => jumpTo(item.conv_id!, item.message_id!)}><Icon name="chat" size={22} /></button>{/if}
         <button class="ib" aria-label="Save" title="Save to Downloads" onclick={save}><Icon name="download" size={22} /></button>
-        <button class="ib" aria-label="Open with another app" title="Open with the default app" onclick={open}><Icon name="external" size={22} /></button>
+        <button class="ib" aria-label="Open in default app" title="Open in default app" onclick={open}><Icon name="external" size={22} /></button>
       </header>
     {/if}
     <div class="stage" bind:this={stage} role="presentation" onwheel={wheel} ondblclick={dbl} onpointerdown={down} onpointermove={move} onpointerup={up} onpointercancel={up}>

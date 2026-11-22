@@ -2,9 +2,9 @@
 // the view models below mirror src-tauri/src/view.rs and engine.rs.
 import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
-import type { Attachment, ChannelBrowseItem, ChannelBrowsePage, ConversationSummary, Counts, FileHit, Me, Member, Message, OrgSettings, Pin, Presence, ReactionSummary, SearchResponse, ThreadSummary, ThreadView, User } from "./api-types";
+import type { Attachment, ConversationSummary, Counts, FileHit, Me, Member, Message, OrgSettings, Pin, Presence, ReactionSummary, SearchHit, SearchResponse, ThreadSummary, ThreadView, User } from "./api-types";
 
-export type { Attachment, ChannelBrowseItem, ChannelBrowsePage, ConversationSummary, Counts, FileHit, Me, Member, Message, OrgSettings, Pin, Presence, SearchResponse, ThreadSummary, ThreadView, User };
+export type { Attachment, ConversationSummary, Counts, FileHit, Me, Member, Message, OrgSettings, Pin, Presence, SearchHit, SearchResponse, ThreadSummary, ThreadView, User };
 
 /** A file picked, dropped, pasted or recorded, waiting in the core's staging folder. */
 export interface Staged {
@@ -45,6 +45,13 @@ export interface Preview {
   duration_ms?: number;
 }
 
+/** Answer of `open_attachment`: `opened: false` means no app opened the file (show the fallback dialog). */
+export interface OpenOutcome {
+  opened: boolean;
+  path: string;
+  reason: string;
+}
+
 export interface ChatRow {
   id: string;
   kind: ConvKind;
@@ -73,9 +80,8 @@ export interface ChatRow {
   readers: Record<string, number>;
   avatar_source: "local" | "private" | "shared" | null;
   can_pin: boolean;
-  /** An admin or the chat's manager: rename, topic, picture, members, visibility, archive. */
+  /** An admin or the chat's manager: rename, topic, picture, members, archive. */
   can_manage: boolean;
-  visibility: "public" | "private";
   locked: boolean;
 }
 
@@ -152,7 +158,6 @@ export type CoreEvent =
   | { type: "saved"; ids: string[] }
   | { type: "pins"; conv_id: string; ids: string[] }
   | { type: "org_settings"; settings: OrgSettings }
-  | { type: "channel_directory"; conv_id: string; channel: ChannelBrowseItem | null }
   | { type: "upload"; local_id: string; info: UploadInfo }
   | { type: "local_avatars"; items: LocalAvatar[] }
   | { type: "update"; state: "downloading" | "ready" | "error" | "needs_permission" | "installing"; got: number; total: number; message: string };
@@ -287,6 +292,7 @@ export const core = {
   createDm: (userId: string) => invoke<string>("create_dm", { userId }),
   listFiles: (opts: { kind?: string; q?: string; offset?: number; limit?: number } = {}) =>
     invoke<FileHit[]>("list_files", { kind: opts.kind ?? null, q: opts.q ?? null, offset: opts.offset ?? null, limit: opts.limit ?? 100 }),
+  listSavedMessages: () => invoke<MessageView[]>("list_saved_messages"),
   getThread: (convId: string, root: string) => invoke<ThreadView>("get_thread", { convId, root }),
   chatRow: (convId: string) => invoke<ChatRow | null>("chat_row", { convId }),
   typing: (convId: string) => invoke<void>("typing", { convId }),
@@ -301,7 +307,10 @@ export const core = {
   sendFiles: (convId: string, ids: string[], body: string, threadRoot?: string | null, replyTo?: string | null, alsoSendToChannel = false) =>
     invoke<MessageView>("send_files", { convId, ids, body, threadRoot: threadRoot ?? null, replyTo: replyTo ?? null, alsoSendToChannel }),
   saveAttachment: (id: string, name: string) => invoke<string>("save_attachment", { id, name }),
-  openAttachment: (id: string, name: string) => invoke<void>("open_attachment", { id, name }),
+  openAttachment: (id: string, name: string) => invoke<OpenOutcome>("open_attachment", { id, name }),
+  saveAttachmentAs: (id: string, name: string) => invoke<string | null>("save_attachment_as", { id, name }),
+  showAttachmentInFolder: (id: string, name: string) => invoke<void>("show_attachment_in_folder", { id, name }),
+  openAttachmentWith: (id: string, name: string) => invoke<boolean>("open_attachment_with", { id, name }),
   /** Sends bytes (a pasted image, a camera photo) to the core in slices and returns the staged file. */
   async stageBlob(blob: Blob, name: string): Promise<Staged> {
     const id = await invoke<string>("stage_begin", { name });
@@ -348,18 +357,16 @@ export const core = {
   removeAvatar: (kind: "me" | "conv", target: string | null) => invoke<void>("remove_avatar", { kind, target }),
   setLocalAvatar: (kind: "user" | "conv", target: string, stagedId: string) => invoke<void>("set_local_avatar", { kind, target, stagedId }),
   removeLocalAvatar: (kind: "user" | "conv", target: string) => invoke<void>("remove_local_avatar", { kind, target }),
-  createConversation: (kind: "channel" | "group_dm", name: string, members: string[], topic?: string, avatarStaged?: string | null, visibility?: "public" | "private") =>
-    invoke<string>("create_conversation", { kind, name, topic: topic ?? null, members, visibility: visibility ?? null, avatarStaged: avatarStaged ?? null }),
+  createConversation: (kind: "channel" | "group_dm", name: string, members: string[], topic?: string, avatarStaged?: string | null) =>
+    invoke<string>("create_conversation", { kind, name, topic: topic ?? null, members, avatarStaged: avatarStaged ?? null }),
   getMembers: (convId: string) => invoke<Member[]>("get_members", { convId }),
   removeMember: (convId: string, userId: string) => invoke<void>("remove_member", { convId, userId }),
-  browseChannels: (q = "", limit = 50, offset = 0) => invoke<ChannelBrowsePage>("browse_channels", { q, limit, offset }),
-  joinChannel: (convId: string) => invoke<string>("join_channel", { convId }),
   leaveConversation: (convId: string) => invoke<void>("leave_conversation", { convId }),
   hideMessage: (id: string) => invoke<void>("hide_message", { id }),
   getOrgSettings: () => invoke<OrgSettings>("get_org_settings"),
   addMembers: (convId: string, userIds: string[]) => invoke<void>("add_members", { convId, userIds }),
-  updateConversation: (convId: string, patch: { name?: string; topic?: string; archived?: boolean; visibility?: "public" | "private" }) =>
-    invoke<void>("update_conversation", { convId, name: patch.name ?? null, topic: patch.topic ?? null, archived: patch.archived ?? null, visibility: patch.visibility ?? null }),
+  updateConversation: (convId: string, patch: { name?: string; topic?: string; archived?: boolean }) =>
+    invoke<void>("update_conversation", { convId, name: patch.name ?? null, topic: patch.topic ?? null, archived: patch.archived ?? null }),
 
   // lock
   lockStatus: () => invoke<LockStatus>("lock_status"),

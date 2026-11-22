@@ -140,16 +140,15 @@ pub fn pick_asset(assets: &[Asset], version: &str, p: &Platform) -> Option<Asset
             let a = if p.arch == "aarch64" { "arm64" } else { "x64" };
             format!("WorkChat-{v}-windows-{a}-{}", if p.portable { "portable.exe" } else { "setup.exe" })
         }
-        "linux" if p.arch == "x86_64" => {
-            if p.appimage {
-                format!("WorkChat-{v}-linux-x86_64.AppImage")
-            } else {
-                match p.package.as_deref() {
-                    Some("deb") => format!("WorkChat-{v}-linux-amd64.deb"),
-                    Some("rpm") => format!("WorkChat-{v}-linux-x86_64.rpm"),
-                    Some("flatpak") => format!("WorkChat-{v}-linux-x86_64.flatpak"),
-                    _ => format!("WorkChat-{v}-linux-x86_64.AppImage"),
-                }
+        "linux" if p.arch == "x86_64" || p.arch == "aarch64" => {
+            // Debian says amd64 / arm64; every other Linux asset uses the kernel's names (x86_64 / aarch64).
+            let (deb, arch) = if p.arch == "aarch64" { ("arm64", "aarch64") } else { ("amd64", "x86_64") };
+            match (p.appimage, p.package.as_deref()) {
+                (true, _) => format!("WorkChat-{v}-linux-{arch}.AppImage"),
+                (_, Some("deb")) => format!("WorkChat-{v}-linux-{deb}.deb"),
+                (_, Some("rpm")) => format!("WorkChat-{v}-linux-{arch}.rpm"),
+                (_, Some("flatpak")) => format!("WorkChat-{v}-linux-{arch}.flatpak"),
+                _ => format!("WorkChat-{v}-linux-{arch}.AppImage"),
             }
         }
         _ => return None,
@@ -328,6 +327,7 @@ mod tests {
         [
             "android-arm64.apk", "android-x86_64.apk", "android-arm64-unsigned.apk", "windows-x64-setup.exe", "windows-arm64-setup.exe", "windows-x64-portable.exe", "windows-arm64-portable.exe",
             "linux-amd64.deb", "linux-x86_64.rpm", "linux-x86_64.AppImage", "linux-x86_64.flatpak", "ios-unsigned.ipa",
+            "linux-arm64.deb", "linux-aarch64.rpm", "linux-aarch64.AppImage", "linux-aarch64.flatpak",
         ]
         .iter()
         .map(|s| Asset { name: format!("WorkChat-{v}-{s}"), url: format!("http://x/{s}"), size: 1 })
@@ -374,7 +374,21 @@ mod tests {
         assert_eq!(n(&l).as_deref(), Some("WorkChat-1.2.0-linux-x86_64.rpm"));
         l.package = Some("flatpak".into());
         assert_eq!(n(&l).as_deref(), Some("WorkChat-1.2.0-linux-x86_64.flatpak"));
-        assert_eq!(n(&plat("linux", "aarch64")), None, "no arm64 Linux build: release page");
+        // arm64 Linux picks the arm64 / aarch64 assets for every kind
+        let mut la = plat("linux", "aarch64");
+        assert_eq!(n(&la).as_deref(), Some("WorkChat-1.2.0-linux-aarch64.AppImage"), "unknown package kind falls back to the AppImage");
+        la.appimage = true;
+        assert_eq!(n(&la).as_deref(), Some("WorkChat-1.2.0-linux-aarch64.AppImage"));
+        la.appimage = false;
+        for (kind, want) in [("deb", "linux-arm64.deb"), ("rpm", "linux-aarch64.rpm"), ("flatpak", "linux-aarch64.flatpak")] {
+            la.package = Some(kind.into());
+            assert_eq!(n(&la), Some(format!("WorkChat-1.2.0-{want}")));
+        }
+        assert_eq!(n(&plat("linux", "riscv64")), None, "unsupported CPU: release page");
+        // an x86_64 box never gets an arm64 asset, even when only those exist
+        let arm_only: Vec<Asset> = a.iter().filter(|x| x.name.contains("arm64.deb") || x.name.contains("aarch64")).cloned().collect();
+        l.package = Some("deb".into());
+        assert_eq!(pick_asset(&arm_only, "1.2.0", &l), None);
         assert_eq!(n(&plat("ios", "aarch64")), None);
         // unsigned Android files never match
         let only_unsigned: Vec<Asset> = a.iter().filter(|x| !x.name.ends_with("android-arm64.apk")).cloned().collect();

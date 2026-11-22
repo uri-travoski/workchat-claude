@@ -52,6 +52,11 @@
     <content_attribute id="social-info">mild</content_attribute>
   </content_rating>
   <releases>
+    <release version="1.2.0" date="2026-11-22">
+      <description>
+        <p>Reorganised desktop layout with global search, a Saved view and draggable panes; all channels are now private; Linux arm64 builds.</p>
+      </description>
+    </release>
     <release version="1.1.0" date="2026-11-21">
       <description>
         <p>First release.</p>

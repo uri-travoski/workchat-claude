@@ -105,15 +105,6 @@
             "string",
             "null"
           ]
-        },
-        "visibility": {
-          "allOf": [
-            {
-              "$ref": "#/definitions/ChannelVisibility"
-            }
-          ],
-          "default": "private",
-          "description": "`public` or `private` (channels only; everything else is `private`). Channels that existed before 1.1.0 are `private`."
         }
       },
       "required": [
@@ -237,6 +228,11 @@
           ],
           "default": null,
           "description": "The newest published release (drafts and pre-releases skipped), even when it is not newer."
+        },
+        "release_url": {
+          "default": "",
+          "description": "The GitHub \"latest release\" page (the configured `release_url`), always shown as a link in the card.",
+          "type": "string"
         },
         "source": {
           "description": "The address that was checked.",
@@ -1291,70 +1287,6 @@
       ],
       "type": "object"
     },
-    "ChannelBrowseItem": {
-      "description": "A public channel as listed by `GET /channels/browse`.",
-      "properties": {
-        "avatar": {
-          "description": "Attachment id of the channel picture.",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "created_ms": {
-          "format": "int64",
-          "type": "integer"
-        },
-        "id": {
-          "type": "string"
-        },
-        "member_count": {
-          "format": "int64",
-          "type": "integer"
-        },
-        "name": {
-          "type": "string"
-        },
-        "topic": {
-          "type": [
-            "string",
-            "null"
-          ]
-        }
-      },
-      "required": [
-        "created_ms",
-        "id",
-        "member_count",
-        "name"
-      ],
-      "type": "object"
-    },
-    "ChannelBrowsePage": {
-      "description": "`GET /channels/browse?q=&limit=&offset=`: public, not archived channels the caller is not in, by name.",
-      "properties": {
-        "channels": {
-          "items": {
-            "$ref": "#/definitions/ChannelBrowseItem"
-          },
-          "type": "array"
-        },
-        "has_more": {
-          "type": "boolean"
-        },
-        "total": {
-          "description": "All matching channels, not just this page.",
-          "format": "int64",
-          "type": "integer"
-        }
-      },
-      "required": [
-        "channels",
-        "has_more",
-        "total"
-      ],
-      "type": "object"
-    },
     "ChannelCreation": {
       "description": "Who may create channels.",
       "enum": [
@@ -1377,25 +1309,6 @@
           "description": "Channel managers (conversation role `owner`) and admins only.",
           "enum": [
             "managers"
-          ],
-          "type": "string"
-        }
-      ]
-    },
-    "ChannelVisibility": {
-      "description": "Who can find and join a channel. Group DMs, DMs and notes are always `private`.",
-      "oneOf": [
-        {
-          "description": "Listed by `GET /channels/browse` for people who are not in it; anyone can `POST /conversations/{id}/join`.",
-          "enum": [
-            "public"
-          ],
-          "type": "string"
-        },
-        {
-          "description": "Members only, invisible to everyone else.",
-          "enum": [
-            "private"
           ],
           "type": "string"
         }
@@ -1647,7 +1560,7 @@
           "type": "string"
         },
         {
-          "description": "A channel: private (members only) or public (anyone can browse and join), see `Conversation.visibility`.",
+          "description": "A channel: always private. People are in it only because an owner, admin or manager added them.",
           "enum": [
             "channel"
           ],
@@ -1723,15 +1636,6 @@
         "unread": {
           "format": "int64",
           "type": "integer"
-        },
-        "visibility": {
-          "allOf": [
-            {
-              "$ref": "#/definitions/ChannelVisibility"
-            }
-          ],
-          "default": "private",
-          "description": "`public` or `private` (channels only; everything else is `private`). Channels that existed before 1.1.0 are `private`."
         }
       },
       "required": [
@@ -1906,18 +1810,6 @@
             "string",
             "null"
           ]
-        },
-        "visibility": {
-          "anyOf": [
-            {
-              "$ref": "#/definitions/ChannelVisibility"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Channels only: `public` (default) or `private`. A `group_dm` is always private."
         }
       },
       "required": [
@@ -2884,35 +2776,6 @@
           },
           "required": [
             "settings",
-            "type"
-          ],
-          "type": "object"
-        },
-        {
-          "description": "A public channel appeared, changed or went away for people who are NOT in it (they only learn it exists through `GET /channels/browse`). `channel` is `None` when it is no longer browsable (deleted, archived or made private). Sent on create, rename, topic, picture, archive and visibility changes, not on every join or leave.",
-          "properties": {
-            "channel": {
-              "anyOf": [
-                {
-                  "$ref": "#/definitions/ChannelBrowseItem"
-                },
-                {
-                  "type": "null"
-                }
-              ]
-            },
-            "conv_id": {
-              "type": "string"
-            },
-            "type": {
-              "enum": [
-                "channel_directory_update"
-              ],
-              "type": "string"
-            }
-          },
-          "required": [
-            "conv_id",
             "type"
           ],
           "type": "object"
@@ -4314,6 +4177,36 @@
       ],
       "type": "object"
     },
+    "SavedMessage": {
+      "description": "One entry of `GET /saved/messages`: everything a \"Saved\" screen needs to draw a saved message without more requests.",
+      "properties": {
+        "conversation": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/ConversationSummary"
+            }
+          ],
+          "description": "The conversation it is in, with the caller's own state (name, kind, members, unread)."
+        },
+        "item": {
+          "$ref": "#/definitions/SavedItem"
+        },
+        "message": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/Message"
+            }
+          ],
+          "description": "The full message, with `attachments`, reactions, forward info and so on, as `GET /messages/{id}` returns it."
+        }
+      },
+      "required": [
+        "conversation",
+        "item",
+        "message"
+      ],
+      "type": "object"
+    },
     "ScheduleRequest": {
       "properties": {
         "attachment_ids": {
@@ -5166,18 +5059,6 @@
             "string",
             "null"
           ]
-        },
-        "visibility": {
-          "anyOf": [
-            {
-              "$ref": "#/definitions/ChannelVisibility"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Channels only."
         }
       },
       "type": "object"
@@ -5512,15 +5393,6 @@
             "string",
             "null"
           ]
-        },
-        "visibility": {
-          "allOf": [
-            {
-              "$ref": "#/definitions/ChannelVisibility"
-            }
-          ],
-          "default": "private",
-          "description": "`public` or `private` (channels only; everything else is `private`). Channels that existed before 1.1.0 are `private`."
         }
       },
       "required": [
@@ -5677,12 +5549,6 @@
     "bot_profile": {
       "$ref": "#/definitions/BotProfile"
     },
-    "channel_browse_item": {
-      "$ref": "#/definitions/ChannelBrowseItem"
-    },
-    "channel_browse_page": {
-      "$ref": "#/definitions/ChannelBrowsePage"
-    },
     "clear_history": {
       "$ref": "#/definitions/ClearHistoryResponse"
     },
@@ -5812,6 +5678,12 @@
     "restore_response": {
       "$ref": "#/definitions/RestoreResponse"
     },
+    "saved_messages": {
+      "items": {
+        "$ref": "#/definitions/SavedMessage"
+      },
+      "type": "array"
+    },
     "schedule_request": {
       "$ref": "#/definitions/ScheduleRequest"
     },
@@ -5926,8 +5798,6 @@
     "bootstrap",
     "bot_home",
     "bot_profile",
-    "channel_browse_item",
-    "channel_browse_page",
     "clear_history",
     "client_ws",
     "conv_pref",
@@ -5970,6 +5840,7 @@
     "release_info",
     "restore_request",
     "restore_response",
+    "saved_messages",
     "schedule_request",
     "scheduled",
     "search",

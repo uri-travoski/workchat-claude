@@ -230,7 +230,7 @@ def main():
     log("creating channels ...")
     convs = {}  # key -> dict(id, members)
     for name, topic, _icon, members in people.CHANNELS:
-        c = owner.call("POST", "/conversations", {"kind": "channel", "name": name, "topic": topic, "members": [ids[m] for m in members], "visibility": "private", "include_creator": False})
+        c = owner.call("POST", "/conversations", {"kind": "channel", "name": name, "topic": topic, "members": [ids[m] for m in members], "include_creator": False})
         convs[name] = {"id": c["id"], "members": members}
         av = owner.upload(f"{name}.png", Path(manifest["avatars"]["channel:" + name]).read_bytes(), "image/png", purpose="avatar")
         owner.call("PUT", f"/conversations/{c['id']}/avatar", {"avatar": av["id"]})

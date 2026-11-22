@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { registerLayer } from "../lib/overlays";
   import { onDestroy, untrack } from "svelte";
   import { app, fail, refreshLock, toast } from "../lib/app.svelte";
   import { core } from "../lib/core";
@@ -137,8 +138,8 @@
   function key(e: KeyboardEvent) {
     if (/^[0-9]$/.test(e.key)) digit(e.key);
     else if (e.key === "Backspace") back();
-    else if (e.key === "Escape") close();
   }
+  $effect(() => registerLayer(close));
   async function forgot() {
     if (!window.confirm("Forgot your PIN?\n\nThis signs you out of WorkChat on this device and erases everything stored here: messages, files and the list of locked chats. Your chats stay on the server and appear again when you sign in.")) return;
     try {

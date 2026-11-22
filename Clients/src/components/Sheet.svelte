@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { Snippet } from "svelte";
   import { app } from "../lib/app.svelte";
+  import { registerLayer } from "../lib/overlays";
   import Icon from "./Icon.svelte";
 
   // A bottom sheet on phones and a centred modal on desktop (desktop/4.webp). Escape and the backdrop close it.
@@ -13,9 +14,9 @@
     tall = false,
     plain = false,
   }: { title?: string; onclose: () => void; children: Snippet; footer?: Snippet; wide?: boolean; tall?: boolean; plain?: boolean } = $props();
+  $effect(() => registerLayer(onclose));
 </script>
 
-<svelte:window onkeydown={(e) => e.key === "Escape" && onclose()} />
 <div class="back" class:phone={app.phone} role="presentation" onclick={onclose}></div>
 <div class="sheet" class:phone={app.phone} class:wide class:tall role="dialog" aria-modal="true" aria-label={title}>
   {#if app.phone}<span class="grab"></span>{/if}

@@ -23,6 +23,20 @@
   import "./components/settings/st.css";
   import PinPad from "./components/PinPad.svelte";
   import ThreadPane from "./components/ThreadPane.svelte";
+  import Splitter from "./components/Splitter.svelte";
+  import { LIMITS, defaults, fit, load as loadPanes, maxFor, resize, save as savePanes } from "./lib/panes";
+  import { installOverlayKeys } from "./lib/overlays";
+
+  // Resizable panes (desktop): widths are remembered on this device.
+  let panes = $state(loadPanes());
+  let win = $state(typeof window !== "undefined" ? window.innerWidth : 1280);
+  const threadShown = $derived(!!app.thread && !!app.selected);
+  const shownPanes = $derived(fit(panes, win, threadShown));
+  const setPane = (pane: "list" | "thread", v: number) => (panes = resize(shownPanes, pane, v, win, threadShown));
+  const resetPane = (pane: "list" | "thread") => {
+    panes = { ...panes, [pane]: defaults()[pane] };
+    savePanes(panes);
+  };
 
   let dragging = $state(false);
   $effect(() => {
@@ -32,6 +46,9 @@
   const target = () => (app.thread && app.selected === app.thread.conv ? { conv: app.thread.conv, thread: app.thread.root } : app.selected ? { conv: app.selected, thread: null as string | null } : null);
 
   onMount(() => {
+    const onResize = () => (win = window.innerWidth);
+    window.addEventListener("resize", onResize);
+    const offKeys = installOverlayKeys();
     let offShell: (() => void) | undefined;
     void start().then(async () => {
       setPlatform(app.info.platform);
@@ -69,6 +86,8 @@
     };
     window.addEventListener("paste", paste);
     return () => {
+      window.removeEventListener("resize", onResize);
+      offKeys();
       off?.();
       offShell?.();
       window.removeEventListener("paste", paste);
@@ -98,11 +117,12 @@
 {:else}
   <div class="desk">
     <TopBar />
-    <div class="cols" class:threaded={!!app.thread}>
+    <div class="cols">
       <Rail />
-      <div class="side">
+      <div class="side" style="width:{shownPanes.list}px">
         {#if app.tab === "chats"}<ChatList />{:else if app.tab === "contacts"}<Contacts />{:else}<SettingsNav />{/if}
       </div>
+      <Splitter value={shownPanes.list} min={LIMITS.list.min} max={maxFor("list", shownPanes, win, threadShown)} edge="left" label="Resize the chat list" onchange={(v) => setPane("list", v)} onreset={() => resetPane("list")} ondone={() => savePanes(panes)} />
       <main class="main">
         {#if app.tab === "settings"}
           <SettingsContent />
@@ -117,7 +137,8 @@
         {/if}
       </main>
       {#if app.thread && app.selected}
-        <div class="threadcol"><ThreadPane conv={app.thread.conv} root={app.thread.root} /></div>
+        <Splitter value={shownPanes.thread} min={LIMITS.thread.min} max={maxFor("thread", shownPanes, win, true)} edge="right" label="Resize the thread pane" onchange={(v) => setPane("thread", v)} onreset={() => resetPane("thread")} ondone={() => savePanes(panes)} />
+        <div class="threadcol" style="width:{shownPanes.thread}px"><ThreadPane conv={app.thread.conv} root={app.thread.root} /></div>
       {/if}
     </div>
   </div>
@@ -138,11 +159,10 @@
   .phone { display: flex; flex-direction: column; height: 100%; }
   .tab { flex: 1; min-height: 0; }
   .desk { display: flex; flex-direction: column; height: 100%; }
-  .cols { flex: 1; min-height: 0; display: grid; grid-template-columns: 72px 384px minmax(0, 1fr); }
-  .cols.threaded { grid-template-columns: 72px 384px minmax(0, 1fr) 360px; }
-  .side { display: flex; flex-direction: column; min-height: 0; border-right: 1px solid var(--line); background: var(--page); }
-  .main { min-width: 0; min-height: 0; background: var(--page); }
-  .threadcol { min-width: 0; border-left: 1px solid var(--line); }
+  .cols { flex: 1; min-height: 0; display: flex; }
+  .side { flex: none; display: flex; flex-direction: column; min-height: 0; border-right: 1px solid var(--line); background: var(--page); box-sizing: border-box; }
+  .main { flex: 1; min-width: 0; min-height: 0; background: var(--page); }
+  .threadcol { flex: none; min-width: 0; border-left: 1px solid var(--line); box-sizing: border-box; }
   .empty { height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: var(--muted); }
   .empty img { border-radius: 20px; margin-bottom: 8px; opacity: 0.95; }
   .empty h2 { margin: 0; color: var(--text); }

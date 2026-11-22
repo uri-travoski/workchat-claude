@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "Existing tag to build and release, e.g. v1.1.0"
+        description: "Existing tag to build and release, e.g. v1.2.0"
         required: true
         type: string
       ref:
@@ -137,9 +137,20 @@ jobs:
           if-no-files-found: error
 
   linux:
-    name: Linux x86_64 (deb, rpm, AppImage, flatpak)
+    name: Linux ${{ matrix.arch }} (deb, rpm, AppImage, flatpak)
     needs: meta
-    runs-on: ubuntu-22.04
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # x86_64 stays on 22.04 (glibc 2.35, runs on older distros); arm64 runners start at 24.04.
+          - arch: x86_64
+            deb: amd64
+            runner: ubuntu-22.04
+          - arch: aarch64
+            deb: arm64
+            runner: ubuntu-24.04-arm
     env:
       VER: ${{ needs.meta.outputs.version }}
       NO_STRIP: "true"
@@ -170,14 +181,14 @@ jobs:
       - uses: Swatinem/rust-cache@v2.7.8
         with:
           workspaces: "Clients -> target"
-          key: release-linux
+          key: release-linux-${{ matrix.arch }}
       - name: Build deb, rpm, AppImage
         run: npx tauri build --bundles deb,rpm,appimage
       - name: Cache flatpak runtimes
         uses: actions/cache@v4.2.3
         with:
           path: ~/.local/share/flatpak
-          key: flatpak-gnome-48-${{ runner.os }}
+          key: flatpak-gnome-48-${{ matrix.arch }}
       - name: Build flatpak
         run: |
           flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
@@ -186,14 +197,16 @@ jobs:
         run: |
           mkdir -p assets
           B=target/release/bundle
-          cp $B/deb/*.deb "assets/WorkChat-$VER-linux-amd64.deb"
-          cp $B/rpm/*.rpm "assets/WorkChat-$VER-linux-x86_64.rpm"
-          cp $B/appimage/*.AppImage "assets/WorkChat-$VER-linux-x86_64.AppImage"
-          cp "target/flatpak/WorkChat-$VER-linux-x86_64.flatpak" assets/
+          # amd64: WorkChat-<ver>-linux-{amd64.deb,x86_64.rpm,x86_64.AppImage,x86_64.flatpak}
+          # arm64: WorkChat-<ver>-linux-{arm64.deb,aarch64.rpm,aarch64.AppImage,aarch64.flatpak}
+          cp $B/deb/*.deb "assets/WorkChat-$VER-linux-${{ matrix.deb }}.deb"
+          cp $B/rpm/*.rpm "assets/WorkChat-$VER-linux-${{ matrix.arch }}.rpm"
+          cp $B/appimage/*.AppImage "assets/WorkChat-$VER-linux-${{ matrix.arch }}.AppImage"
+          cp "target/flatpak/WorkChat-$VER-linux-${{ matrix.arch }}.flatpak" assets/
           ls -l assets
       - uses: actions/upload-artifact@v4.6.2
         with:
-          name: assets-linux
+          name: assets-linux-${{ matrix.arch }}
           path: Clients/assets/*
           if-no-files-found: error
 
@@ -428,6 +441,7 @@ jobs:
             echo "| Server (Docker) | \`docker-compose.yml\`, \`workchat-server.env.example\`; image \`ghcr.io/uri-travoski/workchat-claude-server:$VER\` |"
             echo "| Windows x64 / arm64 | \`WorkChat-$VER-windows-x64-setup.exe\`, \`WorkChat-$VER-windows-arm64-setup.exe\` (installers); \`-portable.exe\` variants run without installing |"
             echo "| Linux x86_64 | \`WorkChat-$VER-linux-amd64.deb\`, \`WorkChat-$VER-linux-x86_64.rpm\`, \`WorkChat-$VER-linux-x86_64.AppImage\`, \`WorkChat-$VER-linux-x86_64.flatpak\` |"
+            echo "| Linux arm64 (aarch64) | \`WorkChat-$VER-linux-arm64.deb\`, \`WorkChat-$VER-linux-aarch64.rpm\`, \`WorkChat-$VER-linux-aarch64.AppImage\`, \`WorkChat-$VER-linux-aarch64.flatpak\` |"
             echo "| Android | \`WorkChat-$VER-android-arm64.apk\`, \`WorkChat-$VER-android-x86_64.apk\` (\`-unsigned\` in the name means no release key was configured in CI) |"
             echo "| iOS | \`WorkChat-$VER-ios-unsigned.ipa\` (sideload), \`WorkChat-$VER-ios-simulator.zip\` |"
             echo "| Checksums | \`SHA256SUMS\` (\`sha256sum -c SHA256SUMS\`) |"

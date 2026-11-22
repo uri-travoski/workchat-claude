@@ -2,6 +2,7 @@
 // (each `api.mark(name)` pauses until the driver has captured the window). Release builds never get a script.
 import * as appmod from "./app.svelte";
 import { core } from "./core";
+import * as viewermod from "./viewer";
 
 export async function runTestScript() {
   let script: string | null = null;
@@ -15,6 +16,7 @@ export async function runTestScript() {
   const q = (sel: string) => document.querySelector<HTMLElement>(sel);
   const api = {
     ...appmod,
+    openMedia: viewermod.openMedia,
     core,
     wait,
     mark: async (name: string) => {
