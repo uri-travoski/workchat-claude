@@ -9,7 +9,7 @@
   import { setPlatform, syncPush } from "./lib/push";
   import { silentUpdateCheck } from "./lib/updates";
   import SheetHost from "./components/SheetHost.svelte";
-  import BottomNav from "./components/BottomNav.svelte";
+  import Drawer from "./components/Drawer.svelte";
   import Rail from "./components/Rail.svelte";
   import TopBar from "./components/TopBar.svelte";
   import ChatList from "./components/ChatList.svelte";
@@ -101,7 +101,7 @@
 {:else if app.phase === "out"}
   <Login />
 {:else if app.phone}
-  <!-- Phone: one screen at a time. The bottom bar hides inside a conversation, like the reference. -->
+  <!-- Phone: one screen at a time. Files, People and Settings open from the hamburger drawer as full screens. -->
   <div class="phone">
     {#if app.selected && app.thread}
       <ThreadPane conv={app.thread.conv} root={app.thread.root} />
@@ -111,8 +111,8 @@
       <div class="tab">
         {#if app.tab === "chats"}<ChatList />{:else if app.tab === "contacts"}<Contacts />{:else}<Settings />{/if}
       </div>
-      <BottomNav />
     {/if}
+    {#if app.drawer && !app.selected}<Drawer />{/if}
   </div>
 {:else}
   <div class="desk">

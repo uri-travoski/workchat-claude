@@ -51,6 +51,16 @@ export function openLockedChats() {
   else app.pad = { mode: "unlock", title: "Locked chats", then: show };
 }
 
+/** The phone menu's Lock / Unlock entry (see `lockEntry`): locks now, asks for the PIN, or sets a PIN up first. */
+export function lockMenuAction(act: "lock" | "unlock" | "setup") {
+  if (act === "lock") return void lockNow();
+  if (act === "unlock") {
+    app.pad = { mode: "unlock", title: "Unlock chats", then: () => toast("Locked chats are showing.") };
+    return;
+  }
+  app.pad = { mode: "set", title: "Create a PIN", then: async () => { await refreshLock(); if (app.lock.open) await lockNow(); } };
+}
+
 export async function lockNow() {
   try {
     await core.lockRelock();

@@ -9,14 +9,14 @@ Built and verified against a real server (container `workchat-server:c1` and the
 - Rust core: REST, WebSocket sync by cursor, SQLite cache, outbox, `wcmedia://` media scheme with range support,
   LAN http rule, token storage.
 - Login with server + user + password, or a pasted one-time login link; sign-out wipes local data.
-- Chat list: pills All / DMs / Channels / Threads / Files with counts, sections PINNED (with Reorder) / DIRECT MESSAGES /
+- Chat list: pills All / DMs / Channels / Threads / Files (Saved from M1) with counts, sections PINNED (with Reorder, gone since D1) / DIRECT MESSAGES /
   CHANNELS, avatars, chips, ticks, pin and unread badges, FAB, search.
 - Conversation: day separators, bubbles, rich text, reactions, "N replies", attachments shown as image and file cards,
   infinite scroll up, live updates, optimistic send with outbox and retry, edit and delete from the context menu
   (server rules such as "cannot edit after a reply" are surfaced as toasts), typing indicator, presence.
 - Composer: rich-text toolbar with live preview, emoji picker, navy mic/send button, Enter rules (desktop Enter sends;
   phone Enter is a newline unless "Send with Return Key"), drafts per chat.
-- Layout: phone shell (bottom nav Chats / Contacts / Settings, no Calls) and desktop shell (navy rail, top bar,
+- Layout: phone shell (bottom nav Chats / Contacts / Settings, no Calls; replaced by a hamburger drawer in M1) and desktop shell (navy rail, top bar,
   list column, conversation, thread pane with "Reply to ..." composer). Light and dark theme, accent colours.
 - Tests: `cargo test --workspace` 38 passing; `npm test` 13 passing; `npm run check` clean.
 
@@ -120,6 +120,17 @@ Verified under Xvfb against the seeded server (1280x800 and 1000x700, `docs/scre
   default-app opening with the fallback dialog, open padlock on unlocked locked chats, centralised Escape handling, formatting
   toolbar fixes, public channels removed (server 1.2.0 synced), Linux arm64 packages and update asset choice, version 1.2.0.
 - Tests: `cargo test --workspace` and `npm test` (see the release report for counts).
+
+## Phase M1 (phone changes, part of 1.2.0): done
+
+Phone layout only (desktop unchanged). Verified under Xvfb at 405x880 against the seeded server with real X input
+(`tests/ui/m1-phone.js`, screenshots `docs/screenshots/m1/`) plus unit tests (`tests/phone.test.ts`):
+
+- Bottom bar removed; hamburger drawer (profile, Files, People, Settings, version) with Back-button handling.
+- Top-right menu: Lock / Unlock and Sort chats (Recent default / Alphabetically); New message, Reconnect, Settings, Sign out removed.
+- Pills: Files replaced by Saved (list, tap to jump, Unsave button and long-press menu, count follows); Save / Unsave toggle in the message menu.
+- Chat list headings: no "Reorder" text, no sort control on phone; pinned chats rearranged by press-and-hold then drag.
+- Dead code removed: `BottomNav.svelte`, phone header menu items, grip and hint on phone.
 
 ### Known limits after D1
 - The Xvfb box has no real default applications, so default-app opening was verified with a stub `xdg-open` on PATH that records its

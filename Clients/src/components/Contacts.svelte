@@ -32,7 +32,7 @@
 </script>
 
 <div class="page">
-  <header><h1>Contacts</h1><span class="count">{people.length}</span></header>
+  <header>{#if app.phone}<button class="back" aria-label="Back" onclick={() => (app.tab = "chats")}><Icon name="left" size={24} /></button>{/if}<h1>{app.phone ? "People" : "Contacts"}</h1><span class="count">{people.length}</span></header>
   <div class="search"><Icon name="search" size={18} /><input placeholder="Search people" bind:value={q} aria-label="Search people" /></div>
   <div class="body scroll">
     {#each people as u (u.id)}
@@ -57,6 +57,8 @@
   .page { display: flex; flex-direction: column; height: 100%; min-height: 0; background: var(--page); }
   header { display: flex; align-items: baseline; gap: 10px; padding: calc(var(--safe-top) + 14px) 18px 8px; background: var(--surface); }
   h1 { margin: 0; font-size: 22px; letter-spacing: -0.02em; }
+  .back { width: 40px; height: 40px; margin: -6px 0 -6px -10px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; align-self: center; }
+  .back:hover { background: var(--hover); }
   .count { color: var(--muted); font-weight: 600; }
   .search { display: flex; align-items: center; gap: 8px; padding: 4px 16px 12px 18px; background: var(--surface); color: var(--muted); border-bottom: 1px solid var(--line); }
   .search input { flex: 1; border: 0; background: var(--chip); border-radius: 18px; padding: 9px 14px; outline: none; font-size: 15px; }

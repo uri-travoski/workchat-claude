@@ -106,6 +106,8 @@ export const app = $state({
   /** Update checking: the latest version found, the last answer and the download progress. */
   upd: { found: null as string | null, checking: false, info: null as UpdateInfo | null, error: "", state: "" as "" | "downloading" | "ready" | "error" | "needs_permission" | "installing", got: 0, total: 0, message: "" },
   phone: typeof window !== "undefined" ? window.innerWidth < 760 : false,
+  /** Phone: the slide-in menu (Files, People, Settings) is open. */
+  drawer: false,
 });
 
 export const msgs = $state<Record<string, ConvState>>({});
@@ -379,6 +381,7 @@ function resetState() {
   app.gsearch = "";
   app.listq = "";
   app.filter = "all";
+  app.drawer = false;
   app.tab = "chats";
   app.pad = null;
   app.spage = "";

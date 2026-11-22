@@ -16,7 +16,7 @@ TypeScript UI (Vite) talks to it with typed commands and events. Bundle id `app.
 | `tests/` | TS tests plus `markup-cases.json`, shared by the Rust and TS markup parsers |
 | `scripts/` | `sync-proto.sh`, `gen-types.mjs`, `test-ts.sh`, `build-debug.sh`, `dev-seed.mjs` |
 | `tests/ui/` | Xvfb screenshot driver (`run.sh`) and the UI scripts that walk the app against a seeded server |
-| `docs/screenshots/c1/`, `c2/`, `c3/`, `d1/` | Phase C1, C2, C3 and D1 screenshots (phone about 405x880, desktop 1280x800 and 1000x700, `c3/android/` from the emulator) |
+| `docs/screenshots/c1/`, `c2/`, `c3/`, `d1/`, `m1/` | Phase C1, C2, C3, D1 and M1 (phone changes) screenshots (phone about 405x880, desktop 1280x800 and 1000x700, `c3/android/` from the emulator) |
 
 ## Dev setup
 
@@ -128,9 +128,29 @@ adopted into the media cache, so the sender never downloads their own file again
 Media ids in `wcmedia://localhost/<id>`: server attachment ids, plus local ones that never reach the server: `st_*`
 (staged, e.g. in the preview sheet), `up_<client>_<n>` (files of an unsent message) and `la_*` (local avatar overrides).
 
-UI: phone (< 760 px) is one screen at a time with the bottom bar Chats / Contacts / Settings and the filter pills
-(All / DMs / Channels / Threads / Files). Desktop (1.2) is a navy left rail, a top bar, the chat list column, the
+UI: phone (< 760 px) is one screen at a time (no bottom bar), described next. Desktop (1.2) is a navy left rail, a top bar, the chat list column, the
 conversation and an optional thread pane:
+
+Phone (1.2.0):
+
+- Chats header: hamburger (top left, with the unread total as a small badge), title and connection state, search, and a top-right
+  menu with only two things: **Lock** (while the locked area is open; locks at once, or asks for a first PIN when none exists) or
+  **Unlock** (while locked chats are hidden; opens the 6-digit pad), and **Sort chats** with a checked choice of Recent (default) or
+  Alphabetically (A to Z), saved on the device. Sorting never touches pinned chats. The pure rules are in `lib/menu.ts` (`lockEntry`).
+- Hamburger drawer (`components/Drawer.svelte`): slides in from the left over a scrim; profile at the top, then Files, People and
+  Settings, app version at the bottom. Each entry opens a full-screen view with a back arrow. The drawer closes with the scrim, a swipe
+  to the left, Escape or the system Back button. `handleBack` (`lib/shell.ts`) order: drawer, PIN pad, viewer, sheet, thread,
+  conversation, settings page, People / Settings / Files view, then leave the app.
+- Pills: All, DMs, Channels, Threads, Saved (counts from `/me/counts`). Saved lists saved messages (sender, chat, time, files); tap
+  jumps to the message, the bookmark button on the row and "Unsave" in the long-press menu remove it. Files is reached from the drawer.
+- Pinned chats: press and hold (450 ms, finger still within 9 px) lifts the row (haptic, shadow). Then drag it (a line shows where it
+  lands; the list scrolls at its edges; saved with `POST /conversations/order`, kept on the device if refused) or let go without
+  moving to open the chat's actions menu. Moving before the hold is up is a scroll and nothing lifts, so the list scrolls normally.
+  Rules in `lib/hold.ts`. Unpinned rows keep the 520 ms long press for the actions menu. The new-chat pencil button starts messages,
+  groups and channels.
+- Message long-press menu: Save / Unsave toggle (the label follows the saved state).
+
+Desktop:
 
 - Rail (top to bottom): All Chats, DMs, Channels, Threads, Files, Saved, Contacts, and Settings at the bottom. No app tile and no
   avatar. The active item is highlighted, the label shows as a tooltip, and All Chats / DMs / Channels / Threads carry unread badges.

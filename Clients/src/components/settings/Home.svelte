@@ -18,6 +18,7 @@
 
 <div class="st-page">
   <header class="st-head">
+    <button class="hb" aria-label="Back" onclick={() => (app.tab = "chats")}><Icon name="left" size={24} /></button>
     <h1>Settings<span class="sub" class:off={app.conn !== "online"}>● {app.conn === "online" ? "Online" : "Offline"}</span></h1>
   </header>
   <div class="st-body scroll">
@@ -57,6 +58,8 @@
 </div>
 
 <style>
+  .hb { width: 40px; height: 40px; margin: -4px 0 -4px -8px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; flex: none; }
+  .hb:hover { background: var(--hover); }
   .logout { margin-top: 20px; display: flex; align-items: center; gap: 14px; padding: 13px 16px; width: 100%; text-align: left; background: var(--surface); border: 1px solid #f1caca; border-radius: 16px; color: var(--danger); }
   .logout b { color: var(--danger); font-size: 15.5px; }
   .logout small { color: var(--muted); font-size: 13px; }

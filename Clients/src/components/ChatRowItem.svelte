@@ -9,8 +9,9 @@
   let {
     row,
     selected = false,
+    nolong = false,
     onopen,
-  }: { row: ChatRow; selected?: boolean; onopen: () => void } = $props();
+  }: { row: ChatRow; selected?: boolean; nolong?: boolean; onopen: () => void } = $props();
 
   const unread = $derived(row.unread > 0 || row.marked_unread);
   const isChannel = $derived(row.kind === "channel");
@@ -25,7 +26,7 @@
     app.sheet = { kind: "chatactions", conv: row.id, x, y };
   }
   function down(e: PointerEvent) {
-    if (e.pointerType === "mouse") return;
+    if (e.pointerType === "mouse" || nolong) return;
     longFired = false;
     const [x, y] = [e.clientX, e.clientY];
     press = setTimeout(() => {

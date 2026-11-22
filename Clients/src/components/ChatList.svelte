@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { app, closeConversation, fail, openConversation, openThread, prefs, savePrefs, sortedRows, type ChatSort } from "../lib/app.svelte";
+  import { app, closeConversation, openConversation, openThread, prefs, savePrefs, sortedRows, unreadTotal, type ChatSort } from "../lib/app.svelte";
   import { core, type ChatRow } from "../lib/core";
   import { byActivity, dropSlot, inKind, isDirect, moveId, nameMatches, sortChats } from "../lib/chat";
   import { listTime } from "../lib/format";
@@ -12,7 +12,9 @@
   import SavedView from "./SavedView.svelte";
   import GlobalSearch from "./GlobalSearch.svelte";
   import { signOutAction } from "../lib/actions";
-  import { lockNow, openLockedChats } from "../lib/lock";
+  import { lockMenuAction, lockNow, openLockedChats } from "../lib/lock";
+  import { lockEntry, type MenuItem } from "../lib/menu";
+  import { HOLD_MS, holdStep } from "../lib/hold";
 
   const rows = $derived(sortedRows().filter((r) => !r.archived));
   const dms = $derived(rows.filter(isDirect));
@@ -40,34 +42,116 @@
   const restTitle = $derived(kind === "dm" ? "DIRECT MESSAGES" : kind === "channel" ? "CHANNELS" : "ALL CHATS");
   const sortLabel = $derived(prefs.chatSort === "az" ? "A to Z" : prefs.chatSort === "za" ? "Z to A" : "Recent");
 
-  // Drag a pinned chat (whole row with the mouse, the grip with touch) to a new place; a line shows where it will land.
-  let drag = $state<{ id: string; startY: number; dy: number; active: boolean; slot: number } | null>(null);
+  // Rearranging pinned chats.
+  //  Desktop: drag the row with the mouse (or its grip with touch).
+  //  Phone: press and hold a pinned row (HOLD_MS, finger still): it lifts with a haptic tick. Then either drag it
+  //  (a line shows where it will land; the list scrolls at its top and bottom edge) or let go without moving to open
+  //  the chat's actions menu. Moving before the hold is up is just scrolling, which never lifts anything.
+  type Drag = { id: string; startY: number; lastX: number; startScroll: number; lastY: number; dy: number; active: boolean; lifted: boolean; slot: number; x0: number; y0: number; t0: number; pid: number };
+  let drag = $state<Drag | null>(null);
+  let bodyEl = $state<HTMLDivElement>();
+  let holdTimer: ReturnType<typeof setTimeout> | undefined;
+  let raf = 0;
   let suppressClick = false;
+  let lastType = "mouse";
+  const quiet = () => {
+    suppressClick = true;
+    setTimeout(() => (suppressClick = false), 400);
+  };
   function pdown(e: PointerEvent, id: string) {
-    if (e.button !== 0 || pinned.length < 2) return;
-    const grip = (e.target as HTMLElement).closest(".grip");
-    if (e.pointerType !== "mouse" && !grip) return;
-    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-    drag = { id, startY: e.clientY, dy: 0, active: false, slot: pinned.findIndex((r) => r.id === id) };
+    lastType = e.pointerType;
+    if (e.button !== 0 || (!app.phone && pinned.length < 2)) return;
+    if (!app.phone) {
+      const grip = (e.target as HTMLElement).closest(".grip");
+      if (e.pointerType !== "mouse" && !grip) return;
+    }
+    const el = e.currentTarget as HTMLElement;
+    drag = { id, startY: e.clientY, startScroll: bodyEl?.scrollTop ?? 0, lastX: e.clientX, lastY: e.clientY, dy: 0, active: false, lifted: false, slot: pinned.findIndex((r) => r.id === id), x0: e.clientX, y0: e.clientY, t0: Date.now(), pid: e.pointerId };
+    if (!app.phone) return el.setPointerCapture(e.pointerId);
+    clearTimeout(holdTimer);
+    holdTimer = setTimeout(() => {
+      const d = drag;
+      if (!d || d.lifted) return;
+      if (holdStep(false, Date.now() - d.t0, Math.hypot(d.lastX - d.x0, d.lastY - d.y0)) !== "lift") return;
+      d.lifted = true;
+      navigator.vibrate?.(18);
+      try {
+        el.setPointerCapture(d.pid);
+      } catch {
+        /* pointer already gone */
+      }
+    }, HOLD_MS);
   }
   function pmove(e: PointerEvent) {
     if (!drag) return;
-    drag.dy = e.clientY - drag.startY;
-    if (!drag.active && Math.abs(drag.dy) > 5) drag.active = true;
-    if (drag.active) {
-      const mids = [...document.querySelectorAll<HTMLElement>("[data-pin]")].map((el) => {
-        const r = el.getBoundingClientRect();
-        return r.top + r.height / 2;
-      });
-      drag.slot = dropSlot(mids, e.clientY);
-    }
+    drag.lastY = e.clientY;
+    drag.lastX = e.clientX;
+    if (app.phone) {
+      const step = holdStep(drag.lifted, Date.now() - drag.t0, Math.hypot(e.clientX - drag.x0, e.clientY - drag.y0));
+      if (step === "scroll") {
+        clearTimeout(holdTimer);
+        drag = null;
+        return;
+      }
+      if (step === "drag" && !drag.active) {
+        drag.active = true;
+        drag.startY = e.clientY;
+        drag.startScroll = bodyEl?.scrollTop ?? 0;
+        loop();
+      }
+    } else if (!drag.active && Math.abs(e.clientY - drag.startY) > 5) drag.active = true;
+    if (drag.active) track();
   }
-  async function pup() {
+  /** Follows the finger (also while the list scrolls under it) and works out the drop slot. */
+  function track() {
+    const d = drag;
+    if (!d?.active) return;
+    d.dy = d.lastY - d.startY + ((bodyEl?.scrollTop ?? 0) - d.startScroll);
+    const mids = [...document.querySelectorAll<HTMLElement>("[data-pin]")].map((el) => {
+      const r = el.getBoundingClientRect();
+      return r.top + r.height / 2 - (el.dataset.pin === d.id ? d.dy : 0);
+    });
+    d.slot = dropSlot(mids, d.lastY);
+  }
+  function loop() {
+    cancelAnimationFrame(raf);
+    const tick = () => {
+      if (!drag?.active || !bodyEl) return;
+      const r = bodyEl.getBoundingClientRect();
+      const edge = 64;
+      const v = drag.lastY < r.top + edge ? -((r.top + edge - drag.lastY) / edge) * 14 : drag.lastY > r.bottom - edge ? ((drag.lastY - (r.bottom - edge)) / edge) * 14 : 0;
+      if (v) {
+        bodyEl.scrollTop += v;
+        track();
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+  }
+  // A lifted row must not scroll the list: the page's touchmove has to be cancelable, so this listener is not passive.
+  $effect(() => {
+    const el = bodyEl;
+    if (!el) return;
+    const stop = (e: TouchEvent) => {
+      if (drag?.lifted && e.cancelable) e.preventDefault();
+    };
+    el.addEventListener("touchmove", stop, { passive: false });
+    return () => el.removeEventListener("touchmove", stop);
+  });
+  async function pup(e: PointerEvent) {
+    clearTimeout(holdTimer);
+    cancelAnimationFrame(raf);
     const d = drag;
     drag = null;
-    if (!d?.active) return;
-    suppressClick = true;
-    setTimeout(() => (suppressClick = false), 0);
+    if (!d) return;
+    if (app.phone && d.lifted && !d.active) {
+      quiet();
+      app.sheet = { kind: "chatactions", conv: d.id, x: e.clientX, y: e.clientY };
+      return;
+    }
+    if (!d.active) return;
+    quiet();
+    if (e.type === "pointercancel") return;
     const ids = pinned.map((r) => r.id);
     const next = moveId(ids, d.id, d.slot);
     if (next.join() === ids.join()) return;
@@ -86,6 +170,7 @@
   const dropClass = (i: number) => (drag?.active && drag.slot === i ? "drop-top" : drag?.active && i === pinned.length - 1 && drag.slot === pinned.length ? "drop-bottom" : "");
 
   let menu = $state<{ x: number; y: number } | null>(null);
+  let pmenu = $state<{ x: number; y: number } | null>(null);
   let sortMenu = $state<{ x: number; y: number } | null>(null);
   let searchEl = $state<HTMLInputElement>();
   $effect(() => {
@@ -104,25 +189,45 @@
   const nDms = $derived(app.counts?.dms ?? dms.length);
   const nChans = $derived(app.counts?.channels ?? channels.length);
   const nThreads = $derived(app.counts?.threads ?? threadList.length);
-  const nFiles = $derived(app.counts?.files ?? 0);
+  const nSaved = $derived(app.counts?.saved ?? app.saved.length);
+  const unreadAll = $derived(unreadTotal());
+  const filesPage = $derived(app.phone && app.filter === "files");
+  const phoneItems = $derived.by((): MenuItem[] => {
+    const l = lockEntry(app.lock);
+    return [
+      { label: l.label, icon: l.label === "Lock" ? "lock" : "lockopen", run: () => lockMenuAction(l.act) },
+      { label: "Sort chats", heading: true, run: () => {} },
+      { label: "Recent", checked: prefs.chatSort !== "az" && prefs.chatSort !== "za", run: () => setSort("recent") },
+      { label: "Alphabetically", checked: prefs.chatSort === "az" || prefs.chatSort === "za", run: () => setSort("az") },
+    ];
+  });
   const viewTitle = $derived(app.filter === "threads" ? "Threads" : app.filter === "files" ? "Files" : app.filter === "saved" ? "Saved" : app.filter === "dm" ? "DMs" : app.filter === "channel" ? "Channels" : "All Chats");
 </script>
 
 <div class="list">
-  {#if app.phone}
+  {#if filesPage}
   <header>
+    <button class="ib back" aria-label="Back" onclick={() => (app.filter = "all")}><Icon name="left" size={24} /></button>
+    <div class="ttl"><h1>Files</h1></div>
+  </header>
+  {:else if app.phone}
+  <header>
+    <button class="ib menu" aria-label="Menu" aria-haspopup="dialog" onclick={() => (app.drawer = true)}>
+      <Icon name="menu" size={24} />
+      {#if unreadAll > 0}<span class="mb" aria-label={`${unreadAll} unread`}>{unreadAll > 99 ? "99+" : unreadAll}</span>{/if}
+    </button>
     <div class="ttl">
       <h1>Chats</h1>
       <span class="conn" class:off={app.conn !== "online"}><i></i>{connLabel}</span>
     </div>
     <div class="acts">
       <button class="ib" aria-label="Search" onclick={() => (app.searching = !app.searching)}><Icon name="search" size={22} /></button>
-      <button class="ib" aria-label="More" onclick={(e) => { const r = (e.currentTarget as HTMLElement).getBoundingClientRect(); menu = { x: r.right, y: r.bottom + 4 }; }}><Icon name="dots" size={22} /></button>
+      <button class="ib" aria-label="More" aria-haspopup="menu" onclick={(e) => { const r = (e.currentTarget as HTMLElement).getBoundingClientRect(); pmenu = { x: r.right, y: r.bottom + 4 }; }}><Icon name="dots" size={22} /></button>
     </div>
   </header>
   {/if}
 
-  {#if app.phone ? app.searching : isChats}
+  {#if filesPage}{:else if app.phone ? app.searching : isChats}
     <div class="search" class:desk={!app.phone}>
       <Icon name="search" size={18} />
       <input
@@ -147,17 +252,17 @@
   {#if app.lock.open}
     <div class="lockbar" role="status"><Icon name="lockopen" size={15} /><span>Locked chats are showing</span><button onclick={lockNow}>Lock now</button></div>
   {/if}
-  {#if app.phone}
+  {#if app.phone && !filesPage}
   <div class="pills" role="tablist" aria-label="Filter chats">
     <button role="tab" aria-selected={app.filter === "all"} class:on={app.filter === "all"} onclick={() => pill("all")}>All{#if anyUnread}<i class="udot"></i>{/if}</button>
     <button role="tab" aria-selected={app.filter === "dm"} class:on={app.filter === "dm"} onclick={() => pill("dm")}>DMs{#if nDms}<em>{nDms}</em>{/if}</button>
     <button role="tab" aria-selected={app.filter === "channel"} class:on={app.filter === "channel"} onclick={() => pill("channel")}>Channels{#if nChans}<em>{nChans}</em>{/if}</button>
     <button role="tab" aria-selected={app.filter === "threads"} class:on={app.filter === "threads"} onclick={() => pill("threads")}>Threads{#if nThreads}<em>{nThreads}</em>{/if}{#if (app.counts?.threads_unread ?? 0) > 0}<i class="udot"></i>{/if}</button>
-    <button role="tab" aria-selected={app.filter === "files"} class:on={app.filter === "files"} onclick={() => pill("files")}>Files{#if nFiles}<em>{nFiles}</em>{/if}</button>
+    <button role="tab" aria-selected={app.filter === "saved"} class:on={app.filter === "saved"} onclick={() => pill("saved")}>Saved{#if nSaved}<em>{nSaved}</em>{/if}</button>
   </div>
   {/if}
 
-  <div class="body" class:scroll={app.filter !== "files"} class:files={app.filter === "files"}>
+  <div class="body" bind:this={bodyEl} class:scroll={app.filter !== "files"} class:files={app.filter === "files"}>
     {#if app.filter === "threads"}
       {#if !threadList.length}
         <p class="empty">No threads yet. Replies you follow or join show up here.</p>
@@ -182,30 +287,33 @@
         <p class="empty">{app.listq ? "No chats match that name." : app.conn === "connecting" ? "Loading your chats…" : "No chats yet. Tap the pencil to start one."}</p>
       {/if}
       {#if pinned.length}
-        <div class="sec"><span><Icon name="pin" size={13} stroke={2} /> PINNED ({pinned.length})</span>{#if pinned.length > 1}<small class="hint">drag to reorder</small>{/if}</div>
+        <div class="sec"><span><Icon name="pin" size={13} stroke={2} /> PINNED ({pinned.length})</span>{#if pinned.length > 1 && !app.phone}<small class="hint">drag to reorder</small>{/if}</div>
         {#each pinned as r, i (r.id)}
           <div
             class="prow {dropClass(i)}"
             class:dragging={drag?.active && drag.id === r.id}
-            class:multi={pinned.length > 1}
+            class:lifted={app.phone && drag?.lifted && drag.id === r.id}
+            class:multi={pinned.length > 1 && !app.phone}
+            class:hold={app.phone}
             data-pin={r.id}
             role="presentation"
-            style={drag?.active && drag.id === r.id ? `transform:translateY(${drag.dy}px)` : ""}
+            style={drag?.active && drag.id === r.id ? `transform:translateY(${drag.dy}px) scale(1.02)` : ""}
             onpointerdown={(e) => pdown(e, r.id)}
             onpointermove={pmove}
             onpointerup={pup}
             onpointercancel={pup}
             onclickcapture={(e) => { if (suppressClick) { e.stopPropagation(); e.preventDefault(); } }}
+            oncontextmenucapture={(e) => { if (app.phone && lastType !== "mouse") { e.stopPropagation(); e.preventDefault(); } }}
           >
-            {#if pinned.length > 1}<span class="grip" aria-label="Drag to reorder" title="Drag to reorder"></span>{/if}
-            <ChatRowItem row={r} selected={app.selected === r.id} onopen={() => openConversation(r.id)} />
+            {#if pinned.length > 1 && !app.phone}<span class="grip" aria-label="Drag to reorder" title="Drag to reorder"></span>{/if}
+            <ChatRowItem row={r} selected={app.selected === r.id} nolong={app.phone} onopen={() => openConversation(r.id)} />
           </div>
         {/each}
       {/if}
       {#if rest.length}
         <div class="sec">
           <span><Icon name={kind === "channel" ? "hash" : kind === "dm" ? "user" : "chat"} size={13} stroke={2} /> {restTitle} ({rest.length})</span>
-          <button class="sortb" aria-label={`Sort: ${sortLabel}`} aria-haspopup="menu" onclick={(e) => { const r = (e.currentTarget as HTMLElement).getBoundingClientRect(); sortMenu = { x: r.right, y: r.bottom + 4 }; }}>{sortLabel} <Icon name="down" size={13} stroke={2.2} /></button>
+          {#if !app.phone}<button class="sortb" aria-label={`Sort: ${sortLabel}`} aria-haspopup="menu" onclick={(e) => { const r = (e.currentTarget as HTMLElement).getBoundingClientRect(); sortMenu = { x: r.right, y: r.bottom + 4 }; }}>{sortLabel} <Icon name="down" size={13} stroke={2.2} /></button>{/if}
         </div>
         {#each rest as r (r.id)}<ChatRowItem row={r} selected={app.selected === r.id} onopen={() => openConversation(r.id)} />{/each}
       {/if}
@@ -214,7 +322,7 @@
     {/if}
   </div>
 
-  {#if isChats || app.phone}<button class="fab" aria-label="New message" onclick={() => (app.sheet = { kind: "newchat" })}><Icon name="pencil" size={24} /></button>{/if}
+  {#if (isChats || app.phone) && !filesPage}<button class="fab" aria-label="New message" onclick={() => (app.sheet = { kind: "newchat" })}><Icon name="pencil" size={24} /></button>{/if}
 </div>
 
 {#if sortMenu}
@@ -229,6 +337,10 @@
       { label: "Name Z to A", icon: prefs.chatSort === "za" ? "check" : undefined, run: () => setSort("za") },
     ]}
   />
+{/if}
+
+{#if pmenu}
+  <Menu x={pmenu.x} y={pmenu.y} right onclose={() => (pmenu = null)} items={phoneItems} />
 {/if}
 
 {#if menu}
@@ -258,6 +370,10 @@
   .acts { display: flex; gap: 2px; }
   .ib { width: 40px; height: 40px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; color: var(--text); }
   .ib:hover { background: var(--hover); }
+  header { gap: 4px; }
+  header .ttl { flex: 1; min-width: 0; }
+  .ib.menu, .ib.back { position: relative; margin-left: -8px; margin-right: 2px; }
+  .mb { position: absolute; top: 1px; right: -1px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: var(--badge); color: #fff; font-size: 11px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; border: 2px solid var(--surface); box-sizing: content-box; transform: scale(0.85); transform-origin: top right; }
   .ib.sm { width: 32px; height: 32px; }
   .search { display: flex; align-items: center; gap: 8px; margin: 0; padding: 4px 12px 10px 18px; background: var(--surface); color: var(--muted); }
   .search.desk { padding: 12px 12px 4px 16px; background: var(--page); }
@@ -283,6 +399,8 @@
   .vhead h2 { margin: 0; font-size: 18px; letter-spacing: -0.01em; }
   .prow { position: relative; background: var(--surface); }
   .prow.multi { cursor: grab; }
+  .prow.hold { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; transition: transform 0.12s, box-shadow 0.12s; }
+  .prow.lifted { z-index: 3; transform: scale(1.02); box-shadow: var(--shadow-pop); border-radius: 12px; }
   .prow.dragging { z-index: 3; opacity: 0.88; box-shadow: var(--shadow-pop); cursor: grabbing; }
   .prow.drop-top::before, .prow.drop-bottom::after { content: ""; position: absolute; left: 12px; right: 12px; height: 3px; border-radius: 2px; background: var(--blue); z-index: 4; }
   .prow.drop-top::before { top: -2px; }

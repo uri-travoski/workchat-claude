@@ -49,6 +49,10 @@ export async function handleLink(raw: string) {
 
 /** The system Back button (Android): closes the top-most layer. Returns true when it did something, false to leave the app. */
 export function handleBack(): boolean {
+  if (app.drawer) {
+    app.drawer = false;
+    return true;
+  }
   if (app.pad) {
     app.pad = null;
     return true;
@@ -76,6 +80,10 @@ export function handleBack(): boolean {
   }
   if (app.tab !== "chats") {
     app.tab = "chats";
+    return true;
+  }
+  if (app.phone && app.filter === "files") {
+    app.filter = "all";
     return true;
   }
   return false;

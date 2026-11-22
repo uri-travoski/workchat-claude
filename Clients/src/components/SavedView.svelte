@@ -7,6 +7,8 @@
   import { initialsOf } from "../lib/people";
   import Avatar from "./Avatar.svelte";
   import Icon from "./Icon.svelte";
+  import Menu from "./Menu.svelte";
+  import { visibleSaved } from "../lib/saved";
 
   // Saved messages (GET /saved, kept current by `saved` events): who wrote it, where, when, its files; click to jump to it.
   let items = $state<MessageView[]>([]);
@@ -22,7 +24,7 @@
     core.listSavedMessages().then(
       (list) => {
         if (my !== gen) return;
-        items = list.filter((m) => !m.deleted && !!app.rows[m.conv_id]);
+        items = visibleSaved(list, app.rows);
         loading = false;
       },
       (e) => {
@@ -38,6 +40,27 @@
     const r = app.rows[m.conv_id];
     return r ? (r.kind === "channel" ? "# " : "") + r.title : "Chat";
   };
+  // Long press (or right click) on a row: Open in chat, Unsave.
+  let menu = $state<{ m: MessageView; x: number; y: number } | null>(null);
+  let press: ReturnType<typeof setTimeout> | undefined;
+  let fired = false;
+  function down(e: PointerEvent, m: MessageView) {
+    if (e.pointerType === "mouse") return;
+    fired = false;
+    const [x, y] = [e.clientX, e.clientY];
+    clearTimeout(press);
+    press = setTimeout(() => {
+      fired = true;
+      navigator.vibrate?.(15);
+      menu = { m, x, y };
+    }, 520);
+  }
+  const cancel = () => clearTimeout(press);
+  // Built with the message itself: the menu clears `menu` before it runs an item.
+  const rowItems = (m: MessageView) => [
+    { label: "Open in chat", icon: "chat", run: () => void jumpTo(m.conv_id, m.id, m.seq) },
+    { label: "Unsave", icon: "bookmark", run: () => void unsave(m) },
+  ];
   async function unsave(m: MessageView) {
     try {
       await core.saveMessage(m.id, false);
@@ -54,8 +77,8 @@
   {/if}
   {#each items as m (m.id)}
     {@const u = who(m)}
-    <div class="row">
-      <button class="main" aria-label={`Open saved message from ${u?.display_name ?? "someone"} in ${where(m)}`} onclick={() => jumpTo(m.conv_id, m.id, m.seq)}>
+    <div class="row" role="presentation" oncontextmenu={(e) => { e.preventDefault(); menu = { m, x: e.clientX, y: e.clientY }; }}>
+      <button class="main" onpointerdown={(e) => down(e, m)} onpointerup={cancel} onpointerleave={cancel} onpointercancel={cancel} aria-label={`Open saved message from ${u?.display_name ?? "someone"} in ${where(m)}`} onclick={() => { if (fired) { fired = false; return; } void jumpTo(m.conv_id, m.id, m.seq); }}>
         <Avatar id={u?.avatar ?? null} initials={initialsOf(u?.display_name ?? "?")} size={40} />
         <span class="tx">
           <span class="top"><b>{u?.display_name ?? "Someone"}</b><small>{dayLabel(m.ts)}, {clock(m.ts)}</small></span>
@@ -72,11 +95,15 @@
   {/each}
 </div>
 
+{#if menu}
+  <Menu x={menu.x} y={menu.y} onclose={() => (menu = null)} items={rowItems(menu.m)} />
+{/if}
+
 <style>
   .sv { background: var(--surface); min-height: 100%; }
   .n { text-align: center; color: var(--muted); margin: 36px 24px; }
   .row { display: flex; align-items: flex-start; border-bottom: 1px solid var(--line); }
-  .main { flex: 1; min-width: 0; display: flex; gap: 12px; padding: 11px 4px 11px 16px; text-align: left; }
+  .main { -webkit-touch-callout: none; flex: 1; min-width: 0; display: flex; gap: 12px; padding: 11px 4px 11px 16px; text-align: left; }
   .main:hover { background: var(--hover); }
   .tx { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
   .top { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }

@@ -32,6 +32,14 @@ Desktop:
 * Formatting toolbar fixes.
 * No link previews any more: links stay plain and clickable.
 
+Phone:
+
+* The bottom navigation bar is gone. A hamburger icon at the top left of the chat list (with the unread total as a badge) opens a slide-in drawer with your profile, Files, People and Settings, and the app version. Android Back closes the drawer first.
+* The top-right menu now holds only Lock / Unlock (Unlock asks for the PIN, Lock locks at once, the first Lock sets up a PIN) and Sort chats (Recent or Alphabetically, remembered on the device; pinned chats are never sorted). New message, Reconnect, Settings and Sign out moved away (new chat stays on the pencil button; Sign out is inside Settings).
+* The Files pill is replaced by Saved: your saved messages with sender, chat and time, tap to jump to the message, Unsave from the row button or a long press. Files is in the drawer.
+* Pinned chats are rearranged by pressing and holding a row and dragging it; "Reorder" and the three dots next to the section title are gone.
+* Message menu: Save and Unsave.
+
 Everywhere:
 
 * **Linux arm64 builds (deb, rpm, AppImage, flatpak) on every release** (`WorkChat-<ver>-linux-arm64.deb`, `-linux-aarch64.rpm`, `-linux-aarch64.AppImage`, `-linux-aarch64.flatpak`).

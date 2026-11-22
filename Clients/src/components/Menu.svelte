@@ -20,9 +20,13 @@
 <div class="backdrop" role="presentation" onclick={onclose} oncontextmenu={(e) => { e.preventDefault(); onclose(); }}></div>
 <div class="menu" role="menu" bind:this={el} style="left:{pos.left}px;top:{pos.top}px">
   {#each items as it}
-    <button role="menuitem" class:danger={it.danger} disabled={it.disabled} onclick={() => { onclose(); it.run(); }}>
-      {#if it.icon}<Icon name={it.icon} size={18} />{/if}<span>{it.label}</span>
-    </button>
+    {#if it.heading}
+      <div class="cap" role="presentation">{it.label}</div>
+    {:else}
+      <button role={it.checked === undefined ? "menuitem" : "menuitemradio"} aria-checked={it.checked} class:danger={it.danger} disabled={it.disabled} onclick={() => { onclose(); it.run(); }}>
+        {#if it.icon}<Icon name={it.icon} size={18} />{/if}<span>{it.label}</span>{#if it.checked !== undefined}<span class="tick">{#if it.checked}<Icon name="check" size={18} stroke={2.2} />{/if}</span>{/if}
+      </button>
+    {/if}
   {/each}
 </div>
 
@@ -32,5 +36,7 @@
   button { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 8px; font-size: 15px; text-align: left; }
   button:hover:not(:disabled) { background: var(--hover); }
   button:disabled { opacity: 0.4; cursor: default; }
+  .cap { margin-top: 4px; padding: 10px 12px 4px; font-size: 12px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: var(--muted); border-top: 1px solid var(--line); }
+  .tick { margin-left: auto; padding-left: 14px; color: var(--blue); display: inline-flex; width: 32px; justify-content: flex-end; }
   .danger { color: var(--danger); }
 </style>
