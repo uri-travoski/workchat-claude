@@ -1,7 +1,10 @@
 # Changelog
 
 Release notes for the whole WorkChat repository. The release workflow publishes the section matching the tag
-(`## [1.3.0] - 2026-11-22
+(`## [1.2.0]` for `v1.2.0`) as the GitHub release notes. Component details: [workchat-server/CHANGELOG.md](workchat-server/CHANGELOG.md),
+[Clients/CHANGELOG.md](Clients/CHANGELOG.md).
+
+## [1.3.0] - 2026-11-22
 
 Phone menu and icons, desktop fixes, Android share target.
 
@@ -20,9 +23,6 @@ Desktop:
 * The window sets its own taskbar icon. Same new icons as the phone.
 
 Server: version bump only (1.3.0), no changes.
-
-## [1.2.0]` for `v1.2.0`) as the GitHub release notes. Component details: [workchat-server/CHANGELOG.md](workchat-server/CHANGELOG.md),
-[Clients/CHANGELOG.md](Clients/CHANGELOG.md).
 
 ## [1.2.0] - 2026-11-22
 
