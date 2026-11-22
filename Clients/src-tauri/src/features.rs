@@ -6,7 +6,7 @@ use crate::engine::Engine;
 use crate::error::{CoreError, Result};
 use crate::mediainfo;
 use crate::store::{OutAtt, OutboxItem};
-use crate::view::{CoreEvent, LocalAvatar, MessageView};
+use crate::view::{saved_event, CoreEvent, LocalAvatar, MessageView};
 use proto::*;
 use reqwest::Method;
 use serde::{Deserialize, Serialize};
@@ -543,19 +543,89 @@ impl Engine {
         Ok(out)
     }
 
+    /// Saves (`on`) or unsaves a message. Saving keeps the labels it already has.
     pub async fn save_message(&self, id: &str, on: bool) -> Result<()> {
         let api = self.api()?;
-        let body = if on { Some(serde_json::json!({})) } else { None };
-        let _ = api.send(if on { Method::PUT } else { Method::DELETE }, &format!("/saved/{id}"), &[], body, &[]).await?;
-        let mut list: Vec<SavedItem> = self.store.kv_get("saved")?.unwrap_or_default();
-        list.retain(|s| s.message_id != id);
         if on {
-            let conv = self.store.get_message(id)?.map(|m| m.conv_id).unwrap_or_default();
-            list.push(SavedItem { message_id: id.to_string(), conv_id: conv, saved_ms: now_ms(), label_ids: vec![] });
+            let item: SavedItem = api.json(Method::PUT, &format!("/saved/{id}"), &[], Some(serde_json::json!({}))).await?;
+            self.store_saved(item)
+        } else {
+            let _ = api.send(Method::DELETE, &format!("/saved/{id}"), &[], None, &[]).await?;
+            let mut list: Vec<SavedItem> = self.store.kv_get("saved")?.unwrap_or_default();
+            list.retain(|s| s.message_id != id);
+            self.put_saved(list)
         }
+    }
+
+    /// Sets the labels of a message: `PUT /saved/{id}/labels` when it is saved already, else `PUT /saved/{id}` saves it with them.
+    pub async fn save_message_labels(&self, id: &str, label_ids: Vec<String>) -> Result<()> {
+        let api = self.api()?;
+        let list: Vec<SavedItem> = self.store.kv_get("saved")?.unwrap_or_default();
+        let path = if list.iter().any(|s| s.message_id == id) { format!("/saved/{id}/labels") } else { format!("/saved/{id}") };
+        let item: SavedItem = api.json(Method::PUT, &path, &[], Some(serde_json::json!({ "label_ids": label_ids }))).await?;
+        self.store_saved(item)
+    }
+
+    /// Puts the server's saved item into the local list and tells the UI.
+    fn store_saved(&self, item: SavedItem) -> Result<()> {
+        let mut list: Vec<SavedItem> = self.store.kv_get("saved")?.unwrap_or_default();
+        list.retain(|s| s.message_id != item.message_id);
+        list.push(item);
+        self.put_saved(list)
+    }
+
+    fn put_saved(&self, list: Vec<SavedItem>) -> Result<()> {
         self.store.kv_set("saved", &list)?;
-        self.emit(CoreEvent::Saved { ids: list.iter().map(|s| s.message_id.clone()).collect() });
+        self.emit(saved_event(&list));
         self.counts_wake.notify_one();
+        Ok(())
+    }
+
+    // ---------------------------------------------------------------- labels (private to the person)
+
+    /// `GET /labels`, falling back to the cached list when the server cannot be reached.
+    pub async fn list_labels(&self) -> Result<Vec<Label>> {
+        match self.api()?.get::<Vec<Label>>("/labels", &[]).await {
+            Ok(labels) => {
+                self.put_labels(&labels)?;
+                Ok(labels)
+            }
+            Err(_) => Ok(self.store.kv_get("labels")?.unwrap_or_default()),
+        }
+    }
+
+    pub async fn create_label(&self, name: &str, color: &str) -> Result<Vec<Label>> {
+        let body = serde_json::json!({ "name": name, "color": color });
+        let labels: Vec<Label> = self.api()?.json(Method::POST, "/labels", &[], Some(body)).await?;
+        self.put_labels(&labels)?;
+        Ok(labels)
+    }
+
+    /// `PATCH /labels/{id}`: only the given fields change.
+    pub async fn update_label(&self, id: &str, name: Option<String>, color: Option<String>) -> Result<Vec<Label>> {
+        let body = serde_json::to_value(LabelRequest { name, color, position: None })?;
+        let labels: Vec<Label> = self.api()?.json(Method::PATCH, &format!("/labels/{id}"), &[], Some(body)).await?;
+        self.put_labels(&labels)?;
+        Ok(labels)
+    }
+
+    /// Deleting a label takes it off every saved message too (the server sends those updates as well).
+    pub async fn delete_label(&self, id: &str) -> Result<Vec<Label>> {
+        let labels: Vec<Label> = self.api()?.json(Method::DELETE, &format!("/labels/{id}"), &[], None).await?;
+        self.put_labels(&labels)?;
+        let mut list: Vec<SavedItem> = self.store.kv_get("saved")?.unwrap_or_default();
+        if list.iter().any(|s| s.label_ids.iter().any(|l| l == id)) {
+            for s in list.iter_mut() {
+                s.label_ids.retain(|l| l != id);
+            }
+            self.put_saved(list)?;
+        }
+        Ok(labels)
+    }
+
+    fn put_labels(&self, labels: &[Label]) -> Result<()> {
+        self.store.kv_set("labels", &labels)?;
+        self.emit(CoreEvent::Labels { labels: labels.to_vec() });
         Ok(())
     }
 

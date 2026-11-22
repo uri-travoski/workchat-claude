@@ -1,4 +1,11 @@
 <script lang="ts">
+  const weights = [
+    { v: 400, label: "Regular" },
+    { v: 500, label: "Medium" },
+    { v: 600, label: "Semibold" },
+    { v: 700, label: "Bold" },
+  ];
+  const weightLabel = $derived(weights.find((w) => w.v === prefs.textWeight)?.label ?? "Regular");
   import { app, prefs, savePrefs } from "../../lib/app.svelte";
   import Icon from "../Icon.svelte";
   import PageHead from "./PageHead.svelte";
@@ -43,8 +50,17 @@
         <div class="st-lrow"><b class="st-lbl">Message Text Size</b><span class="st-val mute">{prefs.textSize} pt{prefs.textSize === 16 ? " (Default)" : ""}</span></div>
         <div class="szrow"><span class="a sm">A</span><input type="range" min="13" max="22" step="1" bind:value={prefs.textSize} oninput={savePrefs} aria-label="Message text size" /><span class="a lg">A</span></div>
       </div>
+      <div class="st-blk">
+        <div class="st-lrow"><b class="st-lbl">Message Text Weight</b><span class="st-val mute">{weightLabel}</span></div>
+        <div class="st-seg" role="radiogroup" aria-label="Message text weight">
+          {#each weights as w}
+            <button role="radio" aria-checked={prefs.textWeight === w.v} class:on={prefs.textWeight === w.v} style="font-weight:{w.v}" onclick={() => { prefs.textWeight = w.v; savePrefs(); }}>{w.label}</button>
+          {/each}
+        </div>
+        <div class="demo"><span class="out" style="font-size:{prefs.textSize}px;font-weight:{prefs.textWeight}">Executive sprint sync at 2 PM.</span></div>
+      </div>
     </section>
-    <p class="st-note rst"><button class="st-btn" onclick={() => { prefs.theme = "system"; prefs.accent = "navy"; prefs.bubbleRadius = 12; prefs.textSize = 16; savePrefs(); }}>Reset to defaults</button></p>
+    <p class="st-note rst"><button class="st-btn" onclick={() => { prefs.theme = "system"; prefs.accent = "navy"; prefs.bubbleRadius = 12; prefs.textSize = 16; prefs.textWeight = 400; savePrefs(); }}>Reset to defaults</button></p>
   </div>
 </div>
 

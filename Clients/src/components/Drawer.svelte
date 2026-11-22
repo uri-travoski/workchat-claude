@@ -54,7 +54,7 @@
 <aside aria-label="Menu" style={dx ? `transform:translateX(${dx}px);transition:none` : ""} ontouchstart={tstart} ontouchmove={tmove} ontouchend={tend} ontouchcancel={tend}>
   {#if me}
     <button class="me" onclick={() => go("settings")} aria-label="Your profile and settings">
-      <Avatar id={me.avatar ?? null} initials={initialsOf(me.display_name)} size={64} presence={app.conn === "online" ? "online" : null} />
+      <Avatar id={me.avatar ?? null} initials={initialsOf(me.display_name)} size={64} conn={app.conn === "online" ? "online" : "offline"} />
       <b>{me.display_name}</b>
       <span>{me.title || "@" + me.username}</span>
     </button>

@@ -28,6 +28,7 @@
     <section class="st-card">
       <Row icon="bookmark" tone="blue" title="Saved Messages" sub="Messages you saved for later" onclick={() => go("saved")} />
       <Row icon="star" tone="yellow" title="Starred &amp; Pinned" sub="Pinned chats and pinned messages" onclick={() => go("starred")} />
+      <Row icon="tag" tone="violet" title="Labels" sub="Your private labels for saved messages" onclick={() => go("labels")} />
       <Row icon="folder" tone="sky" title="Recent Files &amp; Shared Media" sub="Photos, documents and audio" onclick={openFiles} />
     </section>
 

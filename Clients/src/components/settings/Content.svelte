@@ -4,6 +4,7 @@
   import Account from "./Account.svelte";
   import Appearance from "./Appearance.svelte";
   import Devices from "./Devices.svelte";
+  import Labels from "./Labels.svelte";
   import Notifications from "./Notifications.svelte";
   import Prefs from "./Prefs.svelte";
   import Privacy from "./Privacy.svelte";
@@ -22,6 +23,7 @@
   </div>
 {:else if page === "account" || page === "saved"}<Account kind="saved" />
 {:else if page === "starred"}<Account kind="starred" />
+{:else if page === "labels"}<Labels />
 {:else if page === "notifications"}<Notifications />
 {:else if page === "privacy"}<Privacy />
 {:else if page === "storage"}<Storage />

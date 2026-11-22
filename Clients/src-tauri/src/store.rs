@@ -173,6 +173,7 @@ impl Store {
         put("avatar_overrides", to_json(&b.avatar_overrides)?)?;
         put("pins", to_json(&b.pins)?)?;
         put("saved", to_json(&b.saved)?)?;
+        put("labels", to_json(&b.labels)?)?;
         put("cursor", to_json(&b.cursor)?)?;
         put("org_settings", to_json(&b.org_settings)?)?;
         tx.commit()?;

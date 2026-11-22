@@ -1,10 +1,10 @@
 // Reactive app state shared by every component. The Rust core owns the data; this mirrors what the UI needs
 // and keeps it current from core events.
-import { core, errorMessage, onCoreEvent, type AudioState, type LockStatus, type OrgSettings, type UpdateInfo, type ChatRow, type ConnState, type Counts, type CoreEvent, type FileHit, type LocalAvatar, type MessageView, type Me, type Staged, type ThreadSummary, type UploadInfo, type User } from "./core";
+import { core, errorMessage, onCoreEvent, type AudioState, type LockStatus, type OrgSettings, type UpdateInfo, type ChatRow, type ConnState, type Counts, type CoreEvent, type FileHit, type Label, type LocalAvatar, type MessageView, type Me, type Staged, type ThreadSummary, type UploadInfo, type User } from "./core";
 
 export type Tab = "chats" | "contacts" | "settings";
 /** Settings pages. On a phone "" is the list; on desktop "profile" is shown first. */
-export type SettingsPage = "" | "profile" | "account" | "saved" | "starred" | "notifications" | "privacy" | "storage" | "appearance" | "prefs" | "server" | "devices" | "about";
+export type SettingsPage = "" | "profile" | "account" | "saved" | "starred" | "labels" | "notifications" | "privacy" | "storage" | "appearance" | "prefs" | "server" | "devices" | "about";
 
 /** The PIN keypad: what it is for, and what happens after a correct PIN. */
 export interface PadState {
@@ -41,6 +41,7 @@ export type Sheet =
   | { kind: "info"; msg: MessageView }
   | { kind: "msgmenu"; msg: MessageView; x: number; y: number; inThread: boolean; onedit?: (m: MessageView) => void }
   | { kind: "emoji"; msg: MessageView }
+  | { kind: "labels"; msg: MessageView }
   | { kind: "chatmenu"; conv: string }
   | { kind: "lockedchats" }
   | { kind: "editprofile" }
@@ -83,6 +84,11 @@ export const app = $state({
   counts: null as Counts | null,
   org: { channel_creation: "everyone", channel_pins: "everyone" } as OrgSettings,
   saved: [] as string[],
+  /** The person's own labels, and the label ids of each saved message. */
+  labels: [] as Label[],
+  savedLabels: {} as Record<string, string[]>,
+  /** The Saved list shows only messages with this label (a label id). */
+  labelFilter: null as string | null,
   pins: {} as Record<string, string[]>,
   localAvatars: {} as Record<string, string>,
   maxUpload: 100 * 1024 * 1024,
@@ -121,6 +127,8 @@ export interface Prefs {
   accent: "navy" | "blue" | "slate" | "deep";
   bubbleRadius: number;
   textSize: number;
+  /** Message text weight (400 regular, 500 medium, 600 semibold, 700 bold). */
+  textWeight: number;
   sendWithReturn: boolean;
   /** Download photos in chats automatically (off: tap to download). */
   autoPhotos: boolean;
@@ -128,7 +136,7 @@ export interface Prefs {
   chatSort: ChatSort;
 }
 const PREFS_KEY = "workchat.prefs";
-const defaultPrefs: Prefs = { theme: "system", accent: "navy", bubbleRadius: 12, textSize: 16, sendWithReturn: false, autoPhotos: true, chatSort: "recent" };
+const defaultPrefs: Prefs = { theme: "system", accent: "navy", bubbleRadius: 12, textSize: 16, textWeight: 400, sendWithReturn: false, autoPhotos: true, chatSort: "recent" };
 
 function loadPrefs(): Prefs {
   try {
@@ -147,6 +155,7 @@ export function applyPrefs() {
   else r.setAttribute("data-accent", prefs.accent);
   r.style.setProperty("--radius-bubble", `${prefs.bubbleRadius}px`);
   r.style.setProperty("--msg-size", `${prefs.textSize}px`);
+  r.style.setProperty("--msg-weight", String(prefs.textWeight));
   // The phone's status bar follows the theme (a no-op elsewhere).
   setTimeout(() => barsHook?.(), 60);
 }
@@ -209,6 +218,12 @@ function upsertInto(list: MessageView[], m: MessageView, replaces: string | null
     list.push(m);
     list.sort(bySeq);
   }
+}
+
+/** Replaces the labels. A filter on a label that no longer exists is dropped. */
+export function setLabels(labels: Label[]) {
+  app.labels = [...labels].sort((a, b) => a.position - b.position || a.name.localeCompare(b.name));
+  if (app.labelFilter && !labels.some((l) => l.id === app.labelFilter)) app.labelFilter = null;
 }
 
 export function setLocalAvatars(items: LocalAvatar[]) {
@@ -303,6 +318,10 @@ function onEvent(ev: CoreEvent) {
       break;
     case "saved":
       app.saved = ev.ids;
+      app.savedLabels = ev.labels;
+      break;
+    case "labels":
+      setLabels(ev.labels);
       break;
     case "pins":
       app.pins[ev.conv_id] = ev.ids;
@@ -373,6 +392,9 @@ function resetState() {
   app.filesLoaded = false;
   app.counts = null;
   app.saved = [];
+  app.labels = [];
+  app.savedLabels = {};
+  app.labelFilter = null;
   app.pins = {};
   app.localAvatars = {};
   app.uploads = {};
@@ -404,6 +426,8 @@ export async function loadSnapshot() {
     app.counts = s.counts;
     app.org = s.org_settings;
     app.saved = s.saved;
+    app.savedLabels = s.saved_labels;
+    setLabels(s.labels);
     app.pins = s.pins;
     app.maxUpload = s.max_upload_bytes;
     setLocalAvatars(s.local_avatars);

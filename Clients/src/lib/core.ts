@@ -2,9 +2,9 @@
 // the view models below mirror src-tauri/src/view.rs and engine.rs.
 import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
-import type { Attachment, ConversationSummary, Counts, FileHit, Me, Member, Message, OrgSettings, Pin, Presence, ReactionSummary, SearchHit, SearchResponse, ThreadSummary, ThreadView, User } from "./api-types";
+import type { Attachment, ConversationSummary, Counts, FileHit, Label, Me, Member, Message, OrgSettings, Pin, Presence, ReactionSummary, SearchHit, SearchResponse, ThreadSummary, ThreadView, User } from "./api-types";
 
-export type { Attachment, ConversationSummary, Counts, FileHit, Me, Member, Message, OrgSettings, Pin, Presence, SearchHit, SearchResponse, ThreadSummary, ThreadView, User };
+export type { Attachment, ConversationSummary, Counts, FileHit, Label, Me, Member, Message, OrgSettings, Pin, Presence, SearchHit, SearchResponse, ThreadSummary, ThreadView, User };
 
 /** A file picked, dropped, pasted or recorded, waiting in the core's staging folder. */
 export interface Staged {
@@ -111,6 +111,9 @@ export interface Snapshot {
   counts: Counts | null;
   org_settings: OrgSettings;
   saved: string[];
+  labels: Label[];
+  /** Label ids of each saved message (only messages that have labels). */
+  saved_labels: Record<string, string[]>;
   local_avatars: LocalAvatar[];
   max_upload_bytes: number;
   pins: Record<string, string[]>;
@@ -155,7 +158,8 @@ export type CoreEvent =
   | { type: "counts"; counts: Counts }
   | { type: "voice"; level: number; elapsed_ms: number }
   | { type: "audio"; id: string; state: AudioState; pos_ms: number; dur_ms: number; speed: number; error: string | null }
-  | { type: "saved"; ids: string[] }
+  | { type: "saved"; ids: string[]; labels: Record<string, string[]> }
+  | { type: "labels"; labels: Label[] }
   | { type: "pins"; conv_id: string; ids: string[] }
   | { type: "org_settings"; settings: OrgSettings }
   | { type: "upload"; local_id: string; info: UploadInfo }
@@ -366,8 +370,16 @@ export const core = {
   pinMessage: (convId: string, id: string, on: boolean) => invoke<void>("pin_message", { convId, id, on }),
   getPins: (convId: string) => invoke<MessageView[]>("get_pins", { convId }),
   saveMessage: (id: string, on: boolean) => invoke<void>("save_message", { id, on }),
+  /** Sets the labels of a message, saving it first when it is not saved yet. */
+  saveMessageLabels: (messageId: string, labelIds: string[]) => invoke<void>("save_message_labels", { messageId, labelIds }),
   fetchMessage: (id: string) => invoke<MessageView>("fetch_message", { id }),
   messagesAround: (convId: string, seq: number) => invoke<MessageView[]>("messages_around", { convId, seq }),
+
+  // labels (private to the person); each answers the full list
+  listLabels: () => invoke<Label[]>("list_labels"),
+  createLabel: (name: string, color: string) => invoke<Label[]>("create_label", { name, color }),
+  updateLabel: (id: string, p: { name?: string; color?: string }) => invoke<Label[]>("update_label", { id, name: p.name ?? null, color: p.color ?? null }),
+  deleteLabel: (id: string) => invoke<Label[]>("delete_label", { id }),
 
   // avatars and new chats
   setAvatar: (kind: "me" | "conv", target: string | null, stagedId: string) => invoke<void>("set_avatar", { kind, target, stagedId }),

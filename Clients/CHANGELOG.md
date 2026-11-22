@@ -3,6 +3,22 @@
 All notable changes to the WorkChat apps. The release workflow uses the section matching the tag as the
 GitHub release notes, so add a `## [x.y.z]` heading before tagging.
 
+## [1.5.0] - 2026-11-22
+
+Message labels, picture and text options, connection dot.
+
+Labels (private to each person, managed in the apps):
+
+* Label a message from its menu (right click on desktop, press and hold on the phone). Each label is a tick box; ticking applies it at once. Labelling a message that is not saved saves it.
+* Create, rename, recolour and delete labels in Settings, Labels. Creating a label from a message also applies it to that message.
+* Filter Saved messages by label: desktop has label chips above the Saved list; the phone's top-right menu has "Filter by label".
+
+Phone:
+
+* Emoji picker in chats opens as a full-width panel with larger emoji.
+* Settings, Appearance: Message Text Weight (Regular, Medium, Semibold, Bold).
+* The "Online" label under All Chats is gone. The avatar dot is green when connected to the server and red when offline.
+
 ## [1.4.0] - 2026-11-22
 
 Picture fixes, channel and bot badges, smoother image zoom.

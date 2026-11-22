@@ -8,6 +8,7 @@
     ["profile", "Profile", "user"],
     ["saved", "Saved Messages", "bookmark"],
     ["starred", "Starred & Pinned", "star"],
+    ["labels", "Labels", "tag"],
     ["notifications", "Notifications and Sounds", "bell"],
     ["privacy", "Privacy and Security", "shield"],
     ["storage", "Data and Storage", "pie"],

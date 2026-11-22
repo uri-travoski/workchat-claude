@@ -313,7 +313,7 @@
       {/if}
       <span class="emojiwrap">
         <button class="inner" aria-label="Emoji" onclick={() => (emojiOpen = !emojiOpen)}><Icon name="smile" size={22} /></button>
-        {#if emojiOpen}<EmojiPicker onpick={(e) => void insert(e)} onclose={() => (emojiOpen = false)} />{/if}
+        {#if emojiOpen}<EmojiPicker sheet={app.phone} onpick={(e) => void insert(e)} onclose={() => (emojiOpen = false)} />{/if}
       </span>
     </div>
     {/if}

@@ -9,3 +9,8 @@ export function visibleSaved(list: MessageView[], rows: Record<string, ChatRow |
     return true;
   });
 }
+
+/** Only the saved messages that carry the label (all of them when no label is chosen). `labels` maps a message id to its label ids. */
+export function withLabel(list: MessageView[], labelId: string | null, labels: Record<string, string[] | undefined>): MessageView[] {
+  return labelId ? list.filter((m) => labels[m.id]?.includes(labelId)) : list;
+}

@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { lockEntry } from "../src/lib/menu";
 import { HOLD_MS, SLOP, holdStep } from "../src/lib/hold";
-import { visibleSaved } from "../src/lib/saved";
+import { visibleSaved, withLabel } from "../src/lib/saved";
 import { moveId, sortChats } from "../src/lib/chat";
 
 const row = (o: Record<string, unknown>) => ({ id: "x", kind: "dm", title: "T", last_ts: 0, favourite: false, ...o }) as never;
@@ -44,4 +44,12 @@ test("saved list: drops deleted messages, hidden chats and duplicates, keeps the
   const list = [msg("m3", "c1"), msg("m2", "c9"), msg("m1", "c2", { deleted: true }), msg("m3", "c1"), msg("m0", "c2")];
   assert.deepEqual(visibleSaved(list, rows).map((m) => m.id), ["m3", "m0"]);
   assert.deepEqual(visibleSaved([], rows), []);
+});
+
+test("saved by label: only messages carrying the label, everything when none is chosen", () => {
+  const list = [msg("a", "c"), msg("b", "c"), msg("d", "c")];
+  const labels = { a: ["l1"], b: ["l2", "l1"] };
+  assert.deepEqual(withLabel(list, "l1", labels).map((m) => m.id), ["a", "b"]);
+  assert.deepEqual(withLabel(list, "l2", labels).map((m) => m.id), ["b"]);
+  assert.deepEqual(withLabel(list, null, labels).map((m) => m.id), ["a", "b", "d"]);
 });

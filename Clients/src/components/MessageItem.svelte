@@ -172,7 +172,7 @@
   .col { display: flex; flex-direction: column; max-width: min(78%, 640px); min-width: 0; align-items: flex-start; }
   .mine .col { align-items: flex-end; }
   .inthread .col { max-width: 100%; flex: 1; }
-  .bubble { position: relative; padding: 9px 13px 6px; border-radius: var(--radius-bubble); font-size: var(--msg-size); min-width: 78px; max-width: 100%; box-shadow: var(--shadow); }
+  .bubble { position: relative; padding: 9px 13px 6px; border-radius: var(--radius-bubble); font-size: var(--msg-size); font-weight: var(--msg-weight); min-width: 78px; max-width: 100%; box-shadow: var(--shadow); }
   .bubble.media-only { padding: 5px 5px 6px; }
   .bubble.media-only .foot { padding: 0 6px; }
   .bubble.in { background: var(--bubble-in); color: var(--bubble-in-text); border-top-left-radius: 4px; }

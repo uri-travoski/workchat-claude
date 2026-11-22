@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.5.0
+
+Version bump only (labels were already served).
+
 ## 1.4.0
 
 Version bump only.

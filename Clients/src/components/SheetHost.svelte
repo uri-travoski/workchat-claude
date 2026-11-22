@@ -11,6 +11,7 @@
   import ForwardSheet from "./ForwardSheet.svelte";
   import ShareToSheet from "./ShareToSheet.svelte";
   import InfoSheet from "./InfoSheet.svelte";
+  import LabelSheet from "./LabelSheet.svelte";
   import MessageMenu from "./MessageMenu.svelte";
   import NewChatSheet from "./NewChatSheet.svelte";
   import PinsSheet from "./PinsSheet.svelte";
@@ -35,6 +36,7 @@
     {:else if s.kind === "info"}<InfoSheet msg={s.msg} />
     {:else if s.kind === "msgmenu"}<MessageMenu msg={s.msg} x={s.x} y={s.y} inThread={s.inThread} onedit={s.onedit} />
     {:else if s.kind === "emoji"}<EmojiSheet msg={s.msg} />
+    {:else if s.kind === "labels"}<LabelSheet msg={s.msg} />
     {:else if s.kind === "lockedchats"}<LockedChatsSheet />
     {:else if s.kind === "editprofile"}<EditProfileSheet />
     {:else if s.kind === "sharecard"}<ShareCardSheet />

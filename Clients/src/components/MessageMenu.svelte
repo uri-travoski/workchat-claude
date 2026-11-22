@@ -45,6 +45,7 @@
     l.push({ label: "Forward", icon: "forward", run: () => (app.sheet = { kind: "forward", msg }) });
     if (row?.can_pin) l.push({ label: pinned ? "Unpin" : "Pin to chat", icon: "pin", run: () => { close(); void attempt(core.pinMessage(msg.conv_id, msg.id, !pinned)); } });
     l.push({ label: starred ? "Unsave" : "Save", icon: "bookmark", run: () => { close(); void attempt(core.saveMessage(msg.id, !starred)); } });
+    l.push({ label: "Label", icon: "tag", run: () => (app.sheet = { kind: "labels", msg }) });
     if (receipts) l.push({ label: "Info", icon: "info", run: () => (app.sheet = { kind: "info", msg }) });
     if (msg.kind !== "system") l.push({ label: "Delete for me", icon: "eyeoff", run: () => { close(); if (window.confirm("Delete this message for you? Other people in the chat will still see it.")) void attempt(core.hideMessage(msg.id)); } });
     if (mine) l.push({ label: "Delete for everyone", icon: "trash", danger: true, run: () => { close(); if (window.confirm("Delete this message for everyone?")) void attempt(core.deleteMessage(msg.id)); } });

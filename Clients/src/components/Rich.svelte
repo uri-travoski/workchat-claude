@@ -45,7 +45,7 @@
 </div>
 
 <style>
-  .rich { font-size: var(--msg-size); line-height: 1.38; overflow-wrap: anywhere; word-break: break-word; }
+  .rich { font-size: var(--msg-size); font-weight: var(--msg-weight); line-height: 1.38; overflow-wrap: anywhere; word-break: break-word; }
   p { margin: 0; white-space: pre-wrap; }
   p + p, p + ul, p + ol, p + blockquote, p + pre, ul + p, ol + p, blockquote + p, pre + p, ul + ul, ul + blockquote, blockquote + ul { margin-top: 6px; }
   ul, ol { margin: 0; padding-left: 1.3em; }

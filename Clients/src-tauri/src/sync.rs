@@ -3,7 +3,7 @@
 
 use crate::error::Result;
 use crate::store::Store;
-use crate::view::{build_row, CoreEvent, MessageView, RowCtx};
+use crate::view::{build_row, saved_event, CoreEvent, MessageView, RowCtx};
 use proto::*;
 use std::collections::BTreeSet;
 
@@ -203,13 +203,17 @@ pub fn apply_events(store: &Store, events: &[Event]) -> Result<Applied> {
                 list.retain(|s| s.message_id != item.message_id);
                 list.push(item.clone());
                 store.kv_set("saved", &list)?;
-                out.events.push(CoreEvent::Saved { ids: list.iter().map(|s| s.message_id.clone()).collect() });
+                out.events.push(saved_event(&list));
             }
             EventData::SavedRemove { message_id } => {
                 let mut list: Vec<SavedItem> = store.kv_get("saved")?.unwrap_or_default();
                 list.retain(|s| s.message_id != *message_id);
                 store.kv_set("saved", &list)?;
-                out.events.push(CoreEvent::Saved { ids: list.iter().map(|s| s.message_id.clone()).collect() });
+                out.events.push(saved_event(&list));
+            }
+            EventData::LabelsUpdate { labels } => {
+                store.kv_set("labels", labels)?;
+                out.events.push(CoreEvent::Labels { labels: labels.clone() });
             }
             EventData::SectionsUpdate { sections } => store.kv_set("sections", sections)?,
             EventData::GroupsUpdate { groups } => store.kv_set("groups", groups)?,
@@ -220,7 +224,7 @@ pub fn apply_events(store: &Store, events: &[Event]) -> Result<Applied> {
                 all_rows = true;
             }
             EventData::Resync {} => out.resync = true,
-            // Not shown in C1 (bookmarks, drafts, scheduled, saved, labels, activity, removed files).
+            // Not shown in C1 (bookmarks, drafts, scheduled, activity, removed files).
             _ => {}
         }
     }
@@ -485,5 +489,18 @@ mod tests {
         s.outbox_add(&OutboxItem { client_id: "x".into(), conv_id: "c1".into(), thread_root: None, also_send_to_channel: false, reply_to: None, body: "b".into(), mentions: vec![], ts: 1, state: "queued".into(), attempts: 0, error: None, attachments: vec![] }).unwrap();
         s.replace_bootstrap(&boot()).unwrap();
         assert_eq!(s.outbox_queued().unwrap().len(), 1);
+    }
+
+    #[test]
+    fn labels_and_saved_label_ids_are_kept() {
+        let s = store();
+        let l = Label { id: "l1".into(), name: "Urgent".into(), color: "#E5484D".into(), position: 0 };
+        let item = SavedItem { message_id: "m1".into(), conv_id: "c1".into(), saved_ms: 5, label_ids: vec!["l1".into()] };
+        let out = apply_events(&s, &[ev(11, EventData::LabelsUpdate { labels: vec![l.clone()] }), ev(12, EventData::SavedUpdate { item })]).unwrap();
+        assert_eq!(s.kv_get::<Vec<Label>>("labels").unwrap(), Some(vec![l]));
+        let saved: Vec<SavedItem> = s.kv_get("saved").unwrap().unwrap();
+        assert_eq!(saved[0].label_ids, vec!["l1".to_string()]);
+        assert!(out.events.iter().any(|e| matches!(e, CoreEvent::Labels { labels } if labels.len() == 1)));
+        assert!(out.events.iter().any(|e| matches!(e, CoreEvent::Saved { labels, .. } if labels.get("m1").map(|v| v.len()) == Some(1))));
     }
 }

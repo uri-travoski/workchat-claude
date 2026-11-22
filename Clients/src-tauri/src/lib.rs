@@ -489,6 +489,26 @@ async fn save_message(e: Eng<'_>, id: String, on: bool) -> Result<()> {
     e.save_message(&id, on).await
 }
 #[tauri::command]
+async fn save_message_labels(e: Eng<'_>, message_id: String, label_ids: Vec<String>) -> Result<()> {
+    e.save_message_labels(&message_id, label_ids).await
+}
+#[tauri::command]
+async fn list_labels(e: Eng<'_>) -> Result<Vec<Label>> {
+    e.list_labels().await
+}
+#[tauri::command]
+async fn create_label(e: Eng<'_>, name: String, color: String) -> Result<Vec<Label>> {
+    e.create_label(&name, &color).await
+}
+#[tauri::command]
+async fn update_label(e: Eng<'_>, id: String, name: Option<String>, color: Option<String>) -> Result<Vec<Label>> {
+    e.update_label(&id, name, color).await
+}
+#[tauri::command]
+async fn delete_label(e: Eng<'_>, id: String) -> Result<Vec<Label>> {
+    e.delete_label(&id).await
+}
+#[tauri::command]
 async fn fetch_message(e: Eng<'_>, id: String) -> Result<MessageView> {
     e.fetch_message(&id).await
 }
@@ -1183,6 +1203,11 @@ pub fn run() {
             pin_message,
             get_pins,
             save_message,
+            save_message_labels,
+            list_labels,
+            create_label,
+            update_label,
+            delete_label,
             fetch_message,
             messages_around,
             set_avatar,

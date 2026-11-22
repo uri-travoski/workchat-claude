@@ -257,7 +257,11 @@ impl Engine {
         }
         match e {
             CoreEvent::Counts { counts } => Some(CoreEvent::Counts { counts: self.adjust_counts(counts) }),
-            CoreEvent::Saved { ids } => Some(CoreEvent::Saved { ids: self.visible_saved(ids) }),
+            CoreEvent::Saved { ids, mut labels } => {
+                let ids = self.visible_saved(ids);
+                labels.retain(|id, _| ids.contains(id));
+                Some(CoreEvent::Saved { ids, labels })
+            }
             e => Some(e),
         }
     }

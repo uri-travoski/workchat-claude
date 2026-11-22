@@ -180,17 +180,25 @@
     savePrefs();
   };
 
-  const connLabel = $derived(app.conn === "online" ? "Online" : app.conn === "connecting" ? "Connecting…" : "Offline");
 
   const unreadAll = $derived(unreadTotal());
   const filesPage = $derived(app.phone && app.filter === "files");
   const phoneItems = $derived.by((): MenuItem[] => {
     const l = lockEntry(app.lock);
+    // Choosing a label shows the Saved list narrowed to it; "All labels" clears the narrowing.
+    const byLabel = (id: string | null) => {
+      app.filter = "saved";
+      app.labelFilter = id;
+    };
     return [
       { label: l.label, icon: l.label === "Lock" ? "lock" : "lockopen", run: () => lockMenuAction(l.act) },
       { label: "Sort chats", heading: true, run: () => {} },
       { label: "Recent", checked: prefs.chatSort !== "az" && prefs.chatSort !== "za", run: () => setSort("recent") },
       { label: "Alphabetically", checked: prefs.chatSort === "az" || prefs.chatSort === "za", run: () => setSort("az") },
+      { label: "Filter by label", heading: true, run: () => {} },
+      { label: "All labels", checked: !app.labelFilter, run: () => { app.labelFilter = null; } },
+      ...app.labels.map((lb): MenuItem => ({ label: lb.name, checked: app.labelFilter === lb.id, run: () => byLabel(lb.id) })),
+      { label: "Manage labels", icon: "tag", run: () => { app.tab = "settings"; app.spage = "labels"; } },
     ];
   });
   const viewTitle = $derived(app.filter === "threads" ? "Threads" : app.filter === "files" ? "Files" : app.filter === "saved" ? "Saved" : app.filter === "dm" ? "DMs" : app.filter === "channel" ? "Channels" : "All Chats");
@@ -210,7 +218,6 @@
     </button>
     <div class="ttl">
       <h1>{viewTitle}</h1>
-      <span class="conn" class:off={app.conn !== "online"}><i></i>{connLabel}</span>
     </div>
     <div class="acts">
       <button class="ib" aria-label="Search" onclick={() => (app.searching = !app.searching)}><Icon name="search" size={22} /></button>
@@ -346,10 +353,6 @@
   .list { position: relative; display: flex; flex-direction: column; height: 100%; min-height: 0; background: var(--page); }
   header { display: flex; align-items: center; justify-content: space-between; padding: calc(var(--safe-top) + 12px) 12px 8px 18px; background: var(--surface); }
   h1 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.15; }
-  .conn { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600; color: var(--blue); }
-  .conn i { width: 8px; height: 8px; border-radius: 50%; background: var(--blue); }
-  .conn.off { color: var(--muted); }
-  .conn.off i { background: var(--muted-2); }
   .acts { display: flex; gap: 2px; }
   .ib { width: 40px; height: 40px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; color: var(--text); }
   .ib:hover { background: var(--hover); }

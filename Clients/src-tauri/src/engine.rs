@@ -775,6 +775,8 @@ impl Engine {
             rows.push(build_row(&self.store, &ctx, &cs)?);
         }
         let saved: Vec<SavedItem> = self.store.kv_get("saved")?.unwrap_or_default();
+        let saved_labels = crate::view::saved_labels(&saved);
+        let saved_ids = self.visible_saved(saved.into_iter().map(|s| s.message_id).collect());
         Ok(Snapshot {
             me,
             server: api.base.clone(),
@@ -784,7 +786,9 @@ impl Engine {
             connection: self.connection(),
             counts: self.store.kv_get::<Counts>("counts")?.map(|c| self.adjust_counts(c)),
             org_settings: self.store.kv_get::<OrgSettings>("org_settings")?.unwrap_or_default(),
-            saved: self.visible_saved(saved.into_iter().map(|s| s.message_id).collect()),
+            labels: self.store.kv_get("labels")?.unwrap_or_default(),
+            saved_labels: saved_labels.into_iter().filter(|(id, _)| saved_ids.contains(id)).collect(),
+            saved: saved_ids,
             local_avatars: self.store.kv_get("local_avatars")?.unwrap_or_default(),
             max_upload_bytes: self.max_upload(),
             pins: self.pin_ids().into_iter().filter(|(k, _)| !hidden.contains(k)).collect(),

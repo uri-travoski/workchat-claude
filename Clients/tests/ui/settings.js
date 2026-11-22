@@ -7,7 +7,7 @@ api.app.tab = "settings";
 api.app.spage = "";
 await wait(800);
 await api.mark(`${pre}-settings-home`);
-for (const page of ["profile", "saved", "starred", "notifications", "privacy", "storage", "appearance", "prefs", "server", "devices", "about"]) {
+for (const page of ["profile", "saved", "starred", "labels", "notifications", "privacy", "storage", "appearance", "prefs", "server", "devices", "about"]) {
   if (phone && page === "profile") continue;
   api.app.spage = page;
   await wait(1100);

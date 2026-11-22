@@ -10,7 +10,8 @@
     icon = "",
     presence = null,
     bot = false,
-  }: { id?: string | null; initials?: string; size?: number; tile?: boolean; icon?: string; presence?: string | null; bot?: boolean } = $props();
+    conn = null,
+  }: { id?: string | null; initials?: string; size?: number; tile?: boolean; icon?: string; presence?: string | null; bot?: boolean; conn?: "online" | "offline" | null } = $props();
   // A channel (tile) or a bot account shows a small badge in the bottom corner.
   const badge = $derived(bot ? "bot" : tile ? "channel" : "");
 
@@ -31,6 +32,7 @@
   {/if}
   {#if badge}<span class="badge" class:bot={badge === "bot"} aria-hidden="true" title={badge === "bot" ? "Bot" : "Channel"}><Icon name={badge} size={Math.max(8, Math.round(size * 0.2))} /></span>{/if}
   {#if presence === "online" && !badge}<span class="dot" aria-hidden="true"></span>{/if}
+  {#if conn && !badge}<span class="dot" class:off={conn === "offline"} title={conn === "online" ? "Connected to the server" : "Offline"} aria-hidden="true"></span>{/if}
 </span>
 
 <style>
@@ -62,6 +64,7 @@
   .tile-ico, .ini { display: inline-flex; align-items: center; justify-content: center; letter-spacing: 0.02em; }
   .badge { position: absolute; right: -3px; bottom: -3px; width: calc(var(--s) * 0.38); height: calc(var(--s) * 0.38); min-width: 15px; min-height: 15px; border-radius: 50%; background: var(--surface); color: var(--navy); border: 1.5px solid var(--line); display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18); }
   .badge.bot { color: var(--accent); }
+  .dot.off { background: #e5484d; }
   .dot {
     position: absolute;
     right: -1px;

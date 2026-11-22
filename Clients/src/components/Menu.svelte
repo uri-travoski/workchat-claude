@@ -32,7 +32,7 @@
 
 <style>
   .backdrop { position: fixed; inset: 0; z-index: 50; }
-  .menu { position: fixed; z-index: 51; min-width: 190px; background: var(--surface); border-radius: 12px; box-shadow: var(--shadow-pop); border: 1px solid var(--line); padding: 6px; display: flex; flex-direction: column; }
+  .menu { position: fixed; z-index: 51; min-width: 190px; background: var(--surface); border-radius: 12px; box-shadow: var(--shadow-pop); border: 1px solid var(--line); padding: 6px; display: flex; flex-direction: column; max-height: calc(100vh - 16px); overflow-y: auto; }
   button { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 8px; font-size: 15px; text-align: left; }
   button:hover:not(:disabled) { background: var(--hover); }
   button:disabled { opacity: 0.4; cursor: default; }

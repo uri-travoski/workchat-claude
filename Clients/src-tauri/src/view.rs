@@ -147,6 +147,9 @@ pub struct Snapshot {
     pub org_settings: OrgSettings,
     /// Ids of messages saved ("starred") by the person.
     pub saved: Vec<String>,
+    /// The person's own labels, and the labels of each saved message (only messages that have any).
+    pub labels: Vec<Label>,
+    pub saved_labels: std::collections::BTreeMap<String, Vec<String>>,
     pub local_avatars: Vec<LocalAvatar>,
     pub max_upload_bytes: u64,
     /// Pinned message ids per conversation.
@@ -191,7 +194,9 @@ pub enum CoreEvent {
     Voice { level: f32, elapsed_ms: u32 },
     /// Playback state of the audio player (`loading`, `playing`, `paused`, `ended`, `stopped`, `error`).
     Audio { id: String, state: String, pos_ms: u32, dur_ms: u32, speed: f32, error: Option<String> },
-    Saved { ids: Vec<String> },
+    Saved { ids: Vec<String>, labels: std::collections::BTreeMap<String, Vec<String>> },
+    /// The person's labels changed (created, renamed, recoloured, deleted, or changed on another device).
+    Labels { labels: Vec<Label> },
     Pins { conv_id: String, ids: Vec<String> },
     /// Progress of the files of an unsent message.
     Upload { local_id: String, info: UploadInfo },
@@ -200,6 +205,15 @@ pub enum CoreEvent {
     Update { state: String, got: u64, total: u64, message: String },
     /// Organisation settings changed (who may create channels, who may pin).
     OrgSettings { settings: OrgSettings },
+}
+
+/// The `Saved` event for a saved list: every id, and the label ids of the messages that have labels.
+pub fn saved_event(list: &[SavedItem]) -> CoreEvent {
+    CoreEvent::Saved { ids: list.iter().map(|s| s.message_id.clone()).collect(), labels: saved_labels(list) }
+}
+
+pub fn saved_labels(list: &[SavedItem]) -> std::collections::BTreeMap<String, Vec<String>> {
+    list.iter().filter(|s| !s.label_ids.is_empty()).map(|s| (s.message_id.clone(), s.label_ids.clone())).collect()
 }
 
 // ---------------------------------------------------------------- chat rows
