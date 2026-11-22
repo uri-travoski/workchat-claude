@@ -1,0 +1,19 @@
+[package]
+name = "workchat-proto"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "WorkChat shared API types (single source of truth for server, clients and the JSON schema)"
+
+[lib]
+name = "proto"
+
+[[bin]]
+name = "gen-schema"
+path = "src/bin/gen-schema.rs"
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+schemars.workspace = true
+url.workspace = true

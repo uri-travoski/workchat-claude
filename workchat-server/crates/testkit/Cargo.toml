@@ -1,0 +1,21 @@
+[package]
+name = "workchat-testkit"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+description = "Raw HTTP and WebSocket test client for workchat-server (no client library): used by the server tests and the end-to-end suite"
+
+[dependencies]
+proto.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tokio.workspace = true
+futures-util.workspace = true
+bytes.workspace = true
+url.workspace = true
+hmac = "0.12"
+sha2.workspace = true
+hex.workspace = true
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "json"] }
+tokio-tungstenite = { version = "0.29", default-features = false, features = ["connect"] }

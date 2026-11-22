@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=WorkChat
+GenericName=Team chat
+Comment=Direct messages, channels and threads for your own WorkChat server
+Exec=workchat %U
+Icon=app.workchat.WorkChat
+Terminal=false
+Categories=Network;Chat;InstantMessaging;
+Keywords=chat;messenger;team;work;
+MimeType=x-scheme-handler/workchat;
+StartupWMClass=workchat

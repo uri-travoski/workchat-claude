@@ -1,0 +1,123 @@
+@import "@fontsource-variable/inter/wght.css";
+
+/* Tokens read off the theme screenshots (images/screenshots/theme). Light is the reference; dark follows the OS
+   unless the person picks a mode in Settings (data-theme on <html>). */
+:root {
+  --navy: #21375b;
+  --navy-dark: #19273f;
+  --accent: var(--navy);
+  --accent-2: var(--navy-dark);
+  --blue: #1e5bb8;
+  --badge: #1e56b3;
+  --page: #f4f6fa;
+  --surface: #ffffff;
+  --surface-2: #f8f9fc;
+  --text: #121826;
+  --text-2: #4a5568;
+  --muted: #6b7385;
+  --muted-2: #9aa3b5;
+  --line: #e7ebf2;
+  --chip: #edf0f5;
+  --chip-text: #5b6577;
+  --hover: #f1f4f9;
+  --pill: #ffffff;
+  --pill-line: #e2e7ef;
+  --bubble-in: #ffffff;
+  --bubble-in-text: #1b2230;
+  --bubble-out-text: #ffffff;
+  --bubble-out-time: #b9c7e2;
+  --initials-bg: #d6e6ff;
+  --initials-text: #1f4e96;
+  --online: #12b886;
+  --danger: #c4261f;
+  --shadow: 0 1px 2px rgba(17, 24, 39, 0.06), 0 1px 1px rgba(17, 24, 39, 0.04);
+  --shadow-pop: 0 10px 30px rgba(17, 24, 39, 0.18), 0 2px 6px rgba(17, 24, 39, 0.08);
+  --radius-bubble: 12px;
+  --msg-size: 16px;
+  --font: "Inter Variable", Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --page: #0e131b;
+    --surface: #161d28;
+    --surface-2: #1b2331;
+    --text: #e8ecf3;
+    --text-2: #b4bccb;
+    --muted: #8d97aa;
+    --muted-2: #66718a;
+    --line: #243041;
+    --chip: #232d3d;
+    --chip-text: #a9b3c6;
+    --hover: #1d2635;
+    --pill: #161d28;
+    --pill-line: #2a3649;
+    --bubble-in: #1c2533;
+    --bubble-in-text: #e8ecf3;
+    --bubble-out-time: #9db0d4;
+    --initials-bg: #20365a;
+    --initials-text: #a9c8ff;
+    --blue: #6ea3f5;
+    --badge: #3a6fd0;
+    --danger: #ff7b72;
+    --shadow: none;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --page: #0e131b;
+  --surface: #161d28;
+  --surface-2: #1b2331;
+  --text: #e8ecf3;
+  --text-2: #b4bccb;
+  --muted: #8d97aa;
+  --muted-2: #66718a;
+  --line: #243041;
+  --chip: #232d3d;
+  --chip-text: #a9b3c6;
+  --hover: #1d2635;
+  --pill: #161d28;
+  --pill-line: #2a3649;
+  --bubble-in: #1c2533;
+  --bubble-in-text: #e8ecf3;
+  --bubble-out-time: #9db0d4;
+  --initials-bg: #20365a;
+  --initials-text: #a9c8ff;
+  --blue: #6ea3f5;
+  --badge: #3a6fd0;
+  --danger: #ff7b72;
+  --shadow: none;
+  color-scheme: dark;
+}
+
+/* Accent choices from "Primary Accent Color". */
+:root[data-accent="blue"] { --navy: #1e5bb8; --navy-dark: #174a97; }
+:root[data-accent="slate"] { --navy: #4a5f85; --navy-dark: #3c4e6e; }
+:root[data-accent="deep"] { --navy: #1c3a55; --navy-dark: #132a3f; }
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body, #app { height: 100%; margin: 0; }
+body {
+  font-family: var(--font);
+  font-size: 15px;
+  line-height: 1.35;
+  color: var(--text);
+  background: var(--page);
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+input, textarea { font: inherit; color: inherit; }
+button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visible, [tabindex]:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+}
+a { color: var(--blue); }
+::selection { background: color-mix(in srgb, var(--blue) 30%, transparent); }
+.scroll { overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: var(--line) transparent; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+@media (prefers-reduced-motion: reduce) { * { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; } }

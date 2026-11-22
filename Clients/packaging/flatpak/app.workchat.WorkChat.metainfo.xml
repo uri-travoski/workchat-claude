@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>app.workchat.WorkChat</id>
+  <name>WorkChat</name>
+  <summary>Team chat client for your own WorkChat server</summary>
+  <developer id="app.workchat">
+    <name>WorkChat contributors</name>
+  </developer>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MIT</project_license>
+  <description>
+    <p>WorkChat is a lightweight chat client for your own self-hosted WorkChat server, with direct messages, channels and message threads in one place.</p>
+    <ul>
+      <li>Direct messages and channels, with message threads</li>
+      <li>Voice messages and file attachments of any type</li>
+      <li>Rich-text formatting: bold, italic, strike, lists, code, quotes and links</li>
+      <li>Per-chat lock with a 6-digit PIN</li>
+      <li>Notifications through your own ntfy server</li>
+      <li>Works on your local network over plain http as well as over https</li>
+    </ul>
+  </description>
+  <url type="homepage">https://github.com/uri-travoski/workchat-claude</url>
+  <url type="bugtracker">https://github.com/uri-travoski/workchat-claude/issues</url>
+  <launchable type="desktop-id">app.workchat.WorkChat.desktop</launchable>
+  <provides>
+    <binary>workchat</binary>
+  </provides>
+  <categories>
+    <category>Network</category>
+    <category>Chat</category>
+    <category>InstantMessaging</category>
+  </categories>
+  <keywords>
+    <keyword>chat</keyword>
+    <keyword>messenger</keyword>
+    <keyword>team</keyword>
+  </keywords>
+  <supports>
+    <control>pointing</control>
+    <control>keyboard</control>
+    <control>touch</control>
+  </supports>
+  <requires>
+    <display_length compare="ge">360</display_length>
+  </requires>
+  <recommends>
+    <internet>always</internet>
+  </recommends>
+  <content_rating type="oars-1.1">
+    <content_attribute id="social-chat">intense</content_attribute>
+    <content_attribute id="social-audio">intense</content_attribute>
+    <content_attribute id="social-info">mild</content_attribute>
+  </content_rating>
+  <releases>
+    <release version="1.1.0" date="2026-11-21">
+      <description>
+        <p>First release.</p>
+      </description>
+    </release>
+  </releases>
+</component>

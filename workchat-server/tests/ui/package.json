@@ -1,0 +1,9 @@
+{
+  "name": "workchat-admin-ui-tests",
+  "private": true,
+  "description": "Playwright tests of the admin panel (run with ./run.sh)",
+  "type": "module",
+  "dependencies": {
+    "playwright-core": "1.65.1"
+  }
+}

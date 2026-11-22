@@ -1,0 +1,50 @@
+# Flatpak manifest for WorkChat. Wraps the prebuilt release binary (built by the Linux CI job, or
+# target/release/workchat locally via scripts/build-flatpak.sh), so no Rust/Node toolchain is needed here.
+# The binary is built against webkit2gtk-4.1, which the GNOME runtime ships.
+app-id: app.workchat.WorkChat
+runtime: org.gnome.Platform
+runtime-version: '48'
+sdk: org.gnome.Sdk
+command: workchat
+
+finish-args:
+  - --share=network
+  - --share=ipc
+  - --socket=wayland
+  - --socket=fallback-x11
+  - --device=dri
+  - --socket=pulseaudio
+  - --filesystem=xdg-download
+  - --talk-name=org.freedesktop.Notifications
+  - --talk-name=org.kde.StatusNotifierWatcher
+
+modules:
+  - name: workchat
+    buildsystem: simple
+    build-commands:
+      - install -Dm755 workchat /app/bin/workchat
+      - install -Dm644 app.workchat.WorkChat.desktop /app/share/applications/app.workchat.WorkChat.desktop
+      - install -Dm644 app.workchat.WorkChat.metainfo.xml /app/share/metainfo/app.workchat.WorkChat.metainfo.xml
+      - install -Dm644 app.workchat.WorkChat.svg /app/share/icons/hicolor/scalable/apps/app.workchat.WorkChat.svg
+      - install -Dm644 icon-128.png /app/share/icons/hicolor/128x128/apps/app.workchat.WorkChat.png
+      - install -Dm644 icon-256.png /app/share/icons/hicolor/256x256/apps/app.workchat.WorkChat.png
+      - install -Dm644 icon-512.png /app/share/icons/hicolor/512x512/apps/app.workchat.WorkChat.png
+    sources:
+      # `workchat` is copied next to this manifest by scripts/build-flatpak.sh / the release workflow.
+      - type: file
+        path: workchat
+      - type: file
+        path: app.workchat.WorkChat.desktop
+      - type: file
+        path: app.workchat.WorkChat.metainfo.xml
+      - type: file
+        path: ../linux/app.workchat.WorkChat.svg
+      - type: file
+        path: ../linux/hicolor/128.png
+        dest-filename: icon-128.png
+      - type: file
+        path: ../linux/hicolor/256.png
+        dest-filename: icon-256.png
+      - type: file
+        path: ../linux/hicolor/512.png
+        dest-filename: icon-512.png

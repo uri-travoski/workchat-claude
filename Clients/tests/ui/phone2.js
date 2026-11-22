@@ -1,0 +1,16 @@
+await api.openChat("Marcus Brody");
+await api.click("button[aria-label='More']");
+await api.mark("phone-chat-menu");
+await api.clickText("Set local picture");
+await api.wait(1500);
+await api.mark("phone-crop-sheet");
+await api.clickText("Use picture");
+await api.wait(1800);
+await api.mark("phone-local-avatar");
+await api.click("button[aria-label='Back']");
+await api.wait(500);
+await api.mark("phone-list-local-avatar");
+await api.openChat("Marcus Brody");
+await api.click("button[aria-label='Chat details']");
+await api.wait(500);
+await api.mark("phone-profile-local");

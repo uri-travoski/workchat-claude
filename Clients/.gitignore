@@ -1,0 +1,14 @@
+node_modules/
+dist/
+target/
+.test-build/
+src-tauri/gen/schemas/
+*.log
+
+# Gradle/Android build output
+**/android/build/
+**/android/.gradle/
+.gradle/
+src-tauri/gen/android/**/build/
+src-tauri/gen/android/local.properties
+src-tauri/gen/android/keystore.properties

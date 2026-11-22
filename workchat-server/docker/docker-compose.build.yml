@@ -1,0 +1,24 @@
+# Developers only: build the server image from this checkout and run it. Installs do NOT use this file, they use
+# deploy/docker-compose.yml, which pulls the published image.
+#
+#   docker compose -f docker/docker-compose.build.yml up -d --build
+#   (the image is tagged ghcr.io/uri-travoski/workchat-server:dev-local, port 8080 on this machine, own volume workchat-dev-data)
+name: workchat-dev
+
+services:
+  workchat-server:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    image: ghcr.io/uri-travoski/workchat-server:dev-local
+    restart: unless-stopped
+    environment:
+      WORKCHAT_PUBLIC_URL: ${WORKCHAT_PUBLIC_URL:-http://localhost:8080}
+      WORKCHAT_BOOTSTRAP_ADMIN: ${WORKCHAT_BOOTSTRAP_ADMIN:-}
+    volumes:
+      - workchat-dev-data:/data
+    ports:
+      - "127.0.0.1:${WORKCHAT_PORT:-8080}:8080"
+
+volumes:
+  workchat-dev-data:

@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- Merged by Tauri into the generated iOS Info.plist when placed at src-tauri/Info.ios.plist
+     (CI copies it there if it is missing). Bundle id comes from tauri.conf.json (app.workchat). -->
+<plist version="1.0">
+<dict>
+  <key>NSMicrophoneUsageDescription</key>
+  <string>WorkChat uses the microphone to record voice messages.</string>
+  <key>NSCameraUsageDescription</key>
+  <string>WorkChat uses the camera to take photos and videos to send in chats.</string>
+  <key>NSPhotoLibraryUsageDescription</key>
+  <string>WorkChat lets you pick photos and videos from your library to send in chats.</string>
+  <key>NSPhotoLibraryAddUsageDescription</key>
+  <string>WorkChat saves photos and videos you download from chats to your library.</string>
+  <key>NSLocalNetworkUsageDescription</key>
+  <string>WorkChat connects to a WorkChat server on your local network.</string>
+  <key>NSAppTransportSecurity</key>
+  <dict>
+    <key>NSAllowsLocalNetworking</key>
+    <true/>
+    <key>NSAllowsArbitraryLoadsInWebContent</key>
+    <false/>
+  </dict>
+  <key>UIBackgroundModes</key>
+  <array>
+    <string>remote-notification</string>
+  </array>
+  <key>CFBundleURLTypes</key>
+  <array>
+    <dict>
+      <key>CFBundleURLName</key>
+      <string>app.workchat</string>
+      <key>CFBundleURLSchemes</key>
+      <array>
+        <string>workchat</string>
+      </array>
+    </dict>
+  </array>
+  <key>ITSAppUsesNonExemptEncryption</key>
+  <false/>
+</dict>
+</plist>

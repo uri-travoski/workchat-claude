@@ -1,0 +1,23 @@
+[package]
+name = "workchat-e2e"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+description = "End-to-end tests: the server docker image + MinIO + a fake Google Drive, driven over raw HTTP"
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies]
+tokio.workspace = true
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "json", "multipart"] }
+
+[dev-dependencies]
+proto.workspace = true
+workchat-testkit = { path = "../../crates/testkit" }
+serde_json.workspace = true
+serde.workspace = true
+tempfile = "3"
+axum = "0.8"
+bytes.workspace = true

@@ -1,0 +1,432 @@
+name: Release
+
+# One release for the whole repository. Tag vX.Y.Z (must equal Clients/src-tauri/tauri.conf.json, workchat-server/Cargo.toml and the
+# image pinned in workchat-server/deploy/docker-compose.yml) or run manually with an existing tag.
+# Builds the server image (ghcr.io/uri-travoski/workchat-server), the server install files and every app, then creates the release once.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing tag to build and release, e.g. v1.1.0"
+        required: true
+        type: string
+
+concurrency:
+  group: release-${{ inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  TAG: ${{ inputs.tag || github.ref_name }}
+  NDK_VERSION: "27.1.12297006"
+
+jobs:
+  meta:
+    name: Version check
+    runs-on: ubuntu-22.04
+    outputs:
+      version: ${{ steps.v.outputs.version }}
+      prerelease: ${{ steps.v.outputs.prerelease }}
+    steps:
+      - uses: actions/checkout@v4.2.2
+        with:
+          ref: ${{ env.TAG }}
+      - id: v
+        name: Tag, apps, server and compose image must all be the same version
+        run: |
+          VER="${TAG#v}"
+          python3 - "$VER" <<'PY'
+          import json, re, sys
+          ver = sys.argv[1]
+          found = {}
+          found["Clients/src-tauri/tauri.conf.json"] = json.load(open("Clients/src-tauri/tauri.conf.json"))["version"]
+          found["Clients/package.json"] = json.load(open("Clients/package.json"))["version"]
+          for path in ("Clients/Cargo.toml", "workchat-server/Cargo.toml"):
+              text = open(path).read()
+              head = text.index("[workspace.package]")
+              m = re.search(r'(?m)^version\s*=\s*"([^"]+)"', text[head:])
+              found[path + " [workspace.package]"] = m.group(1) if m else "(not found)"
+          compose = open("workchat-server/deploy/docker-compose.yml").read()
+          m = re.search(r'ghcr\.io/uri-travoski/workchat-server:([0-9][^}\s"]*)\}', compose)
+          found["workchat-server/deploy/docker-compose.yml image"] = m.group(1) if m else "(not found)"
+          bad = False
+          for where, got in found.items():
+              ok = got == ver
+              print(("ok   " if ok else "FAIL ") + where + " = " + got)
+              if not ok:
+                  print(f"::error::tag v{ver} does not match {where} = {got}")
+                  bad = True
+          # Android versionCode = major*1000000 + minor*1000 + patch
+          v = [int(x) for x in ver.split("-")[0].split(".")]
+          want = v[0] * 1000000 + v[1] * 1000 + v[2]
+          got = json.load(open("Clients/src-tauri/tauri.android.conf.json"))["bundle"]["android"]["versionCode"]
+          if want != got:
+              print(f"::error::Clients/src-tauri/tauri.android.conf.json versionCode {got} should be {want} for version {ver}")
+              bad = True
+          # The release notes come from the root CHANGELOG.md section "## [<version>]".
+          if not re.search(r'(?m)^## \[' + re.escape(ver) + r'\]', open("CHANGELOG.md").read()):
+              print(f"::error::CHANGELOG.md has no section '## [{ver}]'")
+              bad = True
+          sys.exit(1 if bad else 0)
+          PY
+          echo "version=$VER" >> "$GITHUB_OUTPUT"
+          case "$VER" in *-*) echo "prerelease=true" >> "$GITHUB_OUTPUT";; *) echo "prerelease=false" >> "$GITHUB_OUTPUT";; esac
+
+  server-image:
+    name: Server image (ghcr.io)
+    needs: meta
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4.2.2
+        with:
+          ref: ${{ env.TAG }}
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: workchat-server
+          file: workchat-server/docker/Dockerfile
+          push: true
+          tags: |
+            ghcr.io/uri-travoski/workchat-server:${{ needs.meta.outputs.version }}
+            ghcr.io/uri-travoski/workchat-server:latest
+
+  server-files:
+    name: Server install files (compose, env example)
+    needs: meta
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4.2.2
+        with:
+          ref: ${{ env.TAG }}
+      - name: Collect assets
+        run: |
+          mkdir -p assets
+          cp workchat-server/deploy/docker-compose.yml assets/docker-compose.yml
+          cp workchat-server/deploy/.env.example assets/workchat-server.env.example
+          ls -l assets
+      - uses: actions/upload-artifact@v4.6.2
+        with:
+          name: assets-server
+          path: assets/*
+          if-no-files-found: error
+
+  linux:
+    name: Linux x86_64 (deb, rpm, AppImage, flatpak)
+    needs: meta
+    runs-on: ubuntu-22.04
+    env:
+      VER: ${{ needs.meta.outputs.version }}
+      NO_STRIP: "true"
+      APPIMAGE_EXTRACT_AND_RUN: "1"
+    defaults:
+      run:
+        working-directory: Clients
+    steps:
+      - uses: actions/checkout@v4.2.2
+        with:
+          ref: ${{ env.TAG }}
+      - name: Linux build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential cmake pkg-config libwebkit2gtk-4.1-dev libgtk-3-dev \
+            libayatana-appindicator3-dev librsvg2-dev libssl-dev libasound2-dev libopus-dev \
+            patchelf rpm file desktop-file-utils appstream xdg-utils squashfs-tools \
+            gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-libav \
+            libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev \
+            flatpak flatpak-builder
+      - uses: actions/setup-node@v4.4.0
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: Clients/package-lock.json
+      - run: npm ci
+      - uses: dtolnay/rust-toolchain@1.88.0
+      - uses: Swatinem/rust-cache@v2.7.8
+        with:
+          workspaces: "Clients -> target"
+          key: release-linux
+      - name: Build deb, rpm, AppImage
+        run: npx tauri build --bundles deb,rpm,appimage
+      - name: Cache flatpak runtimes
+        uses: actions/cache@v4.2.3
+        with:
+          path: ~/.local/share/flatpak
+          key: flatpak-gnome-48-${{ runner.os }}
+      - name: Build flatpak
+        run: |
+          flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+          ./scripts/build-flatpak.sh target/release/workchat target/flatpak
+      - name: Collect assets
+        run: |
+          mkdir -p assets
+          B=target/release/bundle
+          cp $B/deb/*.deb "assets/WorkChat-$VER-linux-amd64.deb"
+          cp $B/rpm/*.rpm "assets/WorkChat-$VER-linux-x86_64.rpm"
+          cp $B/appimage/*.AppImage "assets/WorkChat-$VER-linux-x86_64.AppImage"
+          cp "target/flatpak/WorkChat-$VER-linux-x86_64.flatpak" assets/
+          ls -l assets
+      - uses: actions/upload-artifact@v4.6.2
+        with:
+          name: assets-linux
+          path: Clients/assets/*
+          if-no-files-found: error
+
+  windows:
+    name: Windows ${{ matrix.arch }} (setup + portable)
+    needs: meta
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x64
+            target: x86_64-pc-windows-msvc
+          - arch: arm64
+            target: aarch64-pc-windows-msvc
+    env:
+      VER: ${{ needs.meta.outputs.version }}
+    defaults:
+      run:
+        shell: bash
+        working-directory: Clients
+    steps:
+      - uses: actions/checkout@v4.2.2
+        with:
+          ref: ${{ env.TAG }}
+      - uses: actions/setup-node@v4.4.0
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: Clients/package-lock.json
+      - run: npm ci
+      - uses: dtolnay/rust-toolchain@1.88.0
+        with:
+          targets: ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@v2.7.8
+        with:
+          workspaces: "Clients -> target"
+          key: release-win-${{ matrix.arch }}
+      - name: Check ARM64 MSVC tools
+        if: matrix.arch == 'arm64'
+        shell: pwsh
+        run: |
+          $vs = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -property installationPath
+          $found = Get-ChildItem "$vs\VC\Tools\MSVC\*\bin\Hostx64\arm64\cl.exe" -ErrorAction SilentlyContinue
+          if (-not $found) {
+            Write-Host "Installing the MSVC ARM64 build tools component"
+            Start-Process -Wait -FilePath "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vs_installer.exe" -ArgumentList "modify --installPath `"$vs`" --add Microsoft.VisualStudio.Component.VC.Tools.ARM64 --quiet --norestart --nocache"
+          }
+      - name: Build NSIS installer
+        run: npx tauri build --target ${{ matrix.target }} --bundles nsis
+      - name: Collect assets
+        run: |
+          mkdir -p assets
+          T=target/${{ matrix.target }}/release
+          cp $T/bundle/nsis/*-setup.exe "assets/WorkChat-$VER-windows-${{ matrix.arch }}-setup.exe"
+          cp $T/workchat.exe "assets/WorkChat-$VER-windows-${{ matrix.arch }}-portable.exe"
+          ls -l assets
+      - uses: actions/upload-artifact@v4.6.2
+        with:
+          name: assets-windows-${{ matrix.arch }}
+          path: Clients/assets/*
+          if-no-files-found: error
+
+  android:
+    name: Android (arm64 + x86_64 APKs)
+    needs: meta
+    runs-on: ubuntu-24.04
+    env:
+      VER: ${{ needs.meta.outputs.version }}
+      ANDROID_KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
+      GOOGLE_SERVICES_JSON_B64: ${{ secrets.GOOGLE_SERVICES_JSON_B64 }}
+    defaults:
+      run:
+        working-directory: Clients
+    steps:
+      - uses: actions/checkout@v4.2.2
+        with:
+          ref: ${{ env.TAG }}
+      - uses: actions/setup-java@v4.7.1
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: actions/setup-node@v4.4.0
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: Clients/package-lock.json
+      - run: npm ci
+      - uses: dtolnay/rust-toolchain@1.88.0
+        with:
+          targets: aarch64-linux-android,x86_64-linux-android
+      - uses: Swatinem/rust-cache@v2.7.8
+        with:
+          workspaces: "Clients -> target"
+          key: release-android
+      - name: Build dependencies
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends cmake pkg-config libopus-dev
+      - name: Cache Android NDK
+        id: ndk
+        uses: actions/cache@v4.2.3
+        with:
+          path: /usr/local/lib/android/sdk/ndk/${{ env.NDK_VERSION }}
+          key: android-ndk-${{ env.NDK_VERSION }}
+      - name: Install NDK and platform
+        run: |
+          SDKM="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          yes | "$SDKM" --licenses > /dev/null || true
+          [ -d "$ANDROID_HOME/ndk/$NDK_VERSION" ] || "$SDKM" "ndk;$NDK_VERSION"
+          "$SDKM" "platforms;android-36" "build-tools;36.0.0" > /dev/null || true
+          echo "NDK_HOME=$ANDROID_HOME/ndk/$NDK_VERSION" >> "$GITHUB_ENV"
+      - name: Cache Gradle
+        uses: actions/cache@v4.2.3
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ runner.os }}-${{ hashFiles('Clients/src-tauri/gen/android/**/*.gradle*', 'Clients/src-tauri/gen/android/gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: gradle-${{ runner.os }}-
+      - name: Android project
+        run: |
+          [ -d src-tauri/gen/android ] || npx tauri android init --ci
+          python3 scripts/android-post-init.py
+      - name: Firebase config (optional)
+        if: env.GOOGLE_SERVICES_JSON_B64 != ''
+        run: echo "$GOOGLE_SERVICES_JSON_B64" | base64 -d > src-tauri/gen/android/app/google-services.json
+      - name: Signing key
+        id: sign
+        run: |
+          if [ -n "$ANDROID_KEYSTORE_B64" ]; then
+            echo "$ANDROID_KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/workchat-release.jks"
+            echo "ANDROID_KEYSTORE_PATH=$RUNNER_TEMP/workchat-release.jks" >> "$GITHUB_ENV"
+            echo "ANDROID_KEYSTORE_PASSWORD=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}" >> "$GITHUB_ENV"
+            echo "ANDROID_KEY_ALIAS=${{ secrets.ANDROID_KEY_ALIAS }}" >> "$GITHUB_ENV"
+            echo "ANDROID_KEY_PASSWORD=${{ secrets.ANDROID_KEY_PASSWORD }}" >> "$GITHUB_ENV"
+            echo "suffix=" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::ANDROID_KEYSTORE_B64 secret missing: building UNSIGNED APKs (named -unsigned); sign them locally with scripts/android-sign-local.sh"
+            echo "### Android APKs are UNSIGNED (no ANDROID_KEYSTORE_B64 secret)" >> "$GITHUB_STEP_SUMMARY"
+            echo "suffix=-unsigned" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Build split APKs
+        run: npx tauri android build --apk --split-per-abi --target aarch64 x86_64 --ci
+      - name: Collect and verify assets
+        run: |
+          mkdir -p assets
+          S="${{ steps.sign.outputs.suffix }}"
+          APKS=$(find src-tauri/gen/android/app/build/outputs/apk -name '*release*.apk')
+          echo "$APKS"
+          cp "$(echo "$APKS" | grep -E 'arm64' | head -1)" "assets/WorkChat-$VER-android-arm64$S.apk"
+          cp "$(echo "$APKS" | grep -E 'x86_64' | head -1)" "assets/WorkChat-$VER-android-x86_64$S.apk"
+          if [ -z "$S" ]; then
+            APKSIGNER=$(ls "$ANDROID_HOME"/build-tools/*/apksigner | sort -V | tail -1)
+            for f in assets/*.apk; do "$APKSIGNER" verify --print-certs "$f" | head -3; done
+          fi
+          ls -l assets
+      - uses: actions/upload-artifact@v4.6.2
+        with:
+          name: assets-android
+          path: Clients/assets/*
+          if-no-files-found: error
+
+  ios:
+    name: iOS (unsigned ipa + simulator)
+    needs: meta
+    runs-on: macos-latest
+    # Unsigned iOS packaging is best effort; a failure here must not block the other platforms.
+    continue-on-error: true
+    env:
+      VER: ${{ needs.meta.outputs.version }}
+    defaults:
+      run:
+        working-directory: Clients
+    steps:
+      - uses: actions/checkout@v4.2.2
+        with:
+          ref: ${{ env.TAG }}
+      - uses: actions/setup-node@v4.4.0
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: Clients/package-lock.json
+      - run: npm ci
+      - uses: dtolnay/rust-toolchain@1.88.0
+        with:
+          targets: aarch64-apple-ios,aarch64-apple-ios-sim,x86_64-apple-ios
+      - uses: Swatinem/rust-cache@v2.7.8
+        with:
+          workspaces: "Clients -> target"
+          key: release-ios
+      - name: Build tools
+        run: brew install cmake opus pkg-config || true
+      - name: Build unsigned ipa and simulator app
+        run: ./scripts/ios-unsigned.sh "$VER" assets
+      - uses: actions/upload-artifact@v4.6.2
+        with:
+          name: assets-ios
+          path: Clients/assets/*
+          if-no-files-found: error
+
+  release:
+    name: GitHub release
+    needs: [meta, server-image, server-files, linux, windows, android, ios]
+    # Publish even if the best-effort iOS job failed, but never when the server image or a core platform job failed.
+    if: ${{ !cancelled() && needs.server-image.result == 'success' && needs.server-files.result == 'success' && needs.linux.result == 'success' && needs.windows.result == 'success' && needs.android.result == 'success' }}
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+    env:
+      VER: ${{ needs.meta.outputs.version }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4.2.2
+        with:
+          ref: ${{ env.TAG }}
+      - uses: actions/download-artifact@v4.3.0
+        with:
+          pattern: assets-*
+          path: dl
+          merge-multiple: true
+      - name: Checksums and notes
+        run: |
+          cd dl && ls -l && sha256sum * > SHA256SUMS && cat SHA256SUMS && cd ..
+          # Notes: the root CHANGELOG.md section "## [<version>]" up to the next "## ", then a downloads table.
+          awk -v v="$VER" 'index($0, "## [" v "]") == 1 {f=1; next} /^## / {f=0} f' CHANGELOG.md > notes.md
+          if [ ! -s notes.md ]; then echo "WorkChat $VER" > notes.md; fi
+          {
+            echo
+            echo "### Downloads"
+            echo
+            echo "| Platform | Asset |"
+            echo "|---|---|"
+            echo "| Server (Docker) | \`docker-compose.yml\`, \`workchat-server.env.example\`; image \`ghcr.io/uri-travoski/workchat-server:$VER\` |"
+            echo "| Windows x64 / arm64 | \`WorkChat-$VER-windows-x64-setup.exe\`, \`WorkChat-$VER-windows-arm64-setup.exe\` (installers); \`-portable.exe\` variants run without installing |"
+            echo "| Linux x86_64 | \`WorkChat-$VER-linux-amd64.deb\`, \`WorkChat-$VER-linux-x86_64.rpm\`, \`WorkChat-$VER-linux-x86_64.AppImage\`, \`WorkChat-$VER-linux-x86_64.flatpak\` |"
+            echo "| Android | \`WorkChat-$VER-android-arm64.apk\`, \`WorkChat-$VER-android-x86_64.apk\` (\`-unsigned\` in the name means no release key was configured in CI) |"
+            echo "| iOS | \`WorkChat-$VER-ios-unsigned.ipa\` (sideload), \`WorkChat-$VER-ios-simulator.zip\` |"
+            echo "| Checksums | \`SHA256SUMS\` (\`sha256sum -c SHA256SUMS\`) |"
+          } >> notes.md
+      - name: Create or update the release
+        run: |
+          PRE=""; [ "${{ needs.meta.outputs.prerelease }}" = "true" ] && PRE="--prerelease"
+          NAME="WorkChat v${VER%.0}"   # 1.1.0 -> "WorkChat v1.1"; 1.1.2 -> "WorkChat v1.1.2"
+          if gh release view "$TAG" > /dev/null 2>&1; then
+            gh release edit "$TAG" --title "$NAME" --notes-file notes.md $PRE
+            gh release upload "$TAG" dl/* --clobber
+          else
+            gh release create "$TAG" dl/* --verify-tag --title "$NAME" --notes-file notes.md $PRE
+          fi

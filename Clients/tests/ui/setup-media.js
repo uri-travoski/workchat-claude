@@ -1,0 +1,22 @@
+// One-off: puts photos, a video, documents and a voice message into the DM with David Kim (the seeded server keeps them).
+const FX = "/tmp/claude-1000/-run-host-home-owner/dff9a50b-92e8-45fa-a232-7d93bac18a4f/scratchpad/fx/";
+const conv = await api.openChat("David Kim");
+const stage = (names) => api.core.stagePaths(names.map((n) => FX + n));
+let st = await stage(["site-visit-1.jpg", "site-visit-2.jpg", "site-visit-3.jpg", "site-visit-4.jpg", "site-visit-5.jpg"]);
+await api.core.sendFiles(conv, st.map((s) => s.id), "Site visit photos from this morning");
+await api.wait(2500);
+st = await stage(["walkthrough.mp4"]);
+await api.core.sendFiles(conv, st.map((s) => s.id), "Walkthrough of the new floor");
+await api.wait(2500);
+st = await stage(["Q3-launch-plan.pdf"]);
+await api.core.sendFiles(conv, st.map((s) => s.id), "Launch plan for your review");
+await api.wait(1500);
+st = await stage(["Budget-FY27.xlsx", "Contract-draft.docx"]);
+await api.core.sendFiles(conv, st.map((s) => s.id), "");
+await api.wait(2500);
+await api.core.voiceStart();
+await api.wait(5500);
+const v = await api.core.voiceFinish();
+await api.core.sendFiles(conv, [v.id], "");
+await api.wait(4000);
+await api.mark("setup-done");

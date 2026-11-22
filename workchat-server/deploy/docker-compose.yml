@@ -1,0 +1,68 @@
+# workchat-server: standalone docker compose file. One service, nothing is built here, nothing else is started.
+#
+#   1. curl -fLO https://github.com/uri-travoski/workchat-claude/releases/latest/download/docker-compose.yml
+#      curl -fL -o .env https://github.com/uri-travoski/workchat-claude/releases/latest/download/workchat-server.env.example
+#   2. edit .env (at least WORKCHAT_PUBLIC_URL)
+#   3. docker compose up -d            -> http://<this machine>:8080/admin
+#
+# Update:  set WORKCHAT_IMAGE in .env to the new version (or download the new docker-compose.yml from the release), then
+#   docker compose pull && docker compose up -d
+#
+# No reverse proxy, Cloudflare Tunnel, ntfy or object store is included: run those separately (see docs/DEPLOY.md).
+# Attachments go to S3, Cloudflare R2, Backblaze B2 or Google Drive, chosen in the admin panel (Storage page).
+# Works with `docker compose` (v2) and `docker-compose` (v1).
+
+name: workchat
+
+services:
+  workchat-server:
+    # The published, public image. The default is pinned to the release this file belongs to, so an update is a conscious
+    # step. To follow the newest release instead, put this in .env:
+    #   WORKCHAT_IMAGE=ghcr.io/uri-travoski/workchat-server:latest
+    image: ${WORKCHAT_IMAGE:-ghcr.io/uri-travoski/workchat-server:1.1.0}
+    restart: unless-stopped
+    environment:
+      # All optional. The server reads the WORKCHAT_* names.
+      WORKCHAT_PUBLIC_URL: ${WORKCHAT_PUBLIC_URL:-}
+      WORKCHAT_NAME: ${WORKCHAT_NAME:-WorkChat}
+      WORKCHAT_BOOTSTRAP_ADMIN: ${WORKCHAT_BOOTSTRAP_ADMIN:-}
+      WORKCHAT_MAX_UPLOAD_MB: ${WORKCHAT_MAX_UPLOAD_MB:-100}
+      # Your own ntfy server (a separate container). Empty = no ntfy push.
+      WORKCHAT_NTFY_URL: ${WORKCHAT_NTFY_URL:-}
+      # Empty = a random passphrase is generated into /data/backup.key on first start.
+      WORKCHAT_BACKUP_PASSPHRASE: ${WORKCHAT_BACKUP_PASSPHRASE:-}
+      # trace, debug, info, warn, error, or a filter such as info,tower_http=warn
+      RUST_LOG: ${WORKCHAT_LOG_LEVEL:-info,tower_http=warn}
+    volumes:
+      - workchat-data:/data
+    ports:
+      # Behind a tunnel or proxy on this machine use WORKCHAT_BIND_ADDR=127.0.0.1; on a shared Docker network (see below)
+      # you can remove this section altogether.
+      - "${WORKCHAT_BIND_ADDR:-0.0.0.0}:${WORKCHAT_PORT:-8080}:8080"
+    extra_hosts:
+      # Lets the server reach an ntfy (or anything else) running on the host: http://host.docker.internal:<port>
+      - "host.docker.internal:host-gateway"
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/workchat-server", "healthcheck"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+    # Optional: join a Docker network that your own cloudflared / ntfy / reverse-proxy containers also use. They then reach
+    # this server as http://workchat-server:8080 with no published port. Create it once with `docker network create proxy`, or
+    # use the name of the network your other compose project already has, then uncomment these lines and the `networks:`
+    # block at the bottom.
+    # networks:
+    #   - default
+    #   - proxy
+
+# networks:
+#   proxy:
+#     external: true
+#     name: ${WORKCHAT_NETWORK:-proxy}
+
+volumes:
+  workchat-data:
+    # All server data lives here: database, settings, backups, local files. To use an existing Docker volume instead of
+    # creating a new one, set WORKCHAT_DATA_VOLUME=<volume name> in .env (see docs/UPGRADING.md).
+    name: ${WORKCHAT_DATA_VOLUME:-workchat-data}

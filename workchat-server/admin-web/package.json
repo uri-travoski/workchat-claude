@@ -1,0 +1,17 @@
+{
+  "name": "workchat-admin",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "gen-types": "json2ts -i ../schema/api.schema.json -o src/api-types.ts --no-additionalProperties --bannerComment '/* Generated from schema/api.schema.json by `npm run gen-types`. Do not edit. */'",
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "json-schema-to-typescript": "^15.0.4",
+    "typescript": "^5.9.2",
+    "vite": "^7.1.0"
+  }
+}

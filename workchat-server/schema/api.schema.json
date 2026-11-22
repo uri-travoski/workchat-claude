@@ -1,0 +1,6004 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "AdminBot": {
+      "properties": {
+        "conversations": {
+          "items": {
+            "$ref": "#/definitions/BotConvRef"
+          },
+          "type": "array"
+        },
+        "created_ms": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "description": {
+          "type": "string"
+        },
+        "queued_updates": {
+          "description": "Number of updates waiting for `getUpdates`.",
+          "format": "int64",
+          "type": "integer"
+        },
+        "token": {
+          "description": "Full bearer token (admins only). Use it as `/bot<token>/<method>` or `Authorization: Bearer <token>`.",
+          "type": "string"
+        },
+        "user": {
+          "$ref": "#/definitions/User"
+        },
+        "webhook": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/BotWebhookInfo"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "conversations",
+        "created_ms",
+        "description",
+        "queued_updates",
+        "token",
+        "user"
+      ],
+      "type": "object"
+    },
+    "AdminConversation": {
+      "properties": {
+        "archived": {
+          "default": false,
+          "type": "boolean"
+        },
+        "avatar": {
+          "description": "The picture of a channel or group DM that everyone sees (an attachment id with purpose `avatar`).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "created_ms": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "id": {
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/definitions/ConversationKind"
+        },
+        "last_message_ts": {
+          "format": "int64",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "last_seq": {
+          "description": "Highest message sequence number in this conversation.",
+          "format": "int64",
+          "type": "integer"
+        },
+        "members": {
+          "items": {
+            "$ref": "#/definitions/Member"
+          },
+          "type": "array"
+        },
+        "message_count": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "topic": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "visibility": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/ChannelVisibility"
+            }
+          ],
+          "default": "private",
+          "description": "`public` or `private` (channels only; everything else is `private`). Channels that existed before 1.1.0 are `private`."
+        }
+      },
+      "required": [
+        "created_ms",
+        "id",
+        "kind",
+        "last_seq",
+        "members",
+        "message_count"
+      ],
+      "type": "object"
+    },
+    "AdminDeleteMessagesRequest": {
+      "properties": {
+        "before_ms": {
+          "default": null,
+          "description": "Delete everything strictly before this time (in `conv_id`).",
+          "format": "int64",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "conv_id": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "from_ms": {
+          "default": null,
+          "format": "int64",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "message_ids": {
+          "default": [],
+          "description": "Specific messages; or leave empty and use `conv_id` plus a date range.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "scope": {
+          "description": "\"everyone\" (tombstone for all) or \"user\" (only `user_id`'s copy disappears).",
+          "type": "string"
+        },
+        "to_ms": {
+          "default": null,
+          "format": "int64",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "user_id": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "scope"
+      ],
+      "type": "object"
+    },
+    "AdminDeleteMessagesResponse": {
+      "properties": {
+        "attachments_moved": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "backup_id": {
+          "type": "string"
+        },
+        "messages_deleted": {
+          "format": "int64",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "attachments_moved",
+        "backup_id",
+        "messages_deleted"
+      ],
+      "type": "object"
+    },
+    "AdminUpdates": {
+      "description": "The admin panel's \"Updates\" card: this server's version against the newest GitHub release.",
+      "properties": {
+        "checked_ms": {
+          "description": "When the server last asked GitHub (ms since the epoch).",
+          "format": "int64",
+          "type": "integer"
+        },
+        "current": {
+          "description": "This server's version.",
+          "type": "string"
+        },
+        "error": {
+          "default": null,
+          "description": "Why the check failed (offline, rate limit...), shown instead of the release.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "latest": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/ReleaseInfo"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The newest published release (drafts and pre-releases skipped), even when it is not newer."
+        },
+        "source": {
+          "description": "The address that was checked.",
+          "type": "string"
+        },
+        "update_available": {
+          "description": "`latest` is newer than `current`.",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "checked_ms",
+        "current",
+        "source",
+        "update_available"
+      ],
+      "type": "object"
+    },
+    "AdminUser": {
+      "properties": {
+        "avatar": {
+          "description": "Attachment id of the profile photo; clients show initials when absent.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "created_ms": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "deleted": {
+          "type": "boolean"
+        },
+        "disabled": {
+          "default": false,
+          "type": "boolean"
+        },
+        "display_name": {
+          "type": "string"
+        },
+        "email": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "hide_last_active": {
+          "type": "boolean"
+        },
+        "id": {
+          "type": "string"
+        },
+        "is_bot": {
+          "default": false,
+          "type": "boolean"
+        },
+        "last_active_ms": {
+          "description": "Never present when the user has chosen to hide it (SV-12).",
+          "format": "int64",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "last_active_real_ms": {
+          "description": "Always the real value for admins, regardless of `hide_last_active`.",
+          "format": "int64",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "password_set": {
+          "type": "boolean"
+        },
+        "phone": {
+          "description": "Work phone number as typed by the person or the admin; free text.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "presence": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Presence"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "privacy_controls_enabled": {
+          "type": "boolean"
+        },
+        "role": {
+          "$ref": "#/definitions/Role"
+        },
+        "session_count": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "title": {
+          "description": "Job title shown on the profile and in the contacts list (\"Head of Product Operations\").",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "username": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "created_ms",
+        "deleted",
+        "display_name",
+        "hide_last_active",
+        "id",
+        "password_set",
+        "privacy_controls_enabled",
+        "role",
+        "session_count",
+        "username"
+      ],
+      "type": "object"
+    },
+    "AiDefaultsUpdate": {
+      "description": "Which provider serves which feature. An empty string clears the choice (= automatic).",
+      "properties": {
+        "recap_provider": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "search_provider": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "AiInterpretation": {
+      "properties": {
+        "after_ms": {
+          "format": "int64",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "before_ms": {
+          "format": "int64",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "from": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "has": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "in_conv": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "q": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "q"
+      ],
+      "type": "object"
+    },
+    "AiOverview": {
+      "description": "All providers plus which one serves which feature. `None` = the first enabled provider with a key.",
+      "properties": {
+        "notice": {
+          "description": "Shown by the admin panel: message text is sent to the provider.",
+          "type": "string"
+        },
+        "providers": {
+          "items": {
+            "$ref": "#/definitions/AiProvider"
+          },
+          "type": "array"
+        },
+        "recap_provider": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "search_provider": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "notice",
+        "providers"
+      ],
+      "type": "object"
+    },
+    "AiProvider": {
+      "description": "One configured AI provider as the admin panel sees it. The API key is never returned.",
+      "properties": {
+        "base_url": {
+          "default": "",
+          "description": "Overrides the provider's default API address (OpenAI-compatible servers, proxies).",
+          "type": "string"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "has_key": {
+          "type": "boolean"
+        },
+        "id": {
+          "type": "string"
+        },
+        "key_hint": {
+          "default": "",
+          "description": "Last four characters of the key (only when the key is long enough for that to be safe).",
+          "type": "string"
+        },
+        "kind": {
+          "description": "\"anthropic\" or \"openai\" (any OpenAI-compatible endpoint).",
+          "type": "string"
+        },
+        "model": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "enabled",
+        "has_key",
+        "id",
+        "kind",
+        "model",
+        "name"
+      ],
+      "type": "object"
+    },
+    "AiProviderInput": {
+      "properties": {
+        "api_key": {
+          "type": "string"
+        },
+        "base_url": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "enabled": {
+          "default": null,
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "kind": {
+          "description": "\"anthropic\" or \"openai\" (\"openai-compatible\" is accepted as an alias).",
+          "type": "string"
+        },
+        "model": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "name": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "api_key",
+        "kind",
+        "name"
+      ],
+      "type": "object"
+    },
+    "AiProviderUpdate": {
+      "properties": {
+        "api_key": {
+          "description": "A new key; `None` or an empty string keeps the stored one.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "base_url": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "enabled": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "kind": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "model": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "AiRecapRequest": {
+      "properties": {
+        "conv_id": {
+          "type": "string"
+        },
+        "since_ms": {
+          "default": null,
+          "description": "Only messages after this time (UTC ms); default the last 24 hours.",
+          "format": "int64",
+          "type": [
+            "integer",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "conv_id"
+      ],
+      "type": "object"
+    },
+    "AiRecapResponse": {
+      "properties": {
+        "message_count": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "summary": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "message_count",
+        "summary"
+      ],
+      "type": "object"
+    },
+    "AiSearchRequest": {
+      "properties": {
+        "answer": {
+          "default": false,
+          "description": "Also ask the model for a short answer based on the top hits.",
+          "type": "boolean"
+        },
+        "query": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "query"
+      ],
+      "type": "object"
+    },
+    "AiSearchResponse": {
+      "properties": {
+        "answer": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "interpreted": {
+          "$ref": "#/definitions/AiInterpretation"
+        },
+        "results": {
+          "$ref": "#/definitions/SearchResponse"
+        }
+      },
+      "required": [
+        "interpreted",
+        "results"
+      ],
+      "type": "object"
+    },
+    "AiTestResponse": {
+      "properties": {
+        "message": {
+          "type": "string"
+        },
+        "ok": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "message",
+        "ok"
+      ],
+      "type": "object"
+    },
+    "ApiError": {
+      "properties": {
+        "code": {
+          "$ref": "#/definitions/ErrorCode"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "message"
+      ],
+      "type": "object"
+    },
+    "Asset": {
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "size": {
+          "format": "uint64",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "url": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "size",
+        "url"
+      ],
+      "type": "object"
+    },
+    "Attachment": {
+      "properties": {
+        "content_type": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "meta": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/AttachmentMeta"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "M-30/M-31: duration, waveform peaks, size and poster frame of voice messages and videos (set by the uploader)."
+        },
+        "name": {
+          "type": "string"
+        },
+        "removed": {
+          "default": false,
+          "description": "True when an admin removed the file; clients show \"File removed\".",
+          "type": "boolean"
+        },
+        "size": {
+          "format": "int64",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "content_type",
+        "id",
+        "name",
+        "size"
+      ],
+      "type": "object"
+    },
+    "AttachmentMeta": {
+      "description": "Media details the sender's app computes before sending: used to draw waveforms and video posters without downloading the file first. Everything is optional; the server only checks the size and field limits.",
+      "properties": {
+        "duration_ms": {
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "height": {
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "pages": {
+          "description": "Page count of a PDF or slide deck (\"4.2 MB - 28 pages\" on document cards).",
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "peaks": {
+          "description": "Loudness per slice of the recording, 0..=255, 64 values at most.",
+          "items": {
+            "format": "uint8",
+            "minimum": 0.0,
+            "type": "integer"
+          },
+          "type": "array"
+        },
+        "poster_b64": {
+          "description": "A small JPEG of the first video frame, base64 (at most about 40 KB).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "width": {
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "AvatarOverride": {
+      "description": "A private picture the caller chose for another user (`kind` = \"user\") or a conversation (`kind` = \"conv\"). Only the caller ever receives it; it wins over the person's or channel's own picture on the caller's devices.",
+      "properties": {
+        "attachment": {
+          "description": "Attachment id (purpose `avatar_private`).",
+          "type": "string"
+        },
+        "kind": {
+          "type": "string"
+        },
+        "target": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "attachment",
+        "kind",
+        "target"
+      ],
+      "type": "object"
+    },
+    "BackupInfo": {
+      "properties": {
+        "attachments": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "created_ms": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "encrypted": {
+          "default": false,
+          "description": "True when the backup file is encrypted with the backup passphrase (age).",
+          "type": "boolean"
+        },
+        "id": {
+          "type": "string"
+        },
+        "key": {
+          "type": "string"
+        },
+        "kind": {
+          "description": "\"user\", \"full\" or \"messages\".",
+          "type": "string"
+        },
+        "reason": {
+          "type": "string"
+        },
+        "size": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "user_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "attachments",
+        "created_ms",
+        "id",
+        "key",
+        "kind",
+        "reason",
+        "size"
+      ],
+      "type": "object"
+    },
+    "BackupSettings": {
+      "description": "Where and how often full backups run. The passphrase is never returned.",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "interval_hours": {
+          "description": "Hours between scheduled backups (24 = daily).",
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "last_run_ms": {
+          "format": "int64",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "last_status": {
+          "type": "string"
+        },
+        "passphrase_set": {
+          "type": "boolean"
+        },
+        "retention": {
+          "description": "How many full backups to keep; older ones are deleted from the target.",
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "target": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/StorageConfig"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Backup target. `None` means \"the attachment storage\"."
+        }
+      },
+      "required": [
+        "enabled",
+        "interval_hours",
+        "last_status",
+        "passphrase_set",
+        "retention"
+      ],
+      "type": "object"
+    },
+    "BackupSettingsUpdate": {
+      "properties": {
+        "clear_target": {
+          "default": false,
+          "description": "Use the attachment storage as the target again.",
+          "type": "boolean"
+        },
+        "enabled": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "interval_hours": {
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "passphrase": {
+          "description": "Set or change the encryption passphrase (min. 8 characters).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "retention": {
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "target": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/StorageConfig"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "Bookmark": {
+      "description": "A channel bookmark (C-07): a link or a file shortcut shown above the timeline.",
+      "properties": {
+        "attachment_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "conv_id": {
+          "type": "string"
+        },
+        "created_by": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "position": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "title": {
+          "type": "string"
+        },
+        "url": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "conv_id",
+        "created_by",
+        "id",
+        "position",
+        "title"
+      ],
+      "type": "object"
+    },
+    "BookmarkRequest": {
+      "properties": {
+        "attachment_id": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "position": {
+          "default": null,
+          "format": "int64",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "title": {
+          "type": "string"
+        },
+        "url": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "title"
+      ],
+      "type": "object"
+    },
+    "Bootstrap": {
+      "properties": {
+        "activity_read_ms": {
+          "default": 0,
+          "description": "Activity items at or before this time are read.",
+          "format": "int64",
+          "type": "integer"
+        },
+        "avatar_overrides": {
+          "default": [],
+          "description": "The caller's private pictures for other users and conversations.",
+          "items": {
+            "$ref": "#/definitions/AvatarOverride"
+          },
+          "type": "array"
+        },
+        "bookmarks": {
+          "additionalProperties": {
+            "items": {
+              "$ref": "#/definitions/Bookmark"
+            },
+            "type": "array"
+          },
+          "default": {},
+          "type": "object"
+        },
+        "conversations": {
+          "items": {
+            "$ref": "#/definitions/ConversationSummary"
+          },
+          "type": "array"
+        },
+        "cursor": {
+          "description": "Start `events` / the WebSocket from this cursor after applying the snapshot.",
+          "format": "int64",
+          "type": "integer"
+        },
+        "drafts": {
+          "default": [],
+          "description": "Synced drafts (M-22).",
+          "items": {
+            "$ref": "#/definitions/DraftItem"
+          },
+          "type": "array"
+        },
+        "groups": {
+          "default": [],
+          "description": "User groups (`@design-team`), M-18.",
+          "items": {
+            "$ref": "#/definitions/UserGroup"
+          },
+          "type": "array"
+        },
+        "has_more": {
+          "additionalProperties": {
+            "type": "boolean"
+          },
+          "description": "Per conversation: true when older messages exist on the server.",
+          "type": "object"
+        },
+        "labels": {
+          "default": [],
+          "items": {
+            "$ref": "#/definitions/Label"
+          },
+          "type": "array"
+        },
+        "me": {
+          "$ref": "#/definitions/Me"
+        },
+        "messages": {
+          "additionalProperties": {
+            "items": {
+              "$ref": "#/definitions/Message"
+            },
+            "type": "array"
+          },
+          "description": "Latest messages per conversation (conversation id -> ascending by seq).",
+          "type": "object"
+        },
+        "org_settings": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/OrgSettings"
+            }
+          ],
+          "default": {
+            "channel_creation": "everyone",
+            "channel_pins": "everyone"
+          },
+          "description": "The organisation settings (who can create channels, who can pin in channels)."
+        },
+        "pins": {
+          "additionalProperties": {
+            "items": {
+              "$ref": "#/definitions/Pin"
+            },
+            "type": "array"
+          },
+          "default": {},
+          "description": "Pins and bookmarks per conversation (SV-09).",
+          "type": "object"
+        },
+        "prefs": {
+          "default": [],
+          "description": "Per-conversation favourites, sections, mute and notification level (NV-01..NV-07, N-03).",
+          "items": {
+            "$ref": "#/definitions/ConvPref"
+          },
+          "type": "array"
+        },
+        "saved": {
+          "default": [],
+          "description": "Saved messages (\"Later\") and the user's labels.",
+          "items": {
+            "$ref": "#/definitions/SavedItem"
+          },
+          "type": "array"
+        },
+        "sections": {
+          "default": [],
+          "items": {
+            "$ref": "#/definitions/Section"
+          },
+          "type": "array"
+        },
+        "server_time": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "threads": {
+          "default": [],
+          "description": "Threads the user follows, newest activity first (M-06, M-07).",
+          "items": {
+            "$ref": "#/definitions/ThreadSummary"
+          },
+          "type": "array"
+        },
+        "users": {
+          "items": {
+            "$ref": "#/definitions/User"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "conversations",
+        "cursor",
+        "has_more",
+        "me",
+        "messages",
+        "server_time",
+        "users"
+      ],
+      "type": "object"
+    },
+    "BotConvRef": {
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/definitions/ConversationKind"
+        },
+        "name": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "name"
+      ],
+      "type": "object"
+    },
+    "BotHome": {
+      "properties": {
+        "blocks": {
+          "default": [],
+          "items": {
+            "$ref": "#/definitions/HomeBlock"
+          },
+          "type": "array"
+        }
+      },
+      "type": "object"
+    },
+    "BotProfile": {
+      "description": "What members see on a bot's profile (A-04).",
+      "properties": {
+        "description": {
+          "type": "string"
+        },
+        "home": {
+          "$ref": "#/definitions/BotHome"
+        },
+        "user": {
+          "$ref": "#/definitions/User"
+        }
+      },
+      "required": [
+        "description",
+        "home",
+        "user"
+      ],
+      "type": "object"
+    },
+    "BotWebhookInfo": {
+      "properties": {
+        "has_secret": {
+          "type": "boolean"
+        },
+        "last_error": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "last_error_ms": {
+          "format": "int64",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "pending_updates": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "url": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "has_secret",
+        "pending_updates",
+        "url"
+      ],
+      "type": "object"
+    },
+    "ChannelBrowseItem": {
+      "description": "A public channel as listed by `GET /channels/browse`.",
+      "properties": {
+        "avatar": {
+          "description": "Attachment id of the channel picture.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "created_ms": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "id": {
+          "type": "string"
+        },
+        "member_count": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "name": {
+          "type": "string"
+        },
+        "topic": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "created_ms",
+        "id",
+        "member_count",
+        "name"
+      ],
+      "type": "object"
+    },
+    "ChannelBrowsePage": {
+      "description": "`GET /channels/browse?q=&limit=&offset=`: public, not archived channels the caller is not in, by name.",
+      "properties": {
+        "channels": {
+          "items": {
+            "$ref": "#/definitions/ChannelBrowseItem"
+          },
+          "type": "array"
+        },
+        "has_more": {
+          "type": "boolean"
+        },
+        "total": {
+          "description": "All matching channels, not just this page.",
+          "format": "int64",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "channels",
+        "has_more",
+        "total"
+      ],
+      "type": "object"
+    },
+    "ChannelCreation": {
+      "description": "Who may create channels.",
+      "enum": [
+        "everyone",
+        "admins"
+      ],
+      "type": "string"
+    },
+    "ChannelPins": {
+      "description": "Who may pin messages in channels (DMs and group DMs: always every member).",
+      "oneOf": [
+        {
+          "description": "Every member of the channel.",
+          "enum": [
+            "everyone"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Channel managers (conversation role `owner`) and admins only.",
+          "enum": [
+            "managers"
+          ],
+          "type": "string"
+        }
+      ]
+    },
+    "ChannelVisibility": {
+      "description": "Who can find and join a channel. Group DMs, DMs and notes are always `private`.",
+      "oneOf": [
+        {
+          "description": "Listed by `GET /channels/browse` for people who are not in it; anyone can `POST /conversations/{id}/join`.",
+          "enum": [
+            "public"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Members only, invisible to everyone else.",
+          "enum": [
+            "private"
+          ],
+          "type": "string"
+        }
+      ]
+    },
+    "ClearHistoryResponse": {
+      "properties": {
+        "attachments_moved": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "backup_id": {
+          "type": "string"
+        },
+        "backup_key": {
+          "type": "string"
+        },
+        "messages_hidden": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "sessions_revoked": {
+          "format": "int64",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "attachments_moved",
+        "backup_id",
+        "backup_key",
+        "messages_hidden",
+        "sessions_revoked"
+      ],
+      "type": "object"
+    },
+    "ClientWsMsg": {
+      "description": "Messages from client to server. The first message must be `hello`.",
+      "oneOf": [
+        {
+          "properties": {
+            "client_version": {
+              "default": "",
+              "type": "string"
+            },
+            "cursor": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "t": {
+              "enum": [
+                "hello"
+              ],
+              "type": "string"
+            },
+            "token": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "cursor",
+            "t",
+            "token"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "t": {
+              "enum": [
+                "ping"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "t"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "conv_id": {
+              "type": "string"
+            },
+            "t": {
+              "enum": [
+                "typing"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "conv_id",
+            "t"
+          ],
+          "type": "object"
+        },
+        {
+          "description": "Presence preference changes are made via PATCH /me; this reports idle state (auto-away).",
+          "properties": {
+            "idle": {
+              "type": "boolean"
+            },
+            "t": {
+              "enum": [
+                "idle"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "idle",
+            "t"
+          ],
+          "type": "object"
+        },
+        {
+          "description": "The client has applied all events up to and including `cursor` (drives delivery state).",
+          "properties": {
+            "cursor": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "t": {
+              "enum": [
+                "ack"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "cursor",
+            "t"
+          ],
+          "type": "object"
+        },
+        {
+          "description": "v1.1 stub: call signalling is not implemented in v1.0.",
+          "properties": {
+            "conv_id": {
+              "type": "string"
+            },
+            "payload": true,
+            "t": {
+              "enum": [
+                "call_signal"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "conv_id",
+            "payload",
+            "t"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "ConvPref": {
+      "description": "Per-user state of one conversation (synced across devices).",
+      "properties": {
+        "conv_id": {
+          "type": "string"
+        },
+        "favourite": {
+          "default": false,
+          "type": "boolean"
+        },
+        "mute_until_ms": {
+          "description": "Muted until this time (UTC ms); `-1` means forever. Absent: not muted.",
+          "format": "int64",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "notify": {
+          "description": "\"all\", \"mentions\" or \"nothing\" (N-03).",
+          "type": "string"
+        },
+        "position": {
+          "description": "NV-04: the user's own order inside the section (lower first). Absent: not reordered, sorted by the list setting.",
+          "format": "int64",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "section_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "conv_id",
+        "notify"
+      ],
+      "type": "object"
+    },
+    "ConvPrefRequest": {
+      "properties": {
+        "favourite": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "mute_until_ms": {
+          "description": "`0` unmutes, `-1` mutes forever, otherwise mute until that time.",
+          "format": "int64",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "notify": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "section_id": {
+          "description": "Empty string removes the conversation from its section.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "ConversationKind": {
+      "oneOf": [
+        {
+          "enum": [
+            "dm",
+            "group_dm"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Notes to self.",
+          "enum": [
+            "self"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "A channel: private (members only) or public (anyone can browse and join), see `Conversation.visibility`.",
+          "enum": [
+            "channel"
+          ],
+          "type": "string"
+        }
+      ]
+    },
+    "ConversationSummary": {
+      "description": "A conversation plus the calling user's own state in it.",
+      "properties": {
+        "archived": {
+          "default": false,
+          "type": "boolean"
+        },
+        "avatar": {
+          "description": "The picture of a channel or group DM that everyone sees (an attachment id with purpose `avatar`).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "created_ms": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "id": {
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/definitions/ConversationKind"
+        },
+        "last_message_ts": {
+          "format": "int64",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "last_read_seq": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "last_seq": {
+          "description": "Highest message sequence number in this conversation.",
+          "format": "int64",
+          "type": "integer"
+        },
+        "marked_unread": {
+          "type": "boolean"
+        },
+        "members": {
+          "items": {
+            "$ref": "#/definitions/Member"
+          },
+          "type": "array"
+        },
+        "mentions": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "topic": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "unread": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "visibility": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/ChannelVisibility"
+            }
+          ],
+          "default": "private",
+          "description": "`public` or `private` (channels only; everything else is `private`). Channels that existed before 1.1.0 are `private`."
+        }
+      },
+      "required": [
+        "created_ms",
+        "id",
+        "kind",
+        "last_read_seq",
+        "last_seq",
+        "marked_unread",
+        "members",
+        "mentions",
+        "unread"
+      ],
+      "type": "object"
+    },
+    "Counts": {
+      "description": "`GET /me/counts`: the numbers behind the filter pills (All / DMs / Channels / Threads / Files). Cheap to compute; clients refresh it on start and whenever a `thread_update`, `conversation_upsert` or `message_new` event arrives.",
+      "properties": {
+        "channels": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "conversations": {
+          "description": "Conversations you are in, excluding archived ones and notes to self.",
+          "format": "int64",
+          "type": "integer"
+        },
+        "dms": {
+          "description": "Direct messages and group DMs.",
+          "format": "int64",
+          "type": "integer"
+        },
+        "files": {
+          "description": "Files in your conversations (not removed, not deleted messages).",
+          "format": "int64",
+          "type": "integer"
+        },
+        "files_audio": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "files_document": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "files_image": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "files_video": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "mentions": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "saved": {
+          "description": "Saved messages.",
+          "format": "int64",
+          "type": "integer"
+        },
+        "threads": {
+          "description": "Threads you take part in (follow).",
+          "format": "int64",
+          "type": "integer"
+        },
+        "threads_unread": {
+          "description": "Threads with replies you have not read.",
+          "format": "int64",
+          "type": "integer"
+        },
+        "unread_channels": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "unread_conversations": {
+          "description": "Conversations with unread messages or marked unread.",
+          "format": "int64",
+          "type": "integer"
+        },
+        "unread_dms": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "unread_messages": {
+          "description": "Unread messages across all conversations (thread replies included).",
+          "format": "int64",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "channels",
+        "conversations",
+        "dms",
+        "files",
+        "files_audio",
+        "files_document",
+        "files_image",
+        "files_video",
+        "mentions",
+        "saved",
+        "threads",
+        "threads_unread",
+        "unread_channels",
+        "unread_conversations",
+        "unread_dms",
+        "unread_messages"
+      ],
+      "type": "object"
+    },
+    "CreateBotRequest": {
+      "properties": {
+        "conv_ids": {
+          "default": [],
+          "description": "Conversations (channels / group DMs) to add the bot to straight away.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "description": {
+          "default": "",
+          "type": "string"
+        },
+        "display_name": {
+          "type": "string"
+        },
+        "username": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "display_name",
+        "username"
+      ],
+      "type": "object"
+    },
+    "CreateConversation": {
+      "description": "`POST /conversations`. Creating a `channel` is open to everyone unless the organisation setting `channel_creation` is `admins`; creating a `group_dm` is always open to everyone. The creator joins as a member with the conversation role `owner` (channel manager).",
+      "properties": {
+        "include_creator": {
+          "default": null,
+          "description": "Admins only: set `false` to create the conversation without joining it (the admin panel does this). Default true.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "kind": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/ConversationKind"
+            }
+          ],
+          "description": "`channel` or `group_dm`."
+        },
+        "members": {
+          "default": [],
+          "description": "The other people to add (the creator is added automatically).",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "name": {
+          "type": "string"
+        },
+        "topic": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "visibility": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/ChannelVisibility"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Channels only: `public` (default) or `private`. A `group_dm` is always private."
+        }
+      },
+      "required": [
+        "kind",
+        "name"
+      ],
+      "type": "object"
+    },
+    "CreateIncomingWebhook": {
+      "properties": {
+        "conv_id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "conv_id",
+        "name"
+      ],
+      "type": "object"
+    },
+    "CreateOutgoingWebhook": {
+      "properties": {
+        "conv_id": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "events": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "name": {
+          "type": "string"
+        },
+        "secret": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "url": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "url"
+      ],
+      "type": "object"
+    },
+    "CreateUserRequest": {
+      "properties": {
+        "create_login_link": {
+          "default": null,
+          "description": "Also create a one-time login link (default true when no password is given).",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "display_name": {
+          "type": "string"
+        },
+        "email": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "password": {
+          "default": null,
+          "description": "Leave empty to create the account with a random password and a one-time login link only.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "phone": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "role": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Role"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "title": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "username": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "display_name",
+        "username"
+      ],
+      "type": "object"
+    },
+    "CreateUserResponse": {
+      "properties": {
+        "login_link": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/LoginLink"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "user": {
+          "$ref": "#/definitions/AdminUser"
+        }
+      },
+      "required": [
+        "user"
+      ],
+      "type": "object"
+    },
+    "DateRangeDeleteRequest": {
+      "properties": {
+        "also_other_copies": {
+          "default": false,
+          "description": "Also hide the messages for every other member (default false: their copy stays).",
+          "type": "boolean"
+        },
+        "before_ms": {
+          "default": null,
+          "description": "\"Delete before date\": every message strictly older than this time.",
+          "format": "int64",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "conversation_id": {
+          "default": null,
+          "description": "Restrict to one conversation.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "from_ms": {
+          "default": 0,
+          "description": "Start of the range (inclusive). Omit together with `before_ms` semantics for \"everything before\".",
+          "format": "int64",
+          "type": "integer"
+        },
+        "to_ms": {
+          "default": 0,
+          "description": "End of the range (inclusive). Ignored when `before_ms` is set.",
+          "format": "int64",
+          "type": "integer"
+        }
+      },
+      "type": "object"
+    },
+    "DraftItem": {
+      "description": "A draft, per conversation or per thread (M-22). An empty body means \"no draft\".",
+      "properties": {
+        "body": {
+          "type": "string"
+        },
+        "conv_id": {
+          "type": "string"
+        },
+        "thread_root": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "updated_ms": {
+          "format": "int64",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "body",
+        "conv_id",
+        "updated_ms"
+      ],
+      "type": "object"
+    },
+    "DraftRequest": {
+      "properties": {
+        "body": {
+          "type": "string"
+        },
+        "thread_root": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "body"
+      ],
+      "type": "object"
+    },
+    "EditMessage": {
+      "properties": {
+        "body": {
+          "type": "string"
+        },
+        "mentions": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "body"
+      ],
+      "type": "object"
+    },
+    "ErrorBody": {
+      "description": "Body of every non-2xx response.",
+      "properties": {
+        "error": {
+          "$ref": "#/definitions/ApiError"
+        }
+      },
+      "required": [
+        "error"
+      ],
+      "type": "object"
+    },
+    "ErrorCode": {
+      "description": "Stable, machine-readable error codes. New codes may be added; existing ones never change meaning.",
+      "oneOf": [
+        {
+          "enum": [
+            "invalid_credentials",
+            "rate_limited",
+            "forbidden",
+            "not_found",
+            "validation",
+            "conflict",
+            "file_too_large",
+            "setup_done",
+            "storage_error",
+            "not_implemented",
+            "internal"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Missing or malformed credentials.",
+          "enum": [
+            "unauthorized"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Access token expired; refresh and retry.",
+          "enum": [
+            "token_expired"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "The device session was revoked; the client must wipe local data.",
+          "enum": [
+            "session_revoked"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "The account was disabled; the client must wipe local data.",
+          "enum": [
+            "account_disabled"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "An admin reset the password; the client must wipe local data and sign in again.",
+          "enum": [
+            "password_reset"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "An admin cleared this user's history; the client must wipe local data and sign in again.",
+          "enum": [
+            "history_cleared"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Too many failed sign-ins; try again later.",
+          "enum": [
+            "locked_out"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Edit refused by the edit rule (a reply has been received in a DM / group DM).",
+          "enum": [
+            "edit_window_closed"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "The client's event cursor is older than the retained log; re-bootstrap.",
+          "enum": [
+            "cursor_expired"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Client older than `min_client_version`.",
+          "enum": [
+            "client_too_old"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "First-run setup has not been completed yet.",
+          "enum": [
+            "setup_required"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "A required backup could not be written, the action was refused and nothing changed.",
+          "enum": [
+            "backup_failed"
+          ],
+          "type": "string"
+        }
+      ]
+    },
+    "Event": {
+      "description": "One entry of a user's ordered event log. `cursor` increases monotonically per user.",
+      "properties": {
+        "cursor": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "event": {
+          "$ref": "#/definitions/EventData"
+        },
+        "ts": {
+          "format": "int64",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "cursor",
+        "event",
+        "ts"
+      ],
+      "type": "object"
+    },
+    "EventData": {
+      "oneOf": [
+        {
+          "properties": {
+            "message": {
+              "$ref": "#/definitions/Message"
+            },
+            "type": {
+              "enum": [
+                "message_new"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "message",
+            "type"
+          ],
+          "type": "object"
+        },
+        {
+          "description": "Edit applied; `message` carries the new body and version.",
+          "properties": {
+            "message": {
+              "$ref": "#/definitions/Message"
+            },
+            "type": {
+              "enum": [
+                "message_edit"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "message",
+            "type"
+          ],
+          "type": "object"
+        },
+        {
+          "description": "Tombstone (the sender deleted the message, or an admin deleted it for everyone).",
+          "properties": {
+            "message": {
+              "$ref": "#/definitions/Message"
+            },
+            "type": {
+              "enum": [
+                "message_delete"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "message",
+            "type"
+          ],
+          "type": "object"
+        },
+        {
+          "description": "The messages vanish from this user's view only: \"Delete for me\" (`POST /messages/{id}/hide`, sent to all of that user's devices) and admin clear-history / date-range delete. Drop them from the cache and the lists.",
+          "properties": {
+            "conv_id": {
+              "type": "string"
+            },
+            "message_ids": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "type": {
+              "enum": [
+                "message_hide"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "conv_id",
+            "message_ids",
+            "type"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "conv_id": {
+              "type": "string"
+            },
+            "message_id": {
+              "type": "string"
+            },
+            "reactions": {
+              "items": {
+                "$ref": "#/definitions/ReactionSummary"
+              },
+              "type": "array"
+            },
+            "type": {
+              "enum": [
+                "reaction_update"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "conv_id",
+            "message_id",
+            "reactions",
+            "type"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "conv_id": {
+              "type": "string"
+            },
+            "message_id": {
+              "type": "string"
+            },
+            "type": {
+              "enum": [
+                "message_delivered"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "conv_id",
+            "message_id",
+            "type"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "conversation": {
+              "$ref": "#/definitions/ConversationSummary"
+            },
+            "type": {
+              "enum": [
+                "conversation_upsert"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "conversation",
+            "type"
+          ],
+          "type": "object"
+        },
+        {
+          "description": "Removed from the conversation, or it was deleted.",
+          "properties": {
+            "conv_id": {
+              "type": "string"
+            },
+            "type": {
+              "enum": [
+                "conversation_remove"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "conv_id",
+            "type"
+          ],
+          "type": "object"
+        },
+        {
+          "description": "Someone else read up to `last_read_seq` in a DM or group DM (read receipts); sent only when that person has them on.",
+          "properties": {
+            "conv_id": {
+              "type": "string"
+            },
+            "last_read_seq": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "type": {
+              "enum": [
+                "read_receipt"
+              ],
+              "type": "string"
+            },
+            "user_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "conv_id",
+            "last_read_seq",
+            "type",
+            "user_id"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "conv_id": {
+              "type": "string"
+            },
+            "last_read_seq": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "marked_unread": {
+              "type": "boolean"
+            },
+            "mentions": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "type": {
+              "enum": [
+                "read_update"
+              ],
+              "type": "string"
+            },
+            "unread": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          "required": [
+            "conv_id",
+            "last_read_seq",
+            "marked_unread",
+            "mentions",
+            "type",
+            "unread"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "type": {
+              "enum": [
+                "user_upsert"
+              ],
+              "type": "string"
+            },
+            "user": {
+              "$ref": "#/definitions/User"
+            }
+          },
+          "required": [
+            "type",
+            "user"
+          ],
+          "type": "object"
+        },
+        {
+          "description": "An admin removed a file; the attachment shows \"File removed\".",
+          "properties": {
+            "attachment_id": {
+              "type": "string"
+            },
+            "type": {
+              "enum": [
+                "attachment_removed"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "attachment_id",
+            "type"
+          ],
+          "type": "object"
+        },
+        {
+          "description": "Own profile / settings changed on another device.",
+          "properties": {
+            "me": {
+              "$ref": "#/definitions/Me"
+            },
+            "type": {
+              "enum": [
+                "me_update"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "me",
+            "type"
+          ],
+          "type": "object"
+        },
+        {
+          "description": "A followed thread changed (new reply, follow/unfollow, read). `following=false` removes it.",
+          "properties": {
+            "thread": {
+              "$ref": "#/definitions/ThreadSummary"
+            },
+            "type": {
+              "enum": [
+                "thread_update"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "thread",
+            "type"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "conv_id": {
+              "type": "string"
+            },
+            "pins": {
+              "items": {
+                "$ref": "#/definitions/Pin"
+              },
+              "type": "array"
+            },
+            "type": {
+              "enum": [
+                "pins_update"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "conv_id",
+            "pins",
+            "type"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "bookmarks": {
+              "items": {
+                "$ref": "#/definitions/Bookmark"
+              },
+              "type": "array"
+            },
+            "conv_id": {
+              "type": "string"
+            },
+            "type": {
+              "enum": [
+                "bookmarks_update"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "bookmarks",
+            "conv_id",
+            "type"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "groups": {
+              "items": {
+                "$ref": "#/definitions/UserGroup"
+              },
+              "type": "array"
+            },
+            "type": {
+              "enum": [
+                "groups_update"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "groups",
+            "type"
+          ],
+          "type": "object"
+        },
+        {
+          "description": "Favourite / section / mute / notification level changed on another device.",
+          "properties": {
+            "pref": {
+              "$ref": "#/definitions/ConvPref"
+            },
+            "type": {
+              "enum": [
+                "pref_update"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "pref",
+            "type"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "sections": {
+              "items": {
+                "$ref": "#/definitions/Section"
+              },
+              "type": "array"
+            },
+            "type": {
+              "enum": [
+                "sections_update"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "sections",
+            "type"
+          ],
+          "type": "object"
+        },
+        {
+          "description": "A private picture for another user or a conversation was set (`attachment` = Some) or removed (None). Sent only to the person who chose it.",
+          "properties": {
+            "attachment": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "kind": {
+              "type": "string"
+            },
+            "target": {
+              "type": "string"
+            },
+            "type": {
+              "enum": [
+                "avatar_override_update"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "target",
+            "type"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "draft": {
+              "$ref": "#/definitions/DraftItem"
+            },
+            "type": {
+              "enum": [
+                "draft_update"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "draft",
+            "type"
+          ],
+          "type": "object"
+        },
+        {
+          "description": "A scheduled message was created, sent, cancelled or failed (SV-10).",
+          "properties": {
+            "item": {
+              "$ref": "#/definitions/ScheduledMessage"
+            },
+            "type": {
+              "enum": [
+                "scheduled_update"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "item",
+            "type"
+          ],
+          "type": "object"
+        },
+        {
+          "description": "A message was saved for later or its labels changed.",
+          "properties": {
+            "item": {
+              "$ref": "#/definitions/SavedItem"
+            },
+            "type": {
+              "enum": [
+                "saved_update"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "item",
+            "type"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "message_id": {
+              "type": "string"
+            },
+            "type": {
+              "enum": [
+                "saved_remove"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "message_id",
+            "type"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "labels": {
+              "items": {
+                "$ref": "#/definitions/Label"
+              },
+              "type": "array"
+            },
+            "type": {
+              "enum": [
+                "labels_update"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "labels",
+            "type"
+          ],
+          "type": "object"
+        },
+        {
+          "description": "Activity was marked read (on any device).",
+          "properties": {
+            "read_ms": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "type": {
+              "enum": [
+                "activity_read"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "read_ms",
+            "type"
+          ],
+          "type": "object"
+        },
+        {
+          "description": "The organisation settings changed (sent to everyone).",
+          "properties": {
+            "settings": {
+              "$ref": "#/definitions/OrgSettings"
+            },
+            "type": {
+              "enum": [
+                "org_settings_update"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "settings",
+            "type"
+          ],
+          "type": "object"
+        },
+        {
+          "description": "A public channel appeared, changed or went away for people who are NOT in it (they only learn it exists through `GET /channels/browse`). `channel` is `None` when it is no longer browsable (deleted, archived or made private). Sent on create, rename, topic, picture, archive and visibility changes, not on every join or leave.",
+          "properties": {
+            "channel": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ChannelBrowseItem"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "conv_id": {
+              "type": "string"
+            },
+            "type": {
+              "enum": [
+                "channel_directory_update"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "conv_id",
+            "type"
+          ],
+          "type": "object"
+        },
+        {
+          "description": "The server restored data for this user; discard the cache and bootstrap again.",
+          "properties": {
+            "type": {
+              "enum": [
+                "resync"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "EventsResponse": {
+      "properties": {
+        "cursor": {
+          "description": "Cursor to continue from (the last returned event, or the request cursor if none).",
+          "format": "int64",
+          "type": "integer"
+        },
+        "events": {
+          "items": {
+            "$ref": "#/definitions/Event"
+          },
+          "type": "array"
+        },
+        "has_more": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "cursor",
+        "events",
+        "has_more"
+      ],
+      "type": "object"
+    },
+    "FileHit": {
+      "description": "A file in the Files browser / file search (F-05, SR-03).",
+      "properties": {
+        "attachment": {
+          "$ref": "#/definitions/Attachment"
+        },
+        "conv_id": {
+          "type": "string"
+        },
+        "message_id": {
+          "type": "string"
+        },
+        "sender_id": {
+          "type": "string"
+        },
+        "ts": {
+          "format": "int64",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "attachment",
+        "conv_id",
+        "message_id",
+        "sender_id",
+        "ts"
+      ],
+      "type": "object"
+    },
+    "Form": {
+      "description": "A JSON form a bot attaches to a message. Rendered natively as a card (or a modal when a button carries its own form); the response goes back to the bot.",
+      "properties": {
+        "buttons": {
+          "items": {
+            "$ref": "#/definitions/FormButton"
+          },
+          "type": "array"
+        },
+        "description": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "fields": {
+          "items": {
+            "$ref": "#/definitions/FormField"
+          },
+          "type": "array"
+        },
+        "id": {
+          "type": "string"
+        },
+        "submit_label": {
+          "description": "Label of the submit button shown when the form has fields (default \"Submit\").",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "title": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "type": "object"
+    },
+    "FormButton": {
+      "properties": {
+        "form": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Form"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "A button can open a modal form (A-03); the response is sent with this button id."
+        },
+        "id": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "style": {
+          "description": "\"primary\", \"danger\" or \"default\".",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "label"
+      ],
+      "type": "object"
+    },
+    "FormField": {
+      "properties": {
+        "default": {
+          "description": "String for text/select, bool for boolean, array of strings for multi_select."
+        },
+        "id": {
+          "type": "string"
+        },
+        "label": {
+          "default": "",
+          "type": "string"
+        },
+        "options": {
+          "items": {
+            "$ref": "#/definitions/FormOption"
+          },
+          "type": "array"
+        },
+        "placeholder": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "required": {
+          "default": false,
+          "type": "boolean"
+        },
+        "type": {
+          "$ref": "#/definitions/FormFieldKind"
+        }
+      },
+      "required": [
+        "id",
+        "type"
+      ],
+      "type": "object"
+    },
+    "FormFieldKind": {
+      "enum": [
+        "text",
+        "multiline",
+        "boolean",
+        "select",
+        "multi_select"
+      ],
+      "type": "string"
+    },
+    "FormOption": {
+      "properties": {
+        "label": {
+          "default": "",
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "value"
+      ],
+      "type": "object"
+    },
+    "FormSubmit": {
+      "properties": {
+        "button_id": {
+          "default": null,
+          "description": "The pressed button; absent for the plain submit button of a form with fields.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "values": {
+          "additionalProperties": true,
+          "default": {},
+          "type": "object"
+        }
+      },
+      "type": "object"
+    },
+    "ForwardInfo": {
+      "description": "Attribution of a forwarded message (M-20).",
+      "properties": {
+        "conv_id": {
+          "type": "string"
+        },
+        "message_id": {
+          "type": "string"
+        },
+        "sender_id": {
+          "type": "string"
+        },
+        "ts": {
+          "format": "int64",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "conv_id",
+        "message_id",
+        "sender_id",
+        "ts"
+      ],
+      "type": "object"
+    },
+    "ForwardRequest": {
+      "properties": {
+        "comment": {
+          "default": null,
+          "description": "Optional note posted with the forwarded message.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "conv_ids": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "conv_ids"
+      ],
+      "type": "object"
+    },
+    "FreshRestoreRequest": {
+      "description": "Restore of a full backup onto a fresh (empty) server.",
+      "properties": {
+        "key": {
+          "default": null,
+          "description": "Object key of the backup; default: the most recent one.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "passphrase": {
+          "type": "string"
+        },
+        "target": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/StorageConfig"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Where the backups are kept; omit when `upload` is used."
+        }
+      },
+      "required": [
+        "passphrase"
+      ],
+      "type": "object"
+    },
+    "FreshRestoreResponse": {
+      "properties": {
+        "attachments": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "attachments_resolvable": {
+          "description": "Attachments found in the connected storage after the restore.",
+          "format": "int64",
+          "type": "integer"
+        },
+        "conversations": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "messages": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "storage": {
+          "type": "string"
+        },
+        "users": {
+          "format": "int64",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "attachments",
+        "attachments_resolvable",
+        "conversations",
+        "messages",
+        "storage",
+        "users"
+      ],
+      "type": "object"
+    },
+    "HideMessageResponse": {
+      "description": "`POST /messages/{id}/hide` (\"Delete for me\"): the message is hidden for the caller only, on all their devices.",
+      "properties": {
+        "conv_id": {
+          "type": "string"
+        },
+        "message_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "conv_id",
+        "message_id"
+      ],
+      "type": "object"
+    },
+    "HistoryResponse": {
+      "properties": {
+        "has_more_after": {
+          "type": "boolean"
+        },
+        "has_more_before": {
+          "type": "boolean"
+        },
+        "messages": {
+          "items": {
+            "$ref": "#/definitions/Message"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "has_more_after",
+        "has_more_before",
+        "messages"
+      ],
+      "type": "object"
+    },
+    "HomeBlock": {
+      "description": "App Home block (A-04).",
+      "oneOf": [
+        {
+          "properties": {
+            "text": {
+              "type": "string"
+            },
+            "type": {
+              "enum": [
+                "header"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "text",
+            "type"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "text": {
+              "type": "string"
+            },
+            "type": {
+              "enum": [
+                "text"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "text",
+            "type"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "type": {
+              "enum": [
+                "divider"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "label": {
+              "type": "string"
+            },
+            "style": {
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "type": {
+              "enum": [
+                "button"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "label",
+            "type"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "form": {
+              "$ref": "#/definitions/Form"
+            },
+            "type": {
+              "enum": [
+                "form"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "form",
+            "type"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "IncomingWebhook": {
+      "properties": {
+        "bot_user_id": {
+          "type": "string"
+        },
+        "conv_id": {
+          "type": "string"
+        },
+        "conv_name": {
+          "default": "",
+          "type": "string"
+        },
+        "created_ms": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "id": {
+          "type": "string"
+        },
+        "last_used_ms": {
+          "format": "int64",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "name": {
+          "type": "string"
+        },
+        "path": {
+          "description": "Path that accepts `POST {\"text\": \"...\"}` (relative to the server address).",
+          "type": "string"
+        }
+      },
+      "required": [
+        "bot_user_id",
+        "conv_id",
+        "created_ms",
+        "enabled",
+        "id",
+        "name",
+        "path"
+      ],
+      "type": "object"
+    },
+    "JobStatus": {
+      "properties": {
+        "done": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "errors": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "failed": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "finished_ms": {
+          "format": "int64",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "id": {
+          "type": "string"
+        },
+        "kind": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        },
+        "started_ms": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "state": {
+          "description": "\"running\", \"done\" or \"failed\".",
+          "type": "string"
+        },
+        "total": {
+          "format": "int64",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "done",
+        "errors",
+        "failed",
+        "id",
+        "kind",
+        "message",
+        "started_ms",
+        "state",
+        "total"
+      ],
+      "type": "object"
+    },
+    "Label": {
+      "description": "A label the user created for organising saved messages. Private to the user.",
+      "properties": {
+        "color": {
+          "description": "`#rrggbb`.",
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "position": {
+          "format": "int64",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "color",
+        "id",
+        "name",
+        "position"
+      ],
+      "type": "object"
+    },
+    "LinkLoginRequest": {
+      "description": "Sign in with the one-time token from an admin-created login link.",
+      "properties": {
+        "client_version": {
+          "default": "",
+          "type": "string"
+        },
+        "device_name": {
+          "default": "",
+          "type": "string"
+        },
+        "token": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "token"
+      ],
+      "type": "object"
+    },
+    "LoginLink": {
+      "properties": {
+        "expires_ms": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "link": {
+          "description": "Paste this whole link (or just the token) on the app's login page.",
+          "type": "string"
+        },
+        "token": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "expires_ms",
+        "link",
+        "token"
+      ],
+      "type": "object"
+    },
+    "LoginRequest": {
+      "properties": {
+        "client_version": {
+          "default": "",
+          "type": "string"
+        },
+        "device_name": {
+          "default": "",
+          "type": "string"
+        },
+        "password": {
+          "type": "string"
+        },
+        "username": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "password",
+        "username"
+      ],
+      "type": "object"
+    },
+    "LoginResponse": {
+      "properties": {
+        "access_token": {
+          "type": "string"
+        },
+        "expires_in": {
+          "description": "Seconds until `access_token` expires.",
+          "format": "int64",
+          "type": "integer"
+        },
+        "me": {
+          "$ref": "#/definitions/Me"
+        },
+        "refresh_token": {
+          "type": "string"
+        },
+        "session_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "access_token",
+        "expires_in",
+        "me",
+        "refresh_token",
+        "session_id"
+      ],
+      "type": "object"
+    },
+    "Me": {
+      "properties": {
+        "email": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "hide_last_active": {
+          "type": "boolean"
+        },
+        "password_set": {
+          "description": "False for accounts created with a one-time link that have not set a password yet.",
+          "type": "boolean"
+        },
+        "presence_pref": {
+          "description": "What the user chose: \"auto\" (online while connected), \"away\" or \"dnd\".",
+          "type": "string"
+        },
+        "privacy_controls_enabled": {
+          "description": "True when an admin enabled the Privacy screen for this user (SV-12).",
+          "type": "boolean"
+        },
+        "read_receipts": {
+          "default": true,
+          "description": "Read receipts (default on): when off, other people do not see how far you have read in DMs and group chats.",
+          "type": "boolean"
+        },
+        "user": {
+          "$ref": "#/definitions/User"
+        }
+      },
+      "required": [
+        "hide_last_active",
+        "password_set",
+        "presence_pref",
+        "privacy_controls_enabled",
+        "user"
+      ],
+      "type": "object"
+    },
+    "Member": {
+      "properties": {
+        "last_read_seq": {
+          "description": "Read receipts: how far this member has read (conversation sequence number). Only set in `dm` and `group_dm` conversations and only when the member has read receipts switched on. A message of yours is \"read\" in a DM when the other member's `last_read_seq` >= its `seq`. Kept current by the `read_receipt` event.",
+          "format": "int64",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "role": {
+          "description": "\"owner\" or \"member\" (conversation-local role). The conversation `owner` is the channel manager: they can rename, set topic and picture, add and remove members, archive and (always) pin. The creator of a channel or group DM gets it.",
+          "type": "string"
+        },
+        "user_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "role",
+        "user_id"
+      ],
+      "type": "object"
+    },
+    "MembersRequest": {
+      "properties": {
+        "user_ids": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "user_ids"
+      ],
+      "type": "object"
+    },
+    "Message": {
+      "properties": {
+        "also_send_to_channel": {
+          "description": "\"Also send to channel\": a thread reply (`thread_root` is set) that also shows in the conversation's main timeline. It is one message, not a copy: show it in the timeline as a reply to the thread root (`thread_root`), and in the thread as usual. Absent means false. Always false for messages that are not thread replies.",
+          "type": "boolean"
+        },
+        "attachments": {
+          "default": [],
+          "items": {
+            "$ref": "#/definitions/Attachment"
+          },
+          "type": "array"
+        },
+        "body": {
+          "description": "Plain text in the small markup (see docs/API.md). Empty for tombstones.",
+          "type": "string"
+        },
+        "client_id": {
+          "description": "Client-generated id for idempotent sends (only echoed to the sender's devices).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "conv_id": {
+          "type": "string"
+        },
+        "deleted": {
+          "default": false,
+          "description": "Tombstone: shown as \"Message deleted\".",
+          "type": "boolean"
+        },
+        "delivered": {
+          "default": false,
+          "description": "Delivered to at least one recipient device.",
+          "type": "boolean"
+        },
+        "edited_ms": {
+          "format": "int64",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "form": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Form"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "SV-17: interactive form sent by a bot."
+        },
+        "forwarded": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/ForwardInfo"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "M-20: set when this message was forwarded from another conversation (attribution)."
+        },
+        "id": {
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/definitions/MessageKind"
+        },
+        "mentions": {
+          "default": [],
+          "description": "Structured @mentions (user ids).",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "reactions": {
+          "default": [],
+          "items": {
+            "$ref": "#/definitions/ReactionSummary"
+          },
+          "type": "array"
+        },
+        "reply_to": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "responded": {
+          "description": "Users who already submitted the form.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "sender_id": {
+          "type": "string"
+        },
+        "seq": {
+          "description": "Conversation-local, gapless, increasing.",
+          "format": "int64",
+          "type": "integer"
+        },
+        "thread_root": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "ts": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "version": {
+          "description": "1 for a never edited message.",
+          "format": "int64",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "body",
+        "conv_id",
+        "id",
+        "kind",
+        "sender_id",
+        "seq",
+        "ts",
+        "version"
+      ],
+      "type": "object"
+    },
+    "MessageKind": {
+      "enum": [
+        "text",
+        "file",
+        "system"
+      ],
+      "type": "string"
+    },
+    "OrgSettings": {
+      "description": "Organisation-wide settings, `GET /org-settings` (any signed-in user), changed by admins with `PUT /admin/org-settings`. Also part of the bootstrap and kept current by the `org_settings_update` event.",
+      "properties": {
+        "channel_creation": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/ChannelCreation"
+            }
+          ],
+          "default": "everyone",
+          "description": "Who can create channels: `everyone` (default) or `admins`."
+        },
+        "channel_pins": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/ChannelPins"
+            }
+          ],
+          "default": "everyone",
+          "description": "Who can pin in channels: `everyone` (default) or `managers`."
+        }
+      },
+      "type": "object"
+    },
+    "OutgoingWebhook": {
+      "properties": {
+        "conv_id": {
+          "description": "Only events of this conversation; absent means every conversation.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "created_ms": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "events": {
+          "description": "Event names, e.g. `message.created`; empty means all.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "failed": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "id": {
+          "type": "string"
+        },
+        "last_delivery_ms": {
+          "format": "int64",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "last_status": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "name": {
+          "type": "string"
+        },
+        "pending": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "secret": {
+          "description": "HMAC-SHA256 key used for the `X-WorkChat-Signature` header.",
+          "type": "string"
+        },
+        "url": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "created_ms",
+        "enabled",
+        "events",
+        "failed",
+        "id",
+        "name",
+        "pending",
+        "secret",
+        "url"
+      ],
+      "type": "object"
+    },
+    "Pin": {
+      "description": "A pinned message (C-09). At most 100 per conversation.",
+      "properties": {
+        "conv_id": {
+          "type": "string"
+        },
+        "message_id": {
+          "type": "string"
+        },
+        "pinned_by": {
+          "type": "string"
+        },
+        "ts": {
+          "format": "int64",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "conv_id",
+        "message_id",
+        "pinned_by",
+        "ts"
+      ],
+      "type": "object"
+    },
+    "Presence": {
+      "enum": [
+        "online",
+        "away",
+        "dnd",
+        "offline"
+      ],
+      "type": "string"
+    },
+    "PublicUrlSettings": {
+      "description": "The externally visible base URL used in login links (owner setting; the env var wins when set).",
+      "properties": {
+        "effective": {
+          "description": "What links are built from right now.",
+          "type": "string"
+        },
+        "source": {
+          "description": "\"env\" (WORKCHAT_PUBLIC_URL), \"setting\" or \"request\" (derived from the Host header).",
+          "type": "string"
+        },
+        "url": {
+          "default": null,
+          "description": "The URL saved in the admin panel (empty when none).",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "effective",
+        "source"
+      ],
+      "type": "object"
+    },
+    "PublicUrlUpdate": {
+      "properties": {
+        "url": {
+          "default": null,
+          "description": "`null` or empty clears the setting.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "PushRegistration": {
+      "description": "A push registration (SV-13). `kind` is \"fcm\", \"ntfy\", \"unifiedpush\" or \"apns\".",
+      "properties": {
+        "created_ms": {
+          "default": 0,
+          "format": "int64",
+          "type": "integer"
+        },
+        "device_name": {
+          "default": "",
+          "type": "string"
+        },
+        "id": {
+          "default": "",
+          "type": "string"
+        },
+        "kind": {
+          "type": "string"
+        },
+        "ntfy_url": {
+          "description": "ntfy server URL (falls back to the server's configured one).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "target": {
+          "description": "FCM / APNs device token, the ntfy topic, or (kind \"unifiedpush\") the full endpoint URL the distributor gave the app.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "target"
+      ],
+      "type": "object"
+    },
+    "PushSettings": {
+      "description": "Push delivery settings. Secrets are masked in GET responses; send the mask back to keep them.",
+      "properties": {
+        "apns_api_base": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "apns_key_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "apns_key_pem": {
+          "description": "APNs token auth key (.p8 contents).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "apns_sandbox": {
+          "default": false,
+          "type": "boolean"
+        },
+        "apns_team_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "apns_topic": {
+          "description": "The iOS bundle id.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "fcm_api_base": {
+          "description": "Override for tests / proxies. Default `https://fcm.googleapis.com`.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "fcm_project_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "fcm_service_account": {
+          "description": "Firebase service-account JSON (FCM HTTP v1).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "ntfy_url": {
+          "description": "ntfy server (self-hosted on the compose network, or https://ntfy.sh).",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "ReactionSummary": {
+      "properties": {
+        "emoji": {
+          "type": "string"
+        },
+        "user_ids": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "emoji",
+        "user_ids"
+      ],
+      "type": "object"
+    },
+    "RefreshRequest": {
+      "properties": {
+        "refresh_token": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "refresh_token"
+      ],
+      "type": "object"
+    },
+    "ReleaseInfo": {
+      "properties": {
+        "assets": {
+          "items": {
+            "$ref": "#/definitions/Asset"
+          },
+          "type": "array"
+        },
+        "html_url": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "notes": {
+          "description": "Release notes as plain text, trimmed.",
+          "type": "string"
+        },
+        "published": {
+          "type": "string"
+        },
+        "tag": {
+          "description": "The tag as published (`v1.3.1`).",
+          "type": "string"
+        },
+        "version": {
+          "description": "Version without the `v` (`1.3.1`).",
+          "type": "string"
+        }
+      },
+      "required": [
+        "assets",
+        "html_url",
+        "name",
+        "notes",
+        "published",
+        "tag",
+        "version"
+      ],
+      "type": "object"
+    },
+    "RestoreRequest": {
+      "description": "Selective restore from a per-user or full backup (merge by default).",
+      "properties": {
+        "all": {
+          "default": false,
+          "type": "boolean"
+        },
+        "backup_id": {
+          "description": "Id of a backup (see `GET /admin/backups`).",
+          "type": "string"
+        },
+        "mode": {
+          "default": null,
+          "description": "\"merge\" (default) adds what is missing; \"replace\" makes the user's view match the backup.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "user_ids": {
+          "default": [],
+          "description": "Users to restore; ignored when `all` is true. Empty with `all=false` is an error.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "backup_id"
+      ],
+      "type": "object"
+    },
+    "RestoreResponse": {
+      "properties": {
+        "attachments_moved_back": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "conversations_created": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "messages_added": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "messages_hidden": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "messages_unhidden": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "users_restored": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "warnings": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "attachments_moved_back",
+        "conversations_created",
+        "messages_added",
+        "messages_hidden",
+        "messages_unhidden",
+        "users_restored",
+        "warnings"
+      ],
+      "type": "object"
+    },
+    "Role": {
+      "enum": [
+        "owner",
+        "admin",
+        "member"
+      ],
+      "type": "string"
+    },
+    "S3Provider": {
+      "enum": [
+        "aws",
+        "r2",
+        "b2",
+        "minio",
+        "other"
+      ],
+      "type": "string"
+    },
+    "SavedItem": {
+      "description": "A message the user saved for later. The message itself is read from the normal message cache.",
+      "properties": {
+        "conv_id": {
+          "type": "string"
+        },
+        "label_ids": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "message_id": {
+          "type": "string"
+        },
+        "saved_ms": {
+          "format": "int64",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "conv_id",
+        "message_id",
+        "saved_ms"
+      ],
+      "type": "object"
+    },
+    "ScheduleRequest": {
+      "properties": {
+        "attachment_ids": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "body": {
+          "type": "string"
+        },
+        "due_ms": {
+          "description": "UTC ms; must be in the future.",
+          "format": "int64",
+          "type": "integer"
+        },
+        "thread_root": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "body",
+        "due_ms"
+      ],
+      "type": "object"
+    },
+    "ScheduledMessage": {
+      "properties": {
+        "attachment_ids": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "body": {
+          "type": "string"
+        },
+        "conv_id": {
+          "type": "string"
+        },
+        "created_ms": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "due_ms": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "error": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "id": {
+          "type": "string"
+        },
+        "message_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "state": {
+          "$ref": "#/definitions/ScheduledState"
+        },
+        "thread_root": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "user_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "body",
+        "conv_id",
+        "created_ms",
+        "due_ms",
+        "id",
+        "state",
+        "user_id"
+      ],
+      "type": "object"
+    },
+    "ScheduledState": {
+      "enum": [
+        "pending",
+        "sent",
+        "cancelled",
+        "failed"
+      ],
+      "type": "string"
+    },
+    "SearchHit": {
+      "properties": {
+        "message": {
+          "$ref": "#/definitions/Message"
+        },
+        "snippet": {
+          "description": "Snippet with matches wrapped in `[[` and `]]`.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "message",
+        "snippet"
+      ],
+      "type": "object"
+    },
+    "SearchResponse": {
+      "properties": {
+        "channels": {
+          "default": [],
+          "description": "Channels and group DMs of the caller whose name matches (SR-05).",
+          "items": {
+            "$ref": "#/definitions/ConversationSummary"
+          },
+          "type": "array"
+        },
+        "files": {
+          "default": [],
+          "description": "Attachments whose file name matches (SR-03).",
+          "items": {
+            "$ref": "#/definitions/FileHit"
+          },
+          "type": "array"
+        },
+        "hits": {
+          "items": {
+            "$ref": "#/definitions/SearchHit"
+          },
+          "type": "array"
+        },
+        "people": {
+          "items": {
+            "$ref": "#/definitions/User"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "hits",
+        "people"
+      ],
+      "type": "object"
+    },
+    "Section": {
+      "description": "A custom sidebar section (NV-04).",
+      "properties": {
+        "collapsed": {
+          "default": false,
+          "type": "boolean"
+        },
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "position": {
+          "format": "int64",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "position"
+      ],
+      "type": "object"
+    },
+    "SectionRequest": {
+      "properties": {
+        "collapsed": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "position": {
+          "format": "int64",
+          "type": [
+            "integer",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "SendMessage": {
+      "properties": {
+        "also_send_to_channel": {
+          "default": false,
+          "description": "With `thread_root`: also show this reply in the conversation's main timeline (\"Also send to channel\"). Still one message.",
+          "type": "boolean"
+        },
+        "attachment_ids": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "body": {
+          "type": "string"
+        },
+        "client_id": {
+          "description": "Idempotency key generated by the client; retries never duplicate.",
+          "type": "string"
+        },
+        "mentions": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "reply_to": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "thread_root": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "body",
+        "client_id"
+      ],
+      "type": "object"
+    },
+    "ServerMeta": {
+      "properties": {
+        "ai_search_enabled": {
+          "type": "boolean"
+        },
+        "api_version": {
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "fcm_enabled": {
+          "default": false,
+          "type": "boolean"
+        },
+        "max_upload_bytes": {
+          "format": "uint64",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "min_client_version": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "ntfy_url": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "server_version": {
+          "type": "string"
+        },
+        "setup_required": {
+          "description": "True until the first owner account has been created.",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "ai_search_enabled",
+        "api_version",
+        "max_upload_bytes",
+        "min_client_version",
+        "name",
+        "server_version",
+        "setup_required"
+      ],
+      "type": "object"
+    },
+    "ServerWsMsg": {
+      "oneOf": [
+        {
+          "properties": {
+            "cursor": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "server_time": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "t": {
+              "enum": [
+                "hello_ok"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "cursor",
+            "server_time",
+            "t"
+          ],
+          "type": "object"
+        },
+        {
+          "description": "Ordered events. `caught_up` is false while the backlog since the client's cursor is still streaming.",
+          "properties": {
+            "caught_up": {
+              "type": "boolean"
+            },
+            "events": {
+              "items": {
+                "$ref": "#/definitions/Event"
+              },
+              "type": "array"
+            },
+            "t": {
+              "enum": [
+                "events"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "caught_up",
+            "events",
+            "t"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "conv_id": {
+              "type": "string"
+            },
+            "t": {
+              "enum": [
+                "typing"
+              ],
+              "type": "string"
+            },
+            "user_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "conv_id",
+            "t",
+            "user_id"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "last_active_ms": {
+              "format": "int64",
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "presence": {
+              "$ref": "#/definitions/Presence"
+            },
+            "t": {
+              "enum": [
+                "presence"
+              ],
+              "type": "string"
+            },
+            "user_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "presence",
+            "t",
+            "user_id"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "t": {
+              "enum": [
+                "pong"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "t"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "code": {
+              "$ref": "#/definitions/ErrorCode"
+            },
+            "message": {
+              "type": "string"
+            },
+            "t": {
+              "enum": [
+                "error"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "code",
+            "message",
+            "t"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "SessionInfo": {
+      "properties": {
+        "client_version": {
+          "type": "string"
+        },
+        "created_ms": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "current": {
+          "type": "boolean"
+        },
+        "device_name": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "ip": {
+          "type": "string"
+        },
+        "last_seen_ms": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "revoked": {
+          "type": "boolean"
+        },
+        "user_id": {
+          "type": "string"
+        },
+        "username": {
+          "default": "",
+          "type": "string"
+        }
+      },
+      "required": [
+        "client_version",
+        "created_ms",
+        "current",
+        "device_name",
+        "id",
+        "ip",
+        "last_seen_ms",
+        "revoked",
+        "user_id"
+      ],
+      "type": "object"
+    },
+    "SetConvAvatar": {
+      "description": "`PUT /conversations/{id}/avatar`. Owners and admins set the picture everyone in the channel or group sees.",
+      "properties": {
+        "avatar": {
+          "description": "Attachment id of an uploaded image (`purpose=avatar`); an empty string removes the picture.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "avatar"
+      ],
+      "type": "object"
+    },
+    "SetRoleRequest": {
+      "description": "Body of `PUT /admin/users/{id}/role` (owner only).",
+      "properties": {
+        "role": {
+          "$ref": "#/definitions/Role"
+        }
+      },
+      "required": [
+        "role"
+      ],
+      "type": "object"
+    },
+    "SetupRequest": {
+      "properties": {
+        "display_name": {
+          "type": "string"
+        },
+        "email": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "password": {
+          "type": "string"
+        },
+        "storage": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/StorageConfig"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "username": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "display_name",
+        "password",
+        "username"
+      ],
+      "type": "object"
+    },
+    "StorageConfig": {
+      "description": "Attachment storage backend configuration. Only config, accounts and the text database live on the server's disk when a cloud backend is selected.",
+      "oneOf": [
+        {
+          "description": "Directory on the server disk (testing / small installs).",
+          "properties": {
+            "backend": {
+              "enum": [
+                "local"
+              ],
+              "type": "string"
+            },
+            "path": {
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "backend"
+          ],
+          "type": "object"
+        },
+        {
+          "description": "Any S3 API: AWS S3, Cloudflare R2, Backblaze B2, MinIO.",
+          "properties": {
+            "access_key_id": {
+              "type": "string"
+            },
+            "allow_http": {
+              "default": false,
+              "type": "boolean"
+            },
+            "backend": {
+              "enum": [
+                "s3"
+              ],
+              "type": "string"
+            },
+            "bucket": {
+              "type": "string"
+            },
+            "endpoint": {
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "path_style": {
+              "default": false,
+              "type": "boolean"
+            },
+            "prefix": {
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "provider": {
+              "$ref": "#/definitions/S3Provider"
+            },
+            "region": {
+              "type": "string"
+            },
+            "secret_access_key": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "access_key_id",
+            "backend",
+            "bucket",
+            "provider",
+            "region",
+            "secret_access_key"
+          ],
+          "type": "object"
+        },
+        {
+          "description": "Google Drive (OAuth refresh token, drive.file scope).",
+          "properties": {
+            "api_base": {
+              "default": null,
+              "description": "Override for tests / proxies. Default `https://www.googleapis.com`.",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "backend": {
+              "enum": [
+                "gdrive"
+              ],
+              "type": "string"
+            },
+            "client_id": {
+              "type": "string"
+            },
+            "client_secret": {
+              "type": "string"
+            },
+            "folder_name": {
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "refresh_token": {
+              "type": "string"
+            },
+            "token_url": {
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "backend",
+            "client_id",
+            "client_secret",
+            "refresh_token"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "StorageTestResponse": {
+      "properties": {
+        "message": {
+          "type": "string"
+        },
+        "ok": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "message",
+        "ok"
+      ],
+      "type": "object"
+    },
+    "ThreadSummary": {
+      "description": "A thread the user follows (M-06).",
+      "properties": {
+        "conv_id": {
+          "type": "string"
+        },
+        "following": {
+          "type": "boolean"
+        },
+        "last_reply": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Message"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The newest reply (for the thread preview line); absent while there are no replies."
+        },
+        "last_reply_ts": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "participants": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "reply_count": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "root": {
+          "$ref": "#/definitions/Message"
+        },
+        "unread": {
+          "format": "int64",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "conv_id",
+        "following",
+        "last_reply_ts",
+        "participants",
+        "reply_count",
+        "root",
+        "unread"
+      ],
+      "type": "object"
+    },
+    "ThreadView": {
+      "description": "A thread root plus its replies (M-05).",
+      "properties": {
+        "replies": {
+          "items": {
+            "$ref": "#/definitions/Message"
+          },
+          "type": "array"
+        },
+        "summary": {
+          "$ref": "#/definitions/ThreadSummary"
+        }
+      },
+      "required": [
+        "replies",
+        "summary"
+      ],
+      "type": "object"
+    },
+    "TokenPair": {
+      "properties": {
+        "access_token": {
+          "type": "string"
+        },
+        "expires_in": {
+          "description": "Seconds until `access_token` expires.",
+          "format": "int64",
+          "type": "integer"
+        },
+        "refresh_token": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "access_token",
+        "expires_in",
+        "refresh_token"
+      ],
+      "type": "object"
+    },
+    "UpdateBotRequest": {
+      "properties": {
+        "avatar": {
+          "description": "Attachment id of an image the admin uploaded with `purpose=avatar`; empty string clears the bot's picture.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "description": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "disabled": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "display_name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "title": {
+          "description": "Job-title line shown under the bot's name (for example \"Deploy bot\").",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "UpdateConversation": {
+      "description": "`PATCH /conversations/{id}` (admins and the conversation's managers).",
+      "properties": {
+        "archived": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "topic": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "visibility": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/ChannelVisibility"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Channels only."
+        }
+      },
+      "type": "object"
+    },
+    "UpdateOrgSettings": {
+      "description": "`PUT /admin/org-settings`: only the given fields change.",
+      "properties": {
+        "channel_creation": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/ChannelCreation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "channel_pins": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/ChannelPins"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "type": "object"
+    },
+    "UpdateOutgoingWebhook": {
+      "properties": {
+        "conv_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "enabled": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "events": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "regenerate_secret": {
+          "description": "True generates a new secret.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "url": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "UpdateUserRequest": {
+      "properties": {
+        "disabled": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "display_name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "email": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "phone": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "privacy_controls_enabled": {
+          "description": "Turns the Privacy screen on for this user (SV-12).",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "role": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Role"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "title": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "UploadResponse": {
+      "properties": {
+        "attachment": {
+          "$ref": "#/definitions/Attachment"
+        }
+      },
+      "required": [
+        "attachment"
+      ],
+      "type": "object"
+    },
+    "User": {
+      "properties": {
+        "avatar": {
+          "description": "Attachment id of the profile photo; clients show initials when absent.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "disabled": {
+          "default": false,
+          "type": "boolean"
+        },
+        "display_name": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "is_bot": {
+          "default": false,
+          "type": "boolean"
+        },
+        "last_active_ms": {
+          "description": "Never present when the user has chosen to hide it (SV-12).",
+          "format": "int64",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "phone": {
+          "description": "Work phone number as typed by the person or the admin; free text.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "presence": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Presence"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "role": {
+          "$ref": "#/definitions/Role"
+        },
+        "title": {
+          "description": "Job title shown on the profile and in the contacts list (\"Head of Product Operations\").",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "username": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "display_name",
+        "id",
+        "role",
+        "username"
+      ],
+      "type": "object"
+    },
+    "UserGroup": {
+      "description": "A user group (`@handle`) that expands to member mentions when a message is sent (M-18).",
+      "properties": {
+        "handle": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "member_ids": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "name": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "handle",
+        "id",
+        "member_ids",
+        "name"
+      ],
+      "type": "object"
+    },
+    "UserGroupRequest": {
+      "properties": {
+        "handle": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "member_ids": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "ViewerConversation": {
+      "description": "A conversation as shown in the admin viewer (any conversation, including other people's DMs).",
+      "properties": {
+        "archived": {
+          "default": false,
+          "type": "boolean"
+        },
+        "avatar": {
+          "description": "The picture of a channel or group DM that everyone sees (an attachment id with purpose `avatar`).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "created_ms": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "id": {
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/definitions/ConversationKind"
+        },
+        "last_message": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Message"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "last_message_ts": {
+          "format": "int64",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "last_seq": {
+          "description": "Highest message sequence number in this conversation.",
+          "format": "int64",
+          "type": "integer"
+        },
+        "members": {
+          "items": {
+            "$ref": "#/definitions/Member"
+          },
+          "type": "array"
+        },
+        "message_count": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "title": {
+          "description": "Display title (the other person's name for DMs when viewing as a user).",
+          "type": "string"
+        },
+        "topic": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "visibility": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/ChannelVisibility"
+            }
+          ],
+          "default": "private",
+          "description": "`public` or `private` (channels only; everything else is `private`). Channels that existed before 1.1.0 are `private`."
+        }
+      },
+      "required": [
+        "created_ms",
+        "id",
+        "kind",
+        "last_seq",
+        "members",
+        "message_count",
+        "title"
+      ],
+      "type": "object"
+    },
+    "ViewerHistory": {
+      "description": "Admin viewer: a page of a conversation's messages plus reply counts for the thread badges.",
+      "properties": {
+        "has_more_after": {
+          "type": "boolean"
+        },
+        "has_more_before": {
+          "type": "boolean"
+        },
+        "messages": {
+          "items": {
+            "$ref": "#/definitions/Message"
+          },
+          "type": "array"
+        },
+        "reply_counts": {
+          "additionalProperties": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "description": "Thread root id -> number of replies.",
+          "type": "object"
+        }
+      },
+      "required": [
+        "has_more_after",
+        "has_more_before",
+        "messages",
+        "reply_counts"
+      ],
+      "type": "object"
+    },
+    "WebhooksOverview": {
+      "properties": {
+        "incoming": {
+          "items": {
+            "$ref": "#/definitions/IncomingWebhook"
+          },
+          "type": "array"
+        },
+        "outgoing": {
+          "items": {
+            "$ref": "#/definitions/OutgoingWebhook"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "incoming",
+        "outgoing"
+      ],
+      "type": "object"
+    }
+  },
+  "description": "Every public type, used only to produce one JSON Schema document with all definitions.",
+  "properties": {
+    "admin_bot": {
+      "$ref": "#/definitions/AdminBot"
+    },
+    "admin_conversation": {
+      "$ref": "#/definitions/AdminConversation"
+    },
+    "admin_create_user": {
+      "$ref": "#/definitions/CreateUserRequest"
+    },
+    "admin_create_user_response": {
+      "$ref": "#/definitions/CreateUserResponse"
+    },
+    "admin_delete_messages": {
+      "$ref": "#/definitions/AdminDeleteMessagesRequest"
+    },
+    "admin_delete_messages_response": {
+      "$ref": "#/definitions/AdminDeleteMessagesResponse"
+    },
+    "admin_set_role": {
+      "$ref": "#/definitions/SetRoleRequest"
+    },
+    "admin_update_user": {
+      "$ref": "#/definitions/UpdateUserRequest"
+    },
+    "admin_updates": {
+      "$ref": "#/definitions/AdminUpdates"
+    },
+    "ai_defaults_update": {
+      "$ref": "#/definitions/AiDefaultsUpdate"
+    },
+    "ai_overview": {
+      "$ref": "#/definitions/AiOverview"
+    },
+    "ai_provider": {
+      "$ref": "#/definitions/AiProvider"
+    },
+    "ai_provider_input": {
+      "$ref": "#/definitions/AiProviderInput"
+    },
+    "ai_provider_update": {
+      "$ref": "#/definitions/AiProviderUpdate"
+    },
+    "ai_recap_request": {
+      "$ref": "#/definitions/AiRecapRequest"
+    },
+    "ai_recap_response": {
+      "$ref": "#/definitions/AiRecapResponse"
+    },
+    "ai_search_request": {
+      "$ref": "#/definitions/AiSearchRequest"
+    },
+    "ai_search_response": {
+      "$ref": "#/definitions/AiSearchResponse"
+    },
+    "ai_test": {
+      "$ref": "#/definitions/AiTestResponse"
+    },
+    "avatar_override": {
+      "$ref": "#/definitions/AvatarOverride"
+    },
+    "backup_settings": {
+      "$ref": "#/definitions/BackupSettings"
+    },
+    "backup_settings_update": {
+      "$ref": "#/definitions/BackupSettingsUpdate"
+    },
+    "backups": {
+      "items": {
+        "$ref": "#/definitions/BackupInfo"
+      },
+      "type": "array"
+    },
+    "bookmark": {
+      "$ref": "#/definitions/Bookmark"
+    },
+    "bookmark_request": {
+      "$ref": "#/definitions/BookmarkRequest"
+    },
+    "bootstrap": {
+      "$ref": "#/definitions/Bootstrap"
+    },
+    "bot_home": {
+      "$ref": "#/definitions/BotHome"
+    },
+    "bot_profile": {
+      "$ref": "#/definitions/BotProfile"
+    },
+    "channel_browse_item": {
+      "$ref": "#/definitions/ChannelBrowseItem"
+    },
+    "channel_browse_page": {
+      "$ref": "#/definitions/ChannelBrowsePage"
+    },
+    "clear_history": {
+      "$ref": "#/definitions/ClearHistoryResponse"
+    },
+    "client_ws": {
+      "$ref": "#/definitions/ClientWsMsg"
+    },
+    "conv_pref": {
+      "$ref": "#/definitions/ConvPref"
+    },
+    "conv_pref_request": {
+      "$ref": "#/definitions/ConvPrefRequest"
+    },
+    "counts": {
+      "$ref": "#/definitions/Counts"
+    },
+    "create_bot": {
+      "$ref": "#/definitions/CreateBotRequest"
+    },
+    "create_conversation": {
+      "$ref": "#/definitions/CreateConversation"
+    },
+    "create_incoming_webhook": {
+      "$ref": "#/definitions/CreateIncomingWebhook"
+    },
+    "create_outgoing_webhook": {
+      "$ref": "#/definitions/CreateOutgoingWebhook"
+    },
+    "delete_range": {
+      "$ref": "#/definitions/DateRangeDeleteRequest"
+    },
+    "draft_item": {
+      "$ref": "#/definitions/DraftItem"
+    },
+    "draft_request": {
+      "$ref": "#/definitions/DraftRequest"
+    },
+    "edit_message": {
+      "$ref": "#/definitions/EditMessage"
+    },
+    "error": {
+      "$ref": "#/definitions/ErrorBody"
+    },
+    "event": {
+      "$ref": "#/definitions/Event"
+    },
+    "events": {
+      "$ref": "#/definitions/EventsResponse"
+    },
+    "file_hit": {
+      "$ref": "#/definitions/FileHit"
+    },
+    "file_hits": {
+      "items": {
+        "$ref": "#/definitions/FileHit"
+      },
+      "type": "array"
+    },
+    "form": {
+      "$ref": "#/definitions/Form"
+    },
+    "form_submit": {
+      "$ref": "#/definitions/FormSubmit"
+    },
+    "forward_request": {
+      "$ref": "#/definitions/ForwardRequest"
+    },
+    "fresh_restore_request": {
+      "$ref": "#/definitions/FreshRestoreRequest"
+    },
+    "fresh_restore_response": {
+      "$ref": "#/definitions/FreshRestoreResponse"
+    },
+    "hide_message_response": {
+      "$ref": "#/definitions/HideMessageResponse"
+    },
+    "history": {
+      "$ref": "#/definitions/HistoryResponse"
+    },
+    "job": {
+      "$ref": "#/definitions/JobStatus"
+    },
+    "link_login_request": {
+      "$ref": "#/definitions/LinkLoginRequest"
+    },
+    "login_request": {
+      "$ref": "#/definitions/LoginRequest"
+    },
+    "login_response": {
+      "$ref": "#/definitions/LoginResponse"
+    },
+    "me": {
+      "$ref": "#/definitions/Me"
+    },
+    "members_request": {
+      "$ref": "#/definitions/MembersRequest"
+    },
+    "meta": {
+      "$ref": "#/definitions/ServerMeta"
+    },
+    "org_settings": {
+      "$ref": "#/definitions/OrgSettings"
+    },
+    "pin": {
+      "$ref": "#/definitions/Pin"
+    },
+    "public_url_settings": {
+      "$ref": "#/definitions/PublicUrlSettings"
+    },
+    "public_url_update": {
+      "$ref": "#/definitions/PublicUrlUpdate"
+    },
+    "push_registration": {
+      "$ref": "#/definitions/PushRegistration"
+    },
+    "push_settings": {
+      "$ref": "#/definitions/PushSettings"
+    },
+    "refresh_request": {
+      "$ref": "#/definitions/RefreshRequest"
+    },
+    "release_info": {
+      "$ref": "#/definitions/ReleaseInfo"
+    },
+    "restore_request": {
+      "$ref": "#/definitions/RestoreRequest"
+    },
+    "restore_response": {
+      "$ref": "#/definitions/RestoreResponse"
+    },
+    "schedule_request": {
+      "$ref": "#/definitions/ScheduleRequest"
+    },
+    "scheduled": {
+      "$ref": "#/definitions/ScheduledMessage"
+    },
+    "search": {
+      "$ref": "#/definitions/SearchResponse"
+    },
+    "section": {
+      "$ref": "#/definitions/Section"
+    },
+    "section_request": {
+      "$ref": "#/definitions/SectionRequest"
+    },
+    "send_message": {
+      "$ref": "#/definitions/SendMessage"
+    },
+    "server_ws": {
+      "$ref": "#/definitions/ServerWsMsg"
+    },
+    "sessions": {
+      "items": {
+        "$ref": "#/definitions/SessionInfo"
+      },
+      "type": "array"
+    },
+    "set_conv_avatar": {
+      "$ref": "#/definitions/SetConvAvatar"
+    },
+    "setup": {
+      "$ref": "#/definitions/SetupRequest"
+    },
+    "storage_config": {
+      "$ref": "#/definitions/StorageConfig"
+    },
+    "storage_test": {
+      "$ref": "#/definitions/StorageTestResponse"
+    },
+    "thread_summaries": {
+      "items": {
+        "$ref": "#/definitions/ThreadSummary"
+      },
+      "type": "array"
+    },
+    "thread_summary": {
+      "$ref": "#/definitions/ThreadSummary"
+    },
+    "thread_view": {
+      "$ref": "#/definitions/ThreadView"
+    },
+    "token_pair": {
+      "$ref": "#/definitions/TokenPair"
+    },
+    "update_bot": {
+      "$ref": "#/definitions/UpdateBotRequest"
+    },
+    "update_conversation": {
+      "$ref": "#/definitions/UpdateConversation"
+    },
+    "update_org_settings": {
+      "$ref": "#/definitions/UpdateOrgSettings"
+    },
+    "update_outgoing_webhook": {
+      "$ref": "#/definitions/UpdateOutgoingWebhook"
+    },
+    "upload": {
+      "$ref": "#/definitions/UploadResponse"
+    },
+    "user_group": {
+      "$ref": "#/definitions/UserGroup"
+    },
+    "user_group_request": {
+      "$ref": "#/definitions/UserGroupRequest"
+    },
+    "viewer_conversation": {
+      "$ref": "#/definitions/ViewerConversation"
+    },
+    "viewer_history": {
+      "$ref": "#/definitions/ViewerHistory"
+    },
+    "webhooks": {
+      "$ref": "#/definitions/WebhooksOverview"
+    }
+  },
+  "required": [
+    "admin_bot",
+    "admin_conversation",
+    "admin_create_user",
+    "admin_create_user_response",
+    "admin_delete_messages",
+    "admin_delete_messages_response",
+    "admin_set_role",
+    "admin_update_user",
+    "admin_updates",
+    "ai_defaults_update",
+    "ai_overview",
+    "ai_provider",
+    "ai_provider_input",
+    "ai_provider_update",
+    "ai_recap_request",
+    "ai_recap_response",
+    "ai_search_request",
+    "ai_search_response",
+    "ai_test",
+    "avatar_override",
+    "backup_settings",
+    "backup_settings_update",
+    "backups",
+    "bookmark",
+    "bookmark_request",
+    "bootstrap",
+    "bot_home",
+    "bot_profile",
+    "channel_browse_item",
+    "channel_browse_page",
+    "clear_history",
+    "client_ws",
+    "conv_pref",
+    "conv_pref_request",
+    "counts",
+    "create_bot",
+    "create_conversation",
+    "create_incoming_webhook",
+    "create_outgoing_webhook",
+    "delete_range",
+    "draft_item",
+    "draft_request",
+    "edit_message",
+    "error",
+    "event",
+    "events",
+    "file_hit",
+    "file_hits",
+    "form",
+    "form_submit",
+    "forward_request",
+    "fresh_restore_request",
+    "fresh_restore_response",
+    "hide_message_response",
+    "history",
+    "job",
+    "link_login_request",
+    "login_request",
+    "login_response",
+    "me",
+    "members_request",
+    "meta",
+    "org_settings",
+    "pin",
+    "public_url_settings",
+    "public_url_update",
+    "push_registration",
+    "push_settings",
+    "refresh_request",
+    "release_info",
+    "restore_request",
+    "restore_response",
+    "schedule_request",
+    "scheduled",
+    "search",
+    "section",
+    "section_request",
+    "send_message",
+    "server_ws",
+    "sessions",
+    "set_conv_avatar",
+    "setup",
+    "storage_config",
+    "storage_test",
+    "thread_summaries",
+    "thread_summary",
+    "thread_view",
+    "token_pair",
+    "update_bot",
+    "update_conversation",
+    "update_org_settings",
+    "update_outgoing_webhook",
+    "upload",
+    "user_group",
+    "user_group_request",
+    "viewer_conversation",
+    "viewer_history",
+    "webhooks"
+  ],
+  "title": "WorkChat API",
+  "type": "object",
+  "x-api-version": 1,
+  "x-min-client-version": "1.0.0"
+}

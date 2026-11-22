@@ -1,0 +1,95 @@
+name: Server CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "workchat-server/**"
+      - ".github/workflows/server-ci.yml"
+  pull_request:
+    paths:
+      - "workchat-server/**"
+      - ".github/workflows/server-ci.yml"
+  workflow_dispatch:   # also lets you start the optional e2e and ui jobs by hand
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    working-directory: workchat-server
+
+jobs:
+  rust:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with: { components: clippy }
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: "workchat-server -> target"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: workchat-server/admin-web/package-lock.json
+      - name: Admin panel build (served by the server tests)
+        run: cd admin-web && npm ci && npm run build
+      # Unit tests plus the integration suite in crates/server/tests (in-process server, raw HTTP and WebSocket).
+      # The docker end-to-end tests in tests/e2e skip themselves here (no WORKCHAT_E2E).
+      - run: cargo test --workspace
+      - run: cargo clippy --workspace --all-targets -- -A warnings
+      - name: The committed API schema is up to date
+        run: |
+          cargo run -q -p workchat-proto --bin gen-schema -- "$RUNNER_TEMP/api.schema.json"
+          diff -u schema/api.schema.json "$RUNNER_TEMP/api.schema.json"
+  admin-web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: workchat-server/admin-web/package-lock.json
+      - run: cd admin-web && npm ci && npm run build
+  docker:
+    # The image builds (nothing is pushed here; release.yml publishes it).
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: workchat-server
+          file: workchat-server/docker/Dockerfile
+          push: false
+          tags: workchat-server:ci
+  e2e:
+    # Optional, manual: the server image + MinIO + a fake Google Drive, driven over raw HTTP (tests/e2e/run.sh).
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: "workchat-server -> target"
+      - run: tests/e2e/run.sh
+  ui:
+    # Optional, manual: Playwright tests of the admin panel in headless Chromium (tests/ui/run.sh).
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: "workchat-server -> target"
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: 21 }
+      - run: cd tests/ui && npm install --no-audit --no-fund && npx playwright-core install --with-deps chromium
+      - run: tests/ui/run.sh

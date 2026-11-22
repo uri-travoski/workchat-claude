@@ -1,0 +1,16 @@
+[package]
+name = "tauri-plugin-workchat"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+description = "WorkChat mobile glue: push registration (UnifiedPush, FCM, APNs), APK install, notifications, keep-alive service"
+links = "tauri-plugin-workchat"
+
+[dependencies]
+tauri = "2"
+serde.workspace = true
+serde_json.workspace = true
+
+[build-dependencies]
+tauri-plugin = { version = "2", features = ["build"] }

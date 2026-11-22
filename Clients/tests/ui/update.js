@@ -1,0 +1,20 @@
+// The update dialog against a fake release server (WORKCHAT_UPDATE_API). Shows found, downloading (progress) and cancel.
+const wait = api.wait;
+const pre = window.innerWidth < 700 ? "p" : "d";
+api.app.tab = "settings";
+api.app.spage = "about";
+await wait(1200);
+await api.mark(`${pre}-update-0-about`);
+await api.clickText("Check for updates");
+for (let i = 0; i < 40 && !api.app.upd.info; i++) await wait(250);
+if (!api.app.upd.info?.newer) throw new Error("no newer release found: " + JSON.stringify(api.app.upd));
+await wait(500);
+await api.mark(`${pre}-update-1-available`);
+await api.clickText("Download");
+await wait(1800);
+if (api.app.upd.state !== "downloading") throw new Error("not downloading: " + api.app.upd.state);
+await api.mark(`${pre}-update-2-progress`);
+await api.clickText("Cancel");
+await wait(800);
+await api.mark(`${pre}-update-3-cancelled`);
+await api.mark("done");

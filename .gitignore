@@ -1,0 +1,31 @@
+# Secrets (keys live outside the tree in ~/keys)
+credentials.md
+*.jks
+*.keystore
+*.p12
+*.p8
+*.pem
+signing.env
+keystore.properties
+google-services.json
+GoogleService-Info.plist
+.env
+.env.*
+!.env.example
+
+# Build output and dependencies
+node_modules/
+target/
+dist/
+dist-release/
+build/
+.gradle/
+.venv/
+__pycache__/
+*.log
+.test-build/
+generated/
+.DS_Store
+
+# Throwaway test fixtures that are tracked on purpose
+!workchat-server/crates/server/tests/fixtures/*.pem

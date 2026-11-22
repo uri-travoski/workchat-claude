@@ -1,0 +1,42 @@
+workchat-server third-party notices
+===================================
+
+workchat-server itself is MIT licensed (see LICENSE). The server binary and the Docker image also contain the following material.
+
+Rust library dependencies are listed with exact versions in Cargo.lock; each is used under its own open source licence
+(MIT, Apache-2.0, BSD, ISC, MPL-2.0, Unicode-3.0 or similar). The admin panel (admin-web) is plain TypeScript with no runtime
+npm dependencies: only build tools (typescript, vite, json-schema-to-typescript, see admin-web/package-lock.json) are used
+at build time and none of their code is shipped in the panel. The SQLite library (public domain) is compiled in through
+rusqlite's "bundled" feature.
+
+1. PDF substitute fonts (hayro, "embed-fonts")
+----------------------------------------------
+The PDF thumbnail renderer (hayro, licensed MIT OR Apache-2.0) embeds substitute fonts for the 14 standard PDF fonts
+(Foxit Sans, Serif, Fixed and Dingbats/Symbol variants). They were extracted from PDFium and are redistributed under the
+BSD-style PDFium licence below. hayro also embeds two small ICC colour profiles under CC0-1.0 (CMYK profile from
+saucecontrol/Compact-ICC-Profiles, and a LAB profile).
+
+Copyright 2014 PDFium Authors. All rights reserved.
+Original code copyright 2014 Foxit Software Inc. http://www.foxitsoftware.com
+
+Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following
+conditions are met:
+
+   * Redistributions of source code must retain the above copyright notice, this list of conditions and the following
+     disclaimer.
+   * Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following
+     disclaimer in the documentation and/or other materials provided with the distribution.
+   * Neither the name of Google Inc. nor the names of its contributors may be used to endorse or promote products derived
+     from this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT
+NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL
+THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
+OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+2. Docker runtime image
+-----------------------
+The published image is based on debian:trixie-slim and adds ca-certificates and tini (MIT, https://github.com/krallin/tini);
+their licences are in /usr/share/doc/<package>/copyright inside the image.
