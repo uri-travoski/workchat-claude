@@ -130,9 +130,12 @@ async fn schedule_runs_when_due_and_retention_prunes_old_backups() {
     assert!(workchat_server::fullbackup::scheduled_tick(&s.st, now).await.unwrap());
     // Not due again until 24 h have passed.
     assert!(!workchat_server::fullbackup::scheduled_tick(&s.st, now + 3_600_000).await.unwrap());
+    // The backup records its real finish time as last_run, so the simulated clock needs a margin larger
+    // than however long a (slow CI) backup takes: 10 minutes on top of each simulated day.
+    let margin = 600_000;
     for i in 1..=3 {
         tokio::time::sleep(Duration::from_millis(5)).await;
-        assert!(workchat_server::fullbackup::scheduled_tick(&s.st, now + i * day + 1000).await.unwrap(), "run {i}");
+        assert!(workchat_server::fullbackup::scheduled_tick(&s.st, now + i * day + margin).await.unwrap(), "run {i}");
     }
     let fulls: Vec<_> = s.admin.backups().await.unwrap().into_iter().filter(|b| b.kind == "full").collect();
     assert_eq!(fulls.len(), 2, "retention keeps the two newest");

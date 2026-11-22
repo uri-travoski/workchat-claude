@@ -69,7 +69,7 @@ cargo test --workspace
 docker build -f docker/Dockerfile -t workchat-server .
 ```
 
-Apps (Rust 1.88, Node 22; on Linux the webkit2gtk 4.1 and GTK3 dev packages):
+Apps (Rust 1.93, Node 22; on Linux the webkit2gtk 4.1 and GTK3 dev packages):
 
 ```sh
 cd Clients

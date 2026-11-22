@@ -29,8 +29,7 @@ Debian/Ubuntu build dependencies:
 ```sh
 sudo apt install build-essential cmake pkg-config libwebkit2gtk-4.1-dev libgtk-3-dev libayatana-appindicator3-dev \
   librsvg2-dev libssl-dev libasound2-dev libopus-dev patchelf rpm file desktop-file-utils \
-  gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-libav \
-  libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev
+  gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-libav
 ```
 
 ```sh

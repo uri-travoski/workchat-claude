@@ -12,6 +12,16 @@ on:
         description: "Existing tag to build and release, e.g. v1.1.0"
         required: true
         type: string
+      ref:
+        description: "Optional branch, tag or SHA to build instead of the tag (the version guard still compares the tag input against the files)"
+        required: false
+        default: ""
+        type: string
+      publish:
+        description: "Create or update the GitHub release (tag pushes always publish)"
+        required: false
+        default: false
+        type: boolean
 
 concurrency:
   group: release-${{ inputs.tag || github.ref_name }}
@@ -35,7 +45,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4.2.2
         with:
-          ref: ${{ env.TAG }}
+          ref: ${{ inputs.ref || env.TAG }}
       - id: v
         name: Tag, apps, server and compose image must all be the same version
         run: |
@@ -87,7 +97,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4.2.2
         with:
-          ref: ${{ env.TAG }}
+          ref: ${{ inputs.ref || env.TAG }}
       - uses: docker/setup-buildx-action@v3
       - uses: docker/login-action@v3
         with:
@@ -98,7 +108,8 @@ jobs:
         with:
           context: workchat-server
           file: workchat-server/docker/Dockerfile
-          push: true
+          # A manual run without publish only proves the image builds.
+          push: ${{ github.event_name == 'push' || inputs.publish }}
           tags: |
             ghcr.io/uri-travoski/workchat-server:${{ needs.meta.outputs.version }}
             ghcr.io/uri-travoski/workchat-server:latest
@@ -110,7 +121,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4.2.2
         with:
-          ref: ${{ env.TAG }}
+          ref: ${{ inputs.ref || env.TAG }}
       - name: Collect assets
         run: |
           mkdir -p assets
@@ -137,7 +148,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4.2.2
         with:
-          ref: ${{ env.TAG }}
+          ref: ${{ inputs.ref || env.TAG }}
       - name: Linux build dependencies
         run: |
           sudo apt-get update
@@ -146,7 +157,6 @@ jobs:
             libayatana-appindicator3-dev librsvg2-dev libssl-dev libasound2-dev libopus-dev \
             patchelf rpm file desktop-file-utils appstream xdg-utils squashfs-tools \
             gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-libav \
-            libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev \
             flatpak flatpak-builder
       - uses: actions/setup-node@v4.4.0
         with:
@@ -154,7 +164,7 @@ jobs:
           cache: npm
           cache-dependency-path: Clients/package-lock.json
       - run: npm ci
-      - uses: dtolnay/rust-toolchain@1.88.0
+      - uses: dtolnay/rust-toolchain@1.93.0
       - uses: Swatinem/rust-cache@v2.7.8
         with:
           workspaces: "Clients -> target"
@@ -206,14 +216,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4.2.2
         with:
-          ref: ${{ env.TAG }}
+          ref: ${{ inputs.ref || env.TAG }}
       - uses: actions/setup-node@v4.4.0
         with:
           node-version: 22
           cache: npm
           cache-dependency-path: Clients/package-lock.json
       - run: npm ci
-      - uses: dtolnay/rust-toolchain@1.88.0
+      - uses: dtolnay/rust-toolchain@1.93.0
         with:
           targets: ${{ matrix.target }}
       - uses: Swatinem/rust-cache@v2.7.8
@@ -259,7 +269,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4.2.2
         with:
-          ref: ${{ env.TAG }}
+          ref: ${{ inputs.ref || env.TAG }}
       - uses: actions/setup-java@v4.7.1
         with:
           distribution: temurin
@@ -270,7 +280,7 @@ jobs:
           cache: npm
           cache-dependency-path: Clients/package-lock.json
       - run: npm ci
-      - uses: dtolnay/rust-toolchain@1.88.0
+      - uses: dtolnay/rust-toolchain@1.93.0
         with:
           targets: aarch64-linux-android,x86_64-linux-android
       - uses: Swatinem/rust-cache@v2.7.8
@@ -357,14 +367,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4.2.2
         with:
-          ref: ${{ env.TAG }}
+          ref: ${{ inputs.ref || env.TAG }}
       - uses: actions/setup-node@v4.4.0
         with:
           node-version: 22
           cache: npm
           cache-dependency-path: Clients/package-lock.json
       - run: npm ci
-      - uses: dtolnay/rust-toolchain@1.88.0
+      - uses: dtolnay/rust-toolchain@1.93.0
         with:
           targets: aarch64-apple-ios,aarch64-apple-ios-sim,x86_64-apple-ios
       - uses: Swatinem/rust-cache@v2.7.8
@@ -385,7 +395,7 @@ jobs:
     name: GitHub release
     needs: [meta, server-image, server-files, linux, windows, android, ios]
     # Publish even if the best-effort iOS job failed, but never when the server image or a core platform job failed.
-    if: ${{ !cancelled() && needs.server-image.result == 'success' && needs.server-files.result == 'success' && needs.linux.result == 'success' && needs.windows.result == 'success' && needs.android.result == 'success' }}
+    if: ${{ !cancelled() && (github.event_name == 'push' || inputs.publish) && needs.server-image.result == 'success' && needs.server-files.result == 'success' && needs.linux.result == 'success' && needs.windows.result == 'success' && needs.android.result == 'success' }}
     runs-on: ubuntu-22.04
     permissions:
       contents: write
@@ -395,7 +405,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4.2.2
         with:
-          ref: ${{ env.TAG }}
+          ref: ${{ inputs.ref || env.TAG }}
       - uses: actions/download-artifact@v4.3.0
         with:
           pattern: assets-*
