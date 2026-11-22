@@ -9,7 +9,7 @@ Moving from the earlier server of this project? Read [UPGRADING.md](UPGRADING.md
 ## Quick start (install)
 
 The server is **one container, one compose file**: `docker-compose.yml` has a single service, `workchat-server`, which pulls the published image
-`ghcr.io/uri-travoski/workchat-server` (a **public** package: no login, nothing is built on your machine). There is no reverse proxy,
+`ghcr.io/uri-travoski/workchat-claude-server` (a **public** package: no login, nothing is built on your machine). There is no reverse proxy,
 tunnel, ntfy or object store in it; those run separately (see below). You need Docker with compose and two files from the latest GitHub Release:
 
 ```
@@ -37,8 +37,8 @@ docker compose pull && docker compose up -d
 or, without touching the file, set the image in `.env` and run the same two compose commands:
 
 ```
-WORKCHAT_IMAGE=ghcr.io/uri-travoski/workchat-server:1.1.0     # a specific release (tags are the release numbers without the v)
-WORKCHAT_IMAGE=ghcr.io/uri-travoski/workchat-server:latest    # always the newest release: docker compose pull is then the whole update
+WORKCHAT_IMAGE=ghcr.io/uri-travoski/workchat-claude-server:1.1.0     # a specific release (tags are the release numbers without the v)
+WORKCHAT_IMAGE=ghcr.io/uri-travoski/workchat-claude-server:latest    # always the newest release: docker compose pull is then the whole update
 ```
 
 Run them in the folder with `docker-compose.yml`. The data volume is kept; the container restarts on the new image in a few seconds and the
@@ -92,7 +92,7 @@ with defaults, is in the README; this is the part you normally touch.
 | `WORKCHAT_NTFY_URL` | none | Base URL of your own ntfy server. |
 | `WORKCHAT_BACKUP_PASSPHRASE` | file `<data>/backup.key` | Passphrase for encrypted backups (age, scrypt). If unset one is generated into `backup.key`. Keep a copy elsewhere; it is never inside a backup. |
 | `WORKCHAT_LOG_LEVEL` | `info,tower_http=warn` | Compose passes it as `RUST_LOG`. |
-| `WORKCHAT_IMAGE` | `ghcr.io/uri-travoski/workchat-server:<release>` | Image to run (compose only). |
+| `WORKCHAT_IMAGE` | `ghcr.io/uri-travoski/workchat-claude-server:<release>` | Image to run (compose only). |
 | `WORKCHAT_PORT`, `WORKCHAT_BIND_ADDR` | `8080`, `0.0.0.0` | Host port and address that publish the server (compose only). |
 | `WORKCHAT_DATA_VOLUME` | `workchat-data` | Name of the Docker volume mounted at `/data` (compose only). |
 | `WORKCHAT_NETWORK` | `proxy` | Name of the external Docker network, only when you enable the `networks:` block (compose only). |
@@ -133,7 +133,7 @@ Normal installs never build: they pull the published image. The Dockerfile lives
 
 ```
 docker build -f docker/Dockerfile -t workchat-server:1.1.0 .
-docker tag workchat-server:1.1.0 ghcr.io/uri-travoski/workchat-server:1.1.0     # what release.yml publishes; lets deploy/docker-compose.yml run it offline
+docker tag workchat-server:1.1.0 ghcr.io/uri-travoski/workchat-claude-server:1.1.0     # what release.yml publishes; lets deploy/docker-compose.yml run it offline
 docker compose -f docker/docker-compose.build.yml up -d --build                  # or: build and run a throw-away dev instance (port 8080, volume workchat-dev-data)
 ```
 The image is multi-stage (node for the admin panel, rust for the server, debian-slim runtime with ca-certificates and tini,

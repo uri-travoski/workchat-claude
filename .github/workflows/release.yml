@@ -2,7 +2,7 @@ name: Release
 
 # One release for the whole repository. Tag vX.Y.Z (must equal Clients/src-tauri/tauri.conf.json, workchat-server/Cargo.toml and the
 # image pinned in workchat-server/deploy/docker-compose.yml) or run manually with an existing tag.
-# Builds the server image (ghcr.io/uri-travoski/workchat-server), the server install files and every app, then creates the release once.
+# Builds the server image (ghcr.io/uri-travoski/workchat-claude-server), the server install files and every app, then creates the release once.
 on:
   push:
     tags: ["v*"]
@@ -64,7 +64,7 @@ jobs:
               m = re.search(r'(?m)^version\s*=\s*"([^"]+)"', text[head:])
               found[path + " [workspace.package]"] = m.group(1) if m else "(not found)"
           compose = open("workchat-server/deploy/docker-compose.yml").read()
-          m = re.search(r'ghcr\.io/uri-travoski/workchat-server:([0-9][^}\s"]*)\}', compose)
+          m = re.search(r'ghcr\.io/uri-travoski/workchat-claude-server:([0-9][^}\s"]*)\}', compose)
           found["workchat-server/deploy/docker-compose.yml image"] = m.group(1) if m else "(not found)"
           bad = False
           for where, got in found.items():
@@ -113,8 +113,8 @@ jobs:
           # A manual run without publish only proves the image builds.
           push: ${{ github.event_name == 'push' || inputs.publish }}
           tags: |
-            ghcr.io/uri-travoski/workchat-server:${{ needs.meta.outputs.version }}
-            ghcr.io/uri-travoski/workchat-server:latest
+            ghcr.io/uri-travoski/workchat-claude-server:${{ needs.meta.outputs.version }}
+            ghcr.io/uri-travoski/workchat-claude-server:latest
 
   server-files:
     name: Server install files (compose, env example)
@@ -425,7 +425,7 @@ jobs:
             echo
             echo "| Platform | Asset |"
             echo "|---|---|"
-            echo "| Server (Docker) | \`docker-compose.yml\`, \`workchat-server.env.example\`; image \`ghcr.io/uri-travoski/workchat-server:$VER\` |"
+            echo "| Server (Docker) | \`docker-compose.yml\`, \`workchat-server.env.example\`; image \`ghcr.io/uri-travoski/workchat-claude-server:$VER\` |"
             echo "| Windows x64 / arm64 | \`WorkChat-$VER-windows-x64-setup.exe\`, \`WorkChat-$VER-windows-arm64-setup.exe\` (installers); \`-portable.exe\` variants run without installing |"
             echo "| Linux x86_64 | \`WorkChat-$VER-linux-amd64.deb\`, \`WorkChat-$VER-linux-x86_64.rpm\`, \`WorkChat-$VER-linux-x86_64.AppImage\`, \`WorkChat-$VER-linux-x86_64.flatpak\` |"
             echo "| Android | \`WorkChat-$VER-android-arm64.apk\`, \`WorkChat-$VER-android-x86_64.apk\` (\`-unsigned\` in the name means no release key was configured in CI) |"

@@ -44,7 +44,7 @@ Everything is on the [Releases page](https://github.com/uri-travoski/workchat-cl
 
 ## Server quick start
 
-The image `ghcr.io/uri-travoski/workchat-server` is public; nothing is built on your machine.
+The image `ghcr.io/uri-travoski/workchat-claude-server` is public; nothing is built on your machine.
 
 ```sh
 mkdir workchat && cd workchat
@@ -91,7 +91,7 @@ Android and iOS builds, signing and flatpak packaging are described in [Clients/
   installer; Linux shows the package or AppImage; iOS opens the release page.
 - **Server**: the admin panel's Updates card reads the same release list (server side, cached, no data sent) and shows the commands.
   To update, download the new `docker-compose.yml` (it pins that release's image) and run `docker compose pull && docker compose up -d`,
-  or set `WORKCHAT_IMAGE=ghcr.io/uri-travoski/workchat-server:latest` once.
+  or set `WORKCHAT_IMAGE=ghcr.io/uri-travoski/workchat-claude-server:latest` once.
 
 ## Releasing
 

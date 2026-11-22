@@ -47,9 +47,9 @@ function fill(box: HTMLElement, u: AdminUpdates, refresh: () => void) {
   parts.push(h("h3", {}, u.update_available ? "Update this server" : "Update commands"));
   parts.push(h("p", { class: "muted" }, "On the machine that runs the server, in the folder with docker-compose.yml (the image comes from ghcr.io, nothing is built locally)."));
   parts.push(h("p", { class: "muted" }, "Set the image in .env first, for example ",
-    h("code", {}, "WORKCHAT_IMAGE=ghcr.io/uri-travoski/workchat-server:" + (rel?.version ?? u.current)),
+    h("code", {}, "WORKCHAT_IMAGE=ghcr.io/uri-travoski/workchat-claude-server:" + (rel?.version ?? u.current)),
     " (or download the new docker-compose.yml from the release page, which pins that release), then run the commands below. With ",
-    h("code", {}, "WORKCHAT_IMAGE=ghcr.io/uri-travoski/workchat-server:latest"), " the commands alone always get the newest release. Your data volume is kept."));
+    h("code", {}, "WORKCHAT_IMAGE=ghcr.io/uri-travoski/workchat-claude-server:latest"), " the commands alone always get the newest release. Your data volume is kept."));
   parts.push(cmdBox(UPGRADE_COMMAND));
   const dl = (rel?.assets ?? []).map((a) => ({ a, l: assetLabel(a.name) })).filter((x) => x.l);
   parts.push(h("h3", {}, "Client downloads" + (rel ? " in v" + rel.version : "")));

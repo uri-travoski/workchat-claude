@@ -33,6 +33,6 @@ Phase S2 (what the app developers still missed, [docs/API.md](docs/API.md#channe
 
 First release as a standalone server, split from the earlier project; see docs/UPGRADING.md.
 
-* One Rust server (`workchat-server`) with its admin panel, shipped as the Docker image `ghcr.io/uri-travoski/workchat-server`.
+* One Rust server (`workchat-server`) with its admin panel, shipped as the Docker image `ghcr.io/uri-travoski/workchat-claude-server`.
 * Settings are read from `WORKCHAT_*` environment variables, the database is `workchat.db`, outgoing webhooks are signed with `X-WorkChat-*` headers.
 * Own Cargo workspace (`workchat-server`, `workchat-proto`), own CI and release workflow, standalone `docker-compose.yml` and `.env.example`.

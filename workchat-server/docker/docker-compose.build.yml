@@ -2,7 +2,7 @@
 # deploy/docker-compose.yml, which pulls the published image.
 #
 #   docker compose -f docker/docker-compose.build.yml up -d --build
-#   (the image is tagged ghcr.io/uri-travoski/workchat-server:dev-local, port 8080 on this machine, own volume workchat-dev-data)
+#   (the image is tagged ghcr.io/uri-travoski/workchat-claude-server:dev-local, port 8080 on this machine, own volume workchat-dev-data)
 name: workchat-dev
 
 services:
@@ -10,7 +10,7 @@ services:
     build:
       context: ..
       dockerfile: docker/Dockerfile
-    image: ghcr.io/uri-travoski/workchat-server:dev-local
+    image: ghcr.io/uri-travoski/workchat-claude-server:dev-local
     restart: unless-stopped
     environment:
       WORKCHAT_PUBLIC_URL: ${WORKCHAT_PUBLIC_URL:-http://localhost:8080}

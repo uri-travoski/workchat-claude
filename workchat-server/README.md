@@ -28,7 +28,7 @@ Moving from the earlier SuperChat server install? See [docs/UPGRADING.md](docs/U
 
 ## Quick start (Docker)
 
-One container, one compose file, nothing built locally (the image `ghcr.io/uri-travoski/workchat-server` is public). A reverse proxy, Cloudflare Tunnel and ntfy are not included:
+One container, one compose file, nothing built locally (the image `ghcr.io/uri-travoski/workchat-claude-server` is public). A reverse proxy, Cloudflare Tunnel and ntfy are not included:
 run those separately ([how](docs/DEPLOY.md#reverse-proxy-tunnel-and-ntfy-run-separately)).
 
 ```sh
@@ -42,7 +42,7 @@ docker compose up -d
 Then open `http://<host>:8080/admin`, create the owner account and pick the attachment storage ([how](docs/DEPLOY.md#attachment-storage-s3-r2-b2)).
 
 **Update**: download the new `docker-compose.yml` (it pins that release's image) and run `docker compose pull && docker compose up -d`; or set
-`WORKCHAT_IMAGE=ghcr.io/uri-travoski/workchat-server:latest` in `.env` once. The admin panel's Overview says when a new release exists.
+`WORKCHAT_IMAGE=ghcr.io/uri-travoski/workchat-claude-server:latest` in `.env` once. The admin panel's Overview says when a new release exists.
 
 ## Configuration
 

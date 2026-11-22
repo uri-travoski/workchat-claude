@@ -11,7 +11,7 @@ This is the only document that uses the old names.
 
 | What | Old | New |
 |---|---|---|
-| Image | `ghcr.io/uri-travoski/superchat-server` | `ghcr.io/uri-travoski/workchat-server` |
+| Image | `ghcr.io/uri-travoski/superchat-server` | `ghcr.io/uri-travoski/workchat-claude-server` |
 | Environment variables | `SUPERCHAT_*` (or the older `ATOMIC_*`) | `WORKCHAT_*` (one name each) |
 | Compose project / service | `superchat` / `superchat` (container `superchat-superchat-1`) | `workchat` / `workchat-server` (container `workchat-workchat-server-1`) |
 | Docker volume (default) | `superchat-data` (a 1.0-era install: `atomic-chat_atomic-data`) | `workchat-data`, or keep the old one with `WORKCHAT_DATA_VOLUME` |
