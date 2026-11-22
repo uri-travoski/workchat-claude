@@ -11,13 +11,21 @@
   const close = () => (app.drawer = false);
   $effect(() => registerLayer(close));
 
-  function go(tab: "chats" | "contacts" | "settings", filter?: "files") {
+  type F = "all" | "dm" | "channel" | "threads" | "saved" | "files";
+  function go(tab: "chats" | "contacts" | "settings", filter?: F) {
     app.drawer = false;
     app.tab = tab;
     if (tab === "settings") app.spage = "";
     if (filter) app.filter = filter;
     else if (app.filter === "files") app.filter = "all";
   }
+  const views: { f: F; label: string; icon: string }[] = [
+    { f: "all", label: "All Chats", icon: "allchats" },
+    { f: "dm", label: "DMs", icon: "chat" },
+    { f: "channel", label: "Channels", icon: "hash" },
+    { f: "threads", label: "Threads", icon: "thread" },
+    { f: "saved", label: "Saved", icon: "bookmark" },
+  ];
 
   let dx = $state(0);
   let sx: number | null = null;
@@ -52,7 +60,10 @@
     </button>
   {/if}
   <nav>
-    <button onclick={() => go("chats", "files")}><Icon name="folder" size={22} /><span>Files</span></button>
+    {#each views as v (v.f)}
+      <button class:on={app.tab === "chats" && app.filter === v.f} onclick={() => go("chats", v.f)}><Icon name={v.icon} size={22} /><span>{v.label}</span></button>
+    {/each}
+    <button class:on={app.tab === "chats" && app.filter === "files"} onclick={() => go("chats", "files")}><Icon name="folder" size={22} /><span>Files</span></button>
     <button onclick={() => go("contacts")}><Icon name="users" size={22} /><span>People</span></button>
     <button onclick={() => go("settings")}><Icon name="gear" size={22} /><span>Settings</span>{#if app.upd.found}<i class="udot"></i>{/if}</button>
   </nav>
@@ -68,6 +79,7 @@
   nav { padding: 8px 10px; display: flex; flex-direction: column; gap: 2px; }
   nav button { display: flex; align-items: center; gap: 16px; padding: 13px 12px; border-radius: 12px; font-size: 16.5px; font-weight: 600; color: var(--text); text-align: left; }
   nav button:hover, nav button:active { background: var(--hover); }
+  nav button.on { background: var(--hover); color: var(--blue); }
   nav :global(svg) { color: var(--blue); }
   .udot { width: 8px; height: 8px; border-radius: 50%; background: #5b93e8; }
   .ver { margin: auto 0 0; padding: 14px 20px; color: var(--muted); font-size: 13px; }

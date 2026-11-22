@@ -1028,6 +1028,13 @@ pub fn run() {
     });
     builder
         .setup(|app| {
+            // The taskbar / dock / alt-tab icon: set it on the window explicitly (the bundled default is only the 32 px one).
+            #[cfg(desktop)]
+            if let Some(w) = app.get_webview_window("main") {
+                if let Ok(img) = tauri::image::Image::from_bytes(include_bytes!("../icons/icon.png")) {
+                    let _ = w.set_icon(img);
+                }
+            }
             // Windows portable: data lives next to the exe. WORKCHAT_DATA_DIR wins (tests, several accounts).
             #[cfg(windows)]
             let portable_dir = std::env::current_exe().ok().and_then(|p| portable::portable_dir(&p));

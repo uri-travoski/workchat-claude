@@ -43,6 +43,7 @@ button.st-row:hover { background: var(--hover); }
 .st-btn:hover:not(:disabled) { background: var(--hover); }
 .st-btn:disabled { opacity: 0.5; }
 .st-btn.pri { background: var(--accent); color: #fff; border-color: var(--accent); }
+.st-btn.pri:hover:not(:disabled), .st-btn.pri:active:not(:disabled) { background: var(--accent); color: #fff; filter: brightness(1.12); }
 .st-btn.danger { color: var(--danger); }
 .st-btns { display: flex; gap: 10px; flex-wrap: wrap; }
 .st-note { color: var(--muted); font-size: 13px; line-height: 1.45; margin: 0; }

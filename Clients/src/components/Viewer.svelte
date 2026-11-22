@@ -132,7 +132,7 @@
   <div class="viewer" role="dialog" aria-modal="true" aria-label="Media viewer">
     {#if chrome}
       <header>
-        <button class="ib" aria-label="Close" onclick={close}><Icon name={app.phone ? "left" : "x"} size={26} stroke={2.2} /></button>
+        {#if app.phone}<button class="ib" aria-label="Close" onclick={close}><Icon name="left" size={26} stroke={2.2} /></button>{/if}
         <div class="ti">
           <b>{item.sender_id ? userName(item.sender_id) : item.name}</b>
           <span>{item.ts ? `${dayLabel(item.ts)}, ${clock(item.ts)}` : fileSize(item.size)} · {item.name}</span>
@@ -145,6 +145,7 @@
         {#if item.message_id && item.conv_id}<button class="ib" aria-label="Show in chat" title="Show in chat" onclick={() => jumpTo(item.conv_id!, item.message_id!)}><Icon name="chat" size={22} /></button>{/if}
         <button class="ib" aria-label="Save" title="Save to Downloads" onclick={save}><Icon name="download" size={22} /></button>
         <button class="ib" aria-label="Open in default app" title="Open in default app" onclick={open}><Icon name="external" size={22} /></button>
+        {#if !app.phone}<button class="ib" aria-label="Close" title="Close" onclick={close}><Icon name="x" size={26} stroke={2.2} /></button>{/if}
       </header>
     {/if}
     <div class="stage" bind:this={stage} role="presentation" onwheel={wheel} ondblclick={dbl} onpointerdown={down} onpointermove={move} onpointerup={up} onpointercancel={up}>

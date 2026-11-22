@@ -101,9 +101,25 @@ export function syncBars() {
   void core.setSystemBars(hex, dark).catch(() => {});
 }
 
+/** Android: files or text another app shared to WorkChat. Asks which chat should get them. */
+export function takeShared() {
+  try {
+    const raw = (window as unknown as { WcShare?: { take: () => string } }).WcShare?.take();
+    if (!raw) return;
+    const d = JSON.parse(raw) as { files: { path: string; name: string }[]; text: string };
+    if (!d.files.length && !d.text.trim()) return;
+    app.sheet = { kind: "shareto", files: d.files, text: d.text };
+  } catch {
+    /* no share bridge (not Android) */
+  }
+}
+
 export async function startShell(): Promise<() => void> {
   const offs: (() => void)[] = [];
   (window as unknown as { __wcBack: () => boolean }).__wcBack = handleBack;
+  const w = window as unknown as { __wcShareNudge?: () => void; WcShare?: { take: () => string } };
+  w.__wcShareNudge = takeShared;
+  takeShared();
   onThemeApplied(syncBars);
   const media = window.matchMedia("(prefers-color-scheme: dark)");
   const bars = () => setTimeout(syncBars, 60);

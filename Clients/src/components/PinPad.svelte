@@ -168,7 +168,7 @@
       {#each ["1", "2", "3", "4", "5", "6", "7", "8", "9"] as d}
         <button class="k" disabled={busy || wait > 0} onclick={() => digit(d)}>{d}</button>
       {/each}
-      <button class="k flat" aria-label="Delete" onclick={back}><Icon name="left" size={24} /></button>
+      <button class="k flat" aria-label="Delete" onclick={back}><Icon name="backspace" size={28} /></button>
       <button class="k" disabled={busy || wait > 0} onclick={() => digit("0")}>0</button>
       <button class="k flat txt" onclick={close}>Cancel</button>
     </div>

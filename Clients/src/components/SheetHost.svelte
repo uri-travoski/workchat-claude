@@ -9,6 +9,7 @@
   import CropSheet from "./CropSheet.svelte";
   import EmojiSheet from "./EmojiSheet.svelte";
   import ForwardSheet from "./ForwardSheet.svelte";
+  import ShareToSheet from "./ShareToSheet.svelte";
   import InfoSheet from "./InfoSheet.svelte";
   import MessageMenu from "./MessageMenu.svelte";
   import NewChatSheet from "./NewChatSheet.svelte";
@@ -26,6 +27,7 @@
     {#if s.kind === "attach"}<AttachSheet conv={s.conv} thread={s.thread} />
     {:else if s.kind === "preview"}<PreviewSheet sheet={s} />
     {:else if s.kind === "forward"}<ForwardSheet msg={s.msg} />
+    {:else if s.kind === "shareto"}<ShareToSheet files={s.files} text={s.text} />
     {:else if s.kind === "newchat"}<NewChatSheet step={s.step} />
     {:else if s.kind === "profile"}<ProfileSheet userId={s.userId} />
     {:else if s.kind === "crop"}<CropSheet sheet={s} />

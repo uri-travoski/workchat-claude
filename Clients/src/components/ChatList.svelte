@@ -20,7 +20,6 @@
   const dms = $derived(rows.filter(isDirect));
   const channels = $derived(rows.filter((r) => r.kind === "channel"));
   const threadList = $derived(Object.values(app.threads).sort((a, b) => b.last_reply_ts - a.last_reply_ts));
-  const anyUnread = $derived(rows.some((r) => r.unread > 0 || r.marked_unread));
 
   // The chat list: what the rail item (desktop) or pill (phone) selects, narrowed by the list box (names only).
   const kind = $derived(app.filter === "dm" ? "dm" : app.filter === "channel" ? "channel" : "all");
@@ -183,13 +182,6 @@
 
   const connLabel = $derived(app.conn === "online" ? "Online" : app.conn === "connecting" ? "Connecting…" : "Offline");
 
-  function pill(f: typeof app.filter) {
-    app.filter = f;
-  }
-  const nDms = $derived(app.counts?.dms ?? dms.length);
-  const nChans = $derived(app.counts?.channels ?? channels.length);
-  const nThreads = $derived(app.counts?.threads ?? threadList.length);
-  const nSaved = $derived(app.counts?.saved ?? app.saved.length);
   const unreadAll = $derived(unreadTotal());
   const filesPage = $derived(app.phone && app.filter === "files");
   const phoneItems = $derived.by((): MenuItem[] => {
@@ -217,7 +209,7 @@
       {#if unreadAll > 0}<span class="mb" aria-label={`${unreadAll} unread`}>{unreadAll > 99 ? "99+" : unreadAll}</span>{/if}
     </button>
     <div class="ttl">
-      <h1>Chats</h1>
+      <h1>{viewTitle}</h1>
       <span class="conn" class:off={app.conn !== "online"}><i></i>{connLabel}</span>
     </div>
     <div class="acts">
@@ -252,15 +244,6 @@
   {#if app.lock.open}
     <div class="lockbar" role="status"><Icon name="lockopen" size={15} /><span>Locked chats are showing</span><button onclick={lockNow}>Lock now</button></div>
   {/if}
-  {#if app.phone && !filesPage}
-  <div class="pills" role="tablist" aria-label="Filter chats">
-    <button role="tab" aria-selected={app.filter === "all"} class:on={app.filter === "all"} onclick={() => pill("all")}>All{#if anyUnread}<i class="udot"></i>{/if}</button>
-    <button role="tab" aria-selected={app.filter === "dm"} class:on={app.filter === "dm"} onclick={() => pill("dm")}>DMs{#if nDms}<em>{nDms}</em>{/if}</button>
-    <button role="tab" aria-selected={app.filter === "channel"} class:on={app.filter === "channel"} onclick={() => pill("channel")}>Channels{#if nChans}<em>{nChans}</em>{/if}</button>
-    <button role="tab" aria-selected={app.filter === "threads"} class:on={app.filter === "threads"} onclick={() => pill("threads")}>Threads{#if nThreads}<em>{nThreads}</em>{/if}{#if (app.counts?.threads_unread ?? 0) > 0}<i class="udot"></i>{/if}</button>
-    <button role="tab" aria-selected={app.filter === "saved"} class:on={app.filter === "saved"} onclick={() => pill("saved")}>Saved{#if nSaved}<em>{nSaved}</em>{/if}</button>
-  </div>
-  {/if}
 
   <div class="body" bind:this={bodyEl} class:scroll={app.filter !== "files"} class:files={app.filter === "files"}>
     {#if app.filter === "threads"}
@@ -284,7 +267,7 @@
       <SavedView />
     {:else}
       {#if !shown.length && !(app.phone && app.listq.trim().length >= 2)}
-        <p class="empty">{app.listq ? "No chats match that name." : app.conn === "connecting" ? "Loading your chats…" : "No chats yet. Tap the pencil to start one."}</p>
+        <p class="empty">{app.listq ? "No chats match that name." : app.conn === "connecting" ? "Loading your chats…" : "No chats yet. Tap + to start one."}</p>
       {/if}
       {#if pinned.length}
         <div class="sec"><span><Icon name="pin" size={13} stroke={2} /> PINNED ({pinned.length})</span>{#if pinned.length > 1 && !app.phone}<small class="hint">drag to reorder</small>{/if}</div>
@@ -312,7 +295,7 @@
       {/if}
       {#if rest.length}
         <div class="sec">
-          <span><Icon name={kind === "channel" ? "hash" : kind === "dm" ? "user" : "chat"} size={13} stroke={2} /> {restTitle} ({rest.length})</span>
+          <span><Icon name={kind === "channel" ? "hash" : kind === "dm" ? "chat" : "allchats"} size={13} stroke={2} /> {restTitle} ({rest.length})</span>
           {#if !app.phone}<button class="sortb" aria-label={`Sort: ${sortLabel}`} aria-haspopup="menu" onclick={(e) => { const r = (e.currentTarget as HTMLElement).getBoundingClientRect(); sortMenu = { x: r.right, y: r.bottom + 4 }; }}>{sortLabel} <Icon name="down" size={13} stroke={2.2} /></button>{/if}
         </div>
         {#each rest as r (r.id)}<ChatRowItem row={r} selected={app.selected === r.id} onopen={() => openConversation(r.id)} />{/each}
@@ -322,7 +305,7 @@
     {/if}
   </div>
 
-  {#if (isChats || app.phone) && !filesPage}<button class="fab" aria-label="New message" onclick={() => (app.sheet = { kind: "newchat" })}><Icon name="pencil" size={24} /></button>{/if}
+  {#if (isChats || app.phone) && !filesPage}<button class="fab" aria-label="New message" onclick={() => (app.sheet = { kind: "newchat" })}><Icon name="plus" size={26} stroke={2.2} /></button>{/if}
 </div>
 
 {#if sortMenu}
@@ -350,7 +333,7 @@
     right
     onclose={() => (menu = null)}
     items={[
-      { label: "New message", icon: "pencil", run: () => (app.sheet = { kind: "newchat" }) },
+      { label: "New message", icon: "plus", run: () => (app.sheet = { kind: "newchat" }) },
       { label: "Locked chats", icon: "lock", run: openLockedChats },
       { label: "Reconnect", icon: "retry", run: () => void core.reconnect() },
       { label: "Settings", icon: "gear", run: () => { closeConversation(); app.tab = "settings"; } },
@@ -378,15 +361,6 @@
   .search { display: flex; align-items: center; gap: 8px; margin: 0; padding: 4px 12px 10px 18px; background: var(--surface); color: var(--muted); }
   .search.desk { padding: 12px 12px 4px 16px; background: var(--page); }
   .search input { flex: 1; border: 0; background: var(--chip); border-radius: 18px; padding: 9px 14px; outline: none; color: var(--text); font-size: 15px; }
-  /* Five pills must fit 360 to 412 px wide phones: they share the row and shrink their padding. */
-  .lockbar { display: flex; align-items: center; gap: 8px; margin: 6px 12px 0; padding: 7px 12px; border-radius: 12px; background: color-mix(in srgb, var(--blue) 12%, var(--surface)); color: var(--text-2); font-size: 13.5px; font-weight: 600; }
-  .lockbar span { flex: 1; }
-  .lockbar button { color: var(--blue); font-weight: 700; }
-  .pills { display: flex; gap: 6px; padding: 10px 12px 12px; background: var(--page); }
-  .pills button { flex: 1 1 auto; min-width: 0; height: 36px; padding: 0 6px; border-radius: 18px; background: var(--pill); border: 1px solid var(--pill-line); font-size: 13px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; gap: 4px; box-shadow: var(--shadow); color: var(--text); white-space: nowrap; }
-  .pills button.on { background: var(--accent); border-color: var(--accent); color: #fff; }
-  .pills em { font-style: normal; font-weight: 600; color: var(--muted); font-size: 11.5px; }
-  .pills .on em { color: #c9d6ee; }
   .udot { width: 7px; height: 7px; flex: none; border-radius: 50%; background: #5b93e8; }
   .body { flex: 1; min-height: 0; }
   .body.files { display: flex; flex-direction: column; overflow: hidden; }

@@ -1,7 +1,27 @@
 # Changelog
 
 Release notes for the whole WorkChat repository. The release workflow publishes the section matching the tag
-(`## [1.2.0]` for `v1.2.0`) as the GitHub release notes. Component details: [workchat-server/CHANGELOG.md](workchat-server/CHANGELOG.md),
+(`## [1.3.0] - 2026-11-22
+
+Phone menu and icons, desktop fixes, Android share target.
+
+Phone:
+
+* The menu (top left) now has All Chats, DMs, Channels, Threads and Saved above Files, People and Settings. The filter pills are gone; the app always opens on All Chats.
+* New icons for All Chats, DMs and Threads. The floating new-chat button shows a plus.
+* "Share" from other Android apps now lists WorkChat (files, photos, videos and text); pick the chat to send to.
+* The PIN keypad's delete key is a backspace icon.
+* "Check for updates" stays readable after a tap.
+* The app icon is inverted: navy bubble on white.
+
+Desktop:
+
+* The new-chat button shows a plus. The image viewer's close button is the last icon at the top right.
+* The window sets its own taskbar icon. Same new icons as the phone.
+
+Server: version bump only (1.3.0), no changes.
+
+## [1.2.0]` for `v1.2.0`) as the GitHub release notes. Component details: [workchat-server/CHANGELOG.md](workchat-server/CHANGELOG.md),
 [Clients/CHANGELOG.md](Clients/CHANGELOG.md).
 
 ## [1.2.0] - 2026-11-22

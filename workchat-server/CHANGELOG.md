@@ -1,6 +1,10 @@
 # Changelog
 
-## 1.2.0 (unreleased)
+## 1.3.0
+
+Version bump only.
+
+## 1.2.0
 
 Channels are private only; public channel browse/join removed.
 

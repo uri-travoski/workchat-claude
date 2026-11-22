@@ -33,6 +33,7 @@ export type Sheet =
   | { kind: "attach"; conv: string; thread: string | null }
   | { kind: "preview"; conv: string; thread: string | null; files: Staged[]; caption: string }
   | { kind: "forward"; msg: MessageView }
+  | { kind: "shareto"; files: { path: string; name: string }[]; text: string }
   | { kind: "newchat"; step?: "menu" | "dm" | "group" | "channel" }
   | { kind: "profile"; userId: string }
   | { kind: "crop"; stagedId: string; target: { kind: "me" } | { kind: "conv"; id: string } | { kind: "local"; what: "user" | "conv"; id: string } | { kind: "newchat" } }

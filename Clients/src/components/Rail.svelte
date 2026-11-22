@@ -14,8 +14,8 @@
   }
   const rows = $derived(Object.values(app.rows).filter((r) => !r.archived));
   const items = $derived<Item[]>([
-    { id: "all", label: "All Chats", icon: "chat", tab: "chats", filter: "all", badge: unreadOf(rows) },
-    { id: "dm", label: "DMs", icon: "user", tab: "chats", filter: "dm", badge: unreadOf(rows.filter(isDirect)) },
+    { id: "all", label: "All Chats", icon: "allchats", tab: "chats", filter: "all", badge: unreadOf(rows) },
+    { id: "dm", label: "DMs", icon: "chat", tab: "chats", filter: "dm", badge: unreadOf(rows.filter(isDirect)) },
     { id: "channel", label: "Channels", icon: "hash", tab: "chats", filter: "channel", badge: unreadOf(rows.filter((r) => inKind(r, "channel"))) },
     { id: "threads", label: "Threads", icon: "thread", tab: "chats", filter: "threads", badge: app.counts?.threads_unread ?? 0 },
     { id: "files", label: "Files", icon: "paperclip", tab: "chats", filter: "files" },

@@ -1,7 +1,7 @@
 {
   "name": "workchat",
   "private": true,
-  "version": "1.2.0",
+  "version": "1.3.0",
   "repository": { "type": "git", "url": "https://github.com/uri-travoski/workchat-claude.git", "directory": "Clients" },
   "homepage": "https://github.com/uri-travoski/workchat-claude",
   "license": "MIT",
