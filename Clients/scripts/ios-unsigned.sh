@@ -23,7 +23,7 @@ cat > "$SHIM/xcodebuild" <<SH
 for a in "\$@"; do
   if [ "\$a" = "-exportArchive" ]; then echo "[shim] skipping signed export"; exit 0; fi
 done
-exec "$REAL_XCODEBUILD" "\$@" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" DEVELOPMENT_TEAM=""
+exec "$REAL_XCODEBUILD" "\$@" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" DEVELOPMENT_TEAM="" CMAKE_POLICY_VERSION_MINIMUM=3.5
 SH
 chmod +x "$SHIM/xcodebuild"
 
