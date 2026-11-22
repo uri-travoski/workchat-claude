@@ -37,12 +37,14 @@ cp -R "$APP" "$OUT/Payload/"
 ( cd "$OUT" && zip -qry "WorkChat-$VER-ios-unsigned.ipa" Payload && rm -rf Payload )
 echo "built $OUT/WorkChat-$VER-ios-unsigned.ipa"
 
-# 2. simulator build (the options file written by the previous run lets the Xcode script phase find its settings)
-PROJ=$(ls -d src-tauri/gen/apple/*.xcodeproj | head -1)
-SCHEME=$(basename "$PROJ" .xcodeproj)_iOS
-PATH="$SHIM:$PATH" xcodebuild -project "$PROJ" -scheme "$SCHEME" -configuration release \
-  -sdk iphonesimulator -arch arm64 -derivedDataPath "$ROOT/target/ios-sim" build
-SIMAPP=$(find "$ROOT/target/ios-sim/Build/Products" -name '*.app' -maxdepth 3 -type d | head -1)
-[ -n "$SIMAPP" ] || { echo "no simulator .app found"; exit 1; }
+# 2. simulator build: same route through the tauri CLI (it has to be running while Xcode builds, it serves the build options).
+# Best effort: the ipa above is already in place if this part fails.
+find src-tauri/gen/apple -name '*.xcarchive' -maxdepth 6 -prune -exec rm -rf {} + 2>/dev/null || true
+PATH="$SHIM:$PATH" npx tauri ios build --ci --target aarch64-sim || echo "tauri ios build (simulator) exited non-zero (expected without signing); looking for the archive"
+SIMAPP=$(find src-tauri/gen/apple -path '*.xcarchive/Products/Applications/*.app' -maxdepth 8 -type d | head -1 || true)
+if [ -z "$SIMAPP" ]; then
+  SIMAPP=$(find "$HOME/Library/Developer/Xcode/DerivedData" -path '*Build/Products/release-iphonesimulator/*.app' -maxdepth 6 -type d 2>/dev/null | head -1 || true)
+fi
+if [ -z "$SIMAPP" ]; then echo "::warning::no simulator .app found; skipping the simulator zip"; exit 0; fi
 ( cd "$(dirname "$SIMAPP")" && zip -qry "$OUT/WorkChat-$VER-ios-simulator.zip" "$(basename "$SIMAPP")" )
 echo "built $OUT/WorkChat-$VER-ios-simulator.zip"
