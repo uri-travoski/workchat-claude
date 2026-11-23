@@ -4,6 +4,14 @@ Release notes for the whole WorkChat repository. The release workflow publishes 
 (`## [1.2.0]` for `v1.2.0`) as the GitHub release notes. Component details: [workchat-server/CHANGELOG.md](workchat-server/CHANGELOG.md),
 [Clients/CHANGELOG.md](Clients/CHANGELOG.md).
 
+## [1.5.1] - 2026-11-23
+
+Avatar and channel display tweaks. The server is unchanged; the version is kept in step across the repository.
+
+* Channel names no longer show a "#" in front (chat list, and the Leave confirmation).
+* Pictures for chats, groups and people have a dark navy (#1B2B47) ring. Pictures for channels keep their square corners and get the same ring.
+* The small corner badges on channel and bot avatars are 10% bigger. The bot badge is a new robot glyph.
+
 ## [1.5.0] - 2026-11-22
 
 Message labels, picture and text options, connection dot.
