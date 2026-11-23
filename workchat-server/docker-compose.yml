@@ -1,0 +1,39 @@
+# WorkChat server: standalone compose file. Pulls the published image from GitHub Container Registry (tag "latest",
+# always the newest release). Nothing is built here and no Dockerfile is needed.
+#
+#   docker compose up -d            -> http://<this machine>:8080/admin
+#   docker compose pull && docker compose up -d     -> update to the newest release
+#
+# Optional settings can be placed in a .env file next to this file, or exported in your shell. Every value below has a
+# default, so the file works without a .env. See docs/DEPLOY.md for the full list.
+
+name: workchat
+
+services:
+  workchat-server:
+    image: ghcr.io/uri-travoski/workchat-claude-server:latest
+    pull_policy: always
+    restart: unless-stopped
+    environment:
+      WORKCHAT_PUBLIC_URL: ${WORKCHAT_PUBLIC_URL:-http://localhost:8080}
+      WORKCHAT_NAME: ${WORKCHAT_NAME:-WorkChat}
+      WORKCHAT_BOOTSTRAP_ADMIN: ${WORKCHAT_BOOTSTRAP_ADMIN:-}
+      WORKCHAT_MAX_UPLOAD_MB: ${WORKCHAT_MAX_UPLOAD_MB:-100}
+      WORKCHAT_NTFY_URL: ${WORKCHAT_NTFY_URL:-}
+      WORKCHAT_BACKUP_PASSPHRASE: ${WORKCHAT_BACKUP_PASSPHRASE:-}
+      RUST_LOG: ${WORKCHAT_LOG_LEVEL:-info,tower_http=warn}
+    volumes:
+      - workchat-data:/data
+    ports:
+      - "${WORKCHAT_BIND_ADDR:-0.0.0.0}:${WORKCHAT_PORT:-8080}:8080"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/workchat-server", "healthcheck"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  workchat-data:
