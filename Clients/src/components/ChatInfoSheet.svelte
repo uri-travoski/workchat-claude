@@ -100,7 +100,7 @@
     if (await run(core.removeMember(conv, id), "Removed.")) await loadMembers();
   }
   async function leave() {
-    if (!window.confirm(`Leave ${row?.kind === "channel" ? "#" + row.title : row?.title}? You will need to be added again to come back.`)) return;
+    if (!window.confirm(`Leave ${row?.title}? You will need to be added again to come back.`)) return;
     if (await run(core.leaveConversation(conv))) {
       closeSheet();
       closeConversation();

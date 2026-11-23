@@ -3,6 +3,14 @@
 All notable changes to the WorkChat apps. The release workflow uses the section matching the tag as the
 GitHub release notes, so add a `## [x.y.z]` heading before tagging.
 
+## [1.5.1] - 2026-11-23
+
+Avatar and channel display tweaks.
+
+* Channel names no longer show a "#" in front (chat list, and the Leave confirmation).
+* Pictures for chats, groups and people have a dark navy (#1B2B47) ring. Pictures for channels keep their square corners and get the same ring, so conversation images match.
+* The small corner badges on channel and bot avatars are 10% bigger. The bot badge is a new robot glyph.
+
 ## [1.5.0] - 2026-11-22
 
 Message labels, picture and text options, connection dot.
