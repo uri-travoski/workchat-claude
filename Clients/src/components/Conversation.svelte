@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { app, backToLatest, closeConversation, convOf, ensureConv, fail, jumpTo, loadOlder, openConversation, userName } from "../lib/app.svelte";
+  import { app, backToLatest, closeConversation, convOf, ensureConv, fail, jumpTo, loadOlder, openConversation, refreshNow, userName } from "../lib/app.svelte";
+  import { pullRefresh } from "../lib/pull";
   import { channelIcon } from "../lib/chat";
   import { core, type MessageView, type SearchResponse } from "../lib/core";
   import { clock, dayLabel } from "../lib/format";
@@ -102,7 +103,7 @@
 </script>
 
 {#if row}
-  <section class="conv" aria-label={row.title}>
+  <section class="conv" aria-label={row.title} use:pullRefresh={refreshNow}>
     <header>
       {#if app.phone}<button class="ib" aria-label="Back" onclick={closeConversation}><Icon name="left" size={26} stroke={2.2} /></button>{/if}
       <button class="hd" aria-label="Chat details" onclick={() => (row.kind === "dm" && row.peer_id ? (app.sheet = { kind: "profile", userId: row.peer_id }) : (app.sheet = { kind: "channelinfo", conv: id }))}>

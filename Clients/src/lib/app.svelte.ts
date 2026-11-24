@@ -467,6 +467,19 @@ export function stop() {
   unlisten?.();
 }
 
+/** Pull to refresh (chat list and inside a chat): reconnect to the server, then reload what is on screen. */
+export async function refreshNow() {
+  if (app.phase !== "in") return;
+  try {
+    await core.reconnect();
+  } catch (e) {
+    fail(e);
+    return;
+  }
+  await loadSnapshot();
+  if (app.conn !== "online") toast("Still offline. Check the network and try again.", "error");
+}
+
 export async function refreshLock() {
   try {
     app.lock = await core.lockStatus();

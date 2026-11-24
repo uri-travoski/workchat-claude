@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { app, closeConversation, openConversation, openThread, prefs, savePrefs, sortedRows, unreadTotal, type ChatSort } from "../lib/app.svelte";
+  import { app, closeConversation, openConversation, openThread, prefs, refreshNow, savePrefs, sortedRows, unreadTotal, type ChatSort } from "../lib/app.svelte";
+  import { pullRefresh } from "../lib/pull";
   import { core, type ChatRow } from "../lib/core";
   import { byActivity, dropSlot, inKind, isDirect, moveId, nameMatches, sortChats } from "../lib/chat";
   import { listTime } from "../lib/format";
@@ -204,7 +205,7 @@
   const viewTitle = $derived(app.filter === "threads" ? "Threads" : app.filter === "files" ? "Files" : app.filter === "saved" ? "Saved" : app.filter === "dm" ? "DMs" : app.filter === "channel" ? "Channels" : "All Chats");
 </script>
 
-<div class="list">
+<div class="list" use:pullRefresh={refreshNow}>
   {#if filesPage}
   <header>
     <button class="ib back" aria-label="Back" onclick={() => (app.filter = "all")}><Icon name="left" size={24} /></button>
