@@ -78,7 +78,11 @@
       });
     }).catch(() => {});
     const paste = (e: ClipboardEvent) => {
-      const files = Array.from(e.clipboardData?.files ?? []);
+      // Some webviews (Linux, copied images) put the picture only in `items`, not in `files`.
+      const dt = e.clipboardData;
+      const files = dt?.files?.length
+        ? Array.from(dt.files)
+        : Array.from(dt?.items ?? []).filter((i) => i.kind === "file").map((i) => i.getAsFile()).filter((f): f is File => !!f);
       const dst = target();
       if (!files.length || !dst) return;
       e.preventDefault();

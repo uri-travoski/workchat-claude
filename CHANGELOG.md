@@ -4,6 +4,13 @@ Release notes for the whole WorkChat repository. The release workflow publishes 
 (`## [1.2.0]` for `v1.2.0`) as the GitHub release notes. Component details: [workchat-server/CHANGELOG.md](workchat-server/CHANGELOG.md),
 [Clients/CHANGELOG.md](Clients/CHANGELOG.md).
 
+## [1.5.2] - 2026-11-24
+
+Picture fixes. The server is unchanged; the version is kept in step across the repository.
+
+* Desktop: a copied image can be pasted into a chat (some systems only offer copied images as clipboard items).
+* Transparent pictures no longer sit on a black box: thumbnails and the full-screen viewer show a light checkerboard behind them.
+
 ## [1.5.1] - 2026-11-23
 
 Avatar and channel display tweaks. The server is unchanged; the version is kept in step across the repository.

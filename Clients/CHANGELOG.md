@@ -3,6 +3,13 @@
 All notable changes to the WorkChat apps. The release workflow uses the section matching the tag as the
 GitHub release notes, so add a `## [x.y.z]` heading before tagging.
 
+## [1.5.2] - 2026-11-24
+
+Picture fixes.
+
+* Desktop: a copied image can be pasted into a chat.
+* Transparent pictures show a light checkerboard instead of a black box (thumbnails and the viewer).
+
 ## [1.5.1] - 2026-11-23
 
 Avatar and channel display tweaks.

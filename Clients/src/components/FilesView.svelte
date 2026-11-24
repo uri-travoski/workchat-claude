@@ -140,7 +140,7 @@
   .body { flex: 1; min-height: 0; background: var(--surface); }
   .n { text-align: center; color: var(--muted); margin: 28px 20px; }
   .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; }
-  .cell { position: relative; aspect-ratio: 1; overflow: hidden; background: #0c1220; padding: 0; }
+  .cell { position: relative; aspect-ratio: 1; overflow: hidden; background: var(--checker); padding: 0; }
   .cell img { width: 100%; height: 100%; object-fit: cover; display: block; }
   .np { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #c9d4e8; }
   .vb { position: absolute; left: 5px; bottom: 5px; background: rgba(12, 18, 32, 0.66); color: #fff; font-size: 11.5px; font-weight: 600; padding: 1px 7px 1px 5px; border-radius: 8px; display: inline-flex; gap: 3px; align-items: center; }

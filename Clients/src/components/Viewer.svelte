@@ -230,7 +230,7 @@
   .ti span { font-size: 12.5px; opacity: 0.75; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .cnt { font-size: 13px; opacity: 0.8; padding: 0 8px; font-variant-numeric: tabular-nums; }
   .stage { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; overflow: hidden; touch-action: none; user-select: none; }
-  .stage img { max-width: 100%; max-height: 100%; object-fit: contain; will-change: transform; transform-origin: 50% 50%; }
+  .stage img { max-width: 100%; max-height: 100%; object-fit: contain; will-change: transform; transform-origin: 50% 50%; background: var(--checker); }
   .stage img.anim { transition: transform 0.18s ease-out; }
   .stage video { max-width: 100%; max-height: 100%; outline: none; }
   .nav { position: absolute; top: 50%; width: 50px; height: 50px; margin-top: -25px; border-radius: 50%; background: rgba(255, 255, 255, 0.14); color: #fff; display: inline-flex; align-items: center; justify-content: center; z-index: 2; }

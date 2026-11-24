@@ -28,6 +28,8 @@
   --bubble-out-time: #b9c7e2;
   --initials-bg: #d6e6ff;
   --initials-text: #1f4e96;
+  /* Behind pictures, so a transparent PNG shows a checkerboard instead of a black box. */
+  --checker: conic-gradient(#d9dde5 25%, #ffffff 0 50%, #d9dde5 0 75%, #ffffff 0) 0 0 / 16px 16px;
   --online: #12b886;
   --danger: #c4261f;
   --shadow: 0 1px 2px rgba(17, 24, 39, 0.06), 0 1px 1px rgba(17, 24, 39, 0.04);

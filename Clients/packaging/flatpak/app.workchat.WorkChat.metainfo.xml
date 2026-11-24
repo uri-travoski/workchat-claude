@@ -52,6 +52,11 @@
     <content_attribute id="social-info">mild</content_attribute>
   </content_rating>
   <releases>
+    <release version="1.5.2" date="2026-11-24">
+      <description>
+        <p>Paste copied images on desktop; transparent pictures no longer show on a black background.</p>
+      </description>
+    </release>
     <release version="1.5.1" date="2026-11-23">
       <description>
         <p>Channel names without the # prefix, navy rings around pictures, and slightly larger channel and bot badges.</p>
