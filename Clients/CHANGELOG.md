@@ -3,6 +3,12 @@
 All notable changes to the WorkChat apps. The release workflow uses the section matching the tag as the
 GitHub release notes, so add a `## [x.y.z]` heading before tagging.
 
+## [1.5.10] - 2026-11-25
+
+Smaller W in the app icon.
+
+* The W inside the WorkChat icon is 15% smaller, on desktop, phone and the server's pages.
+
 ## [1.5.9] - 2026-11-25
 
 Desktop chat layout, closer to the reference.

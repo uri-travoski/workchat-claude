@@ -18,7 +18,7 @@
       <feDropShadow dx="0" dy="10" stdDeviation="10" flood-color="#09101C" flood-opacity="0.6" />
     </filter>
   </defs>
-  <g transform="translate(256 260) scale(1.1) translate(-256 -260)" filter="url(#wShadow)">
+  <g transform="translate(256 260) scale(0.935) translate(-256 -260)" filter="url(#wShadow)">
     <polygon points="242,172 275,172 333,352 296,352" fill="url(#ribbonBack)" />
     <polygon points="118,168 156,168 192.5,281.8 173.5,341.1" fill="url(#ribbonLight)" />
     <polygon points="137,168 156,168 192.5,281.8 183,311.5" fill="url(#ribbonFacet)" opacity="0.65" />
