@@ -1,6 +1,14 @@
 package app.workchat
 
 import android.content.Intent
+import android.net.Uri
+import android.os.Build
+import android.provider.OpenableColumns
+import android.webkit.JavascriptInterface
+import org.json.JSONArray
+import org.json.JSONObject
+import java.io.File
+import java.util.UUID
 import android.graphics.Color
 import android.os.Bundle
 import android.view.View
@@ -19,10 +27,72 @@ import androidx.core.view.WindowInsetsCompat
 class MainActivity : TauriActivity() {
     private var web: WebView? = null
 
+    /** Files and text another app shared to WorkChat, copied into the cache; the page takes them with WcShare.take(). */
+    @Volatile
+    private var pendingShare: String? = null
+
+    inner class ShareBridge {
+        @JavascriptInterface
+        fun take(): String {
+            val v = pendingShare ?: ""
+            pendingShare = null
+            return v
+        }
+    }
+
+    @Suppress("DEPRECATION")
+    private fun readShare(i: Intent?) {
+        if (i == null || (i.action != Intent.ACTION_SEND && i.action != Intent.ACTION_SEND_MULTIPLE)) return
+        val uris = ArrayList<Uri>()
+        if (i.action == Intent.ACTION_SEND) {
+            (if (Build.VERSION.SDK_INT >= 33) i.getParcelableExtra(Intent.EXTRA_STREAM, Uri::class.java) else i.getParcelableExtra<Uri>(Intent.EXTRA_STREAM))?.let { uris.add(it) }
+        } else {
+            val l = if (Build.VERSION.SDK_INT >= 33) i.getParcelableArrayListExtra(Intent.EXTRA_STREAM, Uri::class.java) else i.getParcelableArrayListExtra<Uri>(Intent.EXTRA_STREAM)
+            l?.let { uris.addAll(it) }
+        }
+        // Some senders (Google Photos among them) put the picture in ClipData or the data URI instead of EXTRA_STREAM.
+        if (uris.isEmpty()) {
+            val cd = i.clipData
+            if (cd != null) for (k in 0 until cd.itemCount) cd.getItemAt(k).uri?.let { uris.add(it) }
+        }
+        if (uris.isEmpty()) i.data?.let { uris.add(it) }
+        val text = i.getStringExtra(Intent.EXTRA_TEXT) ?: ""
+        android.util.Log.i("WcShare", "action=${i.action} uris=${uris.size} text=${text.length} type=${i.type}")
+        i.action = null
+        if (uris.isEmpty() && text.isBlank()) return
+        // Copying a large video takes a while: not on the UI thread.
+        Thread {
+            val files = JSONArray()
+            val base = File(cacheDir, "shared")
+            base.deleteRecursively()
+            for (u in uris) {
+                try {
+                    val dir = File(base, UUID.randomUUID().toString()).also { it.mkdirs() }
+                    var name = u.lastPathSegment?.substringAfterLast('/') ?: "file"
+                    // The display name is optional: a provider that refuses the query must not stop the copy.
+                    try {
+                        contentResolver.query(u, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { c ->
+                            if (c.moveToFirst()) c.getString(0)?.takeIf { it.isNotBlank() }?.let { name = it }
+                        }
+                    } catch (_: Throwable) {
+                    }
+                    name = name.replace('/', '_')
+                    val dst = File(dir, name)
+                    contentResolver.openInputStream(u)?.use { ins -> dst.outputStream().use { ins.copyTo(it) } } ?: continue
+                    files.put(JSONObject().put("path", dst.absolutePath).put("name", name))
+                } catch (_: Throwable) {
+                }
+            }
+            pendingShare = JSONObject().put("files", files).put("text", text).toString()
+            runOnUiThread { web?.evaluateJavascript("window.__wcShareNudge && window.__wcShareNudge()", null) }
+        }.start()
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         Native.setup(this)
+        readShare(intent)
         val content = findViewById<View>(android.R.id.content)
         window.decorView.setBackgroundColor(Color.WHITE)
         WindowCompat.getInsetsController(window, window.decorView).isAppearanceLightStatusBars = true
@@ -35,6 +105,7 @@ class MainActivity : TauriActivity() {
 
     override fun onWebViewCreate(webView: WebView) {
         web = webView
+        webView.addJavascriptInterface(ShareBridge(), "WcShare")
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
                 val w = web
@@ -52,5 +123,12 @@ class MainActivity : TauriActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
+        readShare(intent)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // A share can finish copying while the page is not ready yet: ask the page again whenever the app comes forward.
+        web?.evaluateJavascript("window.__wcShareNudge && window.__wcShareNudge()", null)
     }
 }
