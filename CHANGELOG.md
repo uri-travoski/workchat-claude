@@ -4,6 +4,13 @@ Release notes for the whole WorkChat repository. The release workflow publishes 
 (`## [1.2.0]` for `v1.2.0`) as the GitHub release notes. Component details: [workchat-server/CHANGELOG.md](workchat-server/CHANGELOG.md),
 [Clients/CHANGELOG.md](Clients/CHANGELOG.md).
 
+## [1.5.6] - 2026-11-25
+
+Desktop: paste a copied file.
+
+* Copy a file in the file manager and paste it into a chat: the file is attached, not its path.
+* Copy a picture in an image viewer or editor and paste it: it is attached (as before).
+
 ## [1.5.5] - 2026-11-25
 
 Select several messages; deleted messages are no longer shown.

@@ -3,6 +3,13 @@
 All notable changes to the WorkChat apps. The release workflow uses the section matching the tag as the
 GitHub release notes, so add a `## [x.y.z]` heading before tagging.
 
+## [1.5.6] - 2026-11-25
+
+Desktop: paste a copied file.
+
+* Copy a file in the file manager and paste it into a chat: the file is attached, not its path.
+* Copy a picture in an image viewer or editor and paste it: it is attached (as before).
+
 ## [1.5.5] - 2026-11-25
 
 Select several messages; deleted messages are no longer shown.

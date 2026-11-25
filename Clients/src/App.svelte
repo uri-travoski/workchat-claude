@@ -3,6 +3,28 @@
   import { app, fail, start, stop } from "./lib/app.svelte";
   import { core } from "./lib/core";
   import { showPreview, stageBrowserFiles } from "./lib/attach";
+
+  /** Local file paths on the clipboard as text: `file://` URIs (file manager copy) or absolute paths. Empty when the text is not paths. */
+  function localPaths(dt: DataTransfer | null): string[] {
+    const raw = dt?.getData("text/uri-list") || dt?.getData("text/plain") || "";
+    const lines = raw.split(/\r?\n/).map((s) => s.trim()).filter((s) => s && !s.startsWith("#"));
+    if (!lines.length) return [];
+    const out: string[] = [];
+    for (const l of lines) {
+      if (/^file:\/\//i.test(l)) {
+        try {
+          out.push(decodeURIComponent(new URL(l).pathname));
+        } catch {
+          return [];
+        }
+      } else if (l.startsWith("/")) {
+        out.push(l);
+      } else {
+        return [];
+      }
+    }
+    return out;
+  }
   import { runTestScript } from "./lib/testdrive";
   import { startLockWatch } from "./lib/lock";
   import { reportUi, startShell } from "./lib/shell";
@@ -85,9 +107,20 @@
         ? Array.from(dt.files)
         : Array.from(dt?.items ?? []).filter((i) => i.kind === "file").map((i) => i.getAsFile()).filter((f): f is File => !!f);
       const dst = target();
-      if (!files.length || !dst) return;
+      if (!dst) return;
+      if (files.length) {
+        e.preventDefault();
+        void stageBrowserFiles(files, dst.conv, dst.thread);
+        return;
+      }
+      // Copied in a file manager: the clipboard holds the file's location as text. Send the file itself, not the path.
+      const paths = localPaths(dt);
+      if (!paths.length) return;
       e.preventDefault();
-      void stageBrowserFiles(files, dst.conv, dst.thread);
+      core
+        .stagePaths(paths)
+        .then((staged) => showPreview(dst.conv, dst.thread, staged))
+        .catch((err) => fail(err));
     };
     window.addEventListener("paste", paste);
     return () => {
