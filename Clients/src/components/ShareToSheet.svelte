@@ -14,16 +14,19 @@
   const what = $derived(files.length ? (files.length === 1 ? files[0].name : `${files.length} files`) : text.trim());
 
   async function pick(id: string) {
+    // Copy the share first: closing the sheet clears app.sheet, and the props read from it.
+    const shared = [...files];
+    const note = text.trim();
     closeSheet();
     try {
       await openConversation(id);
-      if (files.length) {
-        const staged = await core.stagePaths(files.map((f) => f.path));
+      if (shared.length) {
+        const staged = await core.stagePaths(shared.map((f) => f.path));
         showPreview(id, null, staged);
         const s = app.sheet;
-        if (s?.kind === "preview" && text.trim()) s.caption = text.trim();
-      } else if (text.trim()) {
-        await core.sendMessage(id, text.trim());
+        if (s?.kind === "preview" && note) s.caption = note;
+      } else if (note) {
+        await core.sendMessage(id, note);
       }
     } catch (e) {
       fail(e);
