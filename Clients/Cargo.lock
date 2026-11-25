@@ -4921,7 +4921,7 @@ dependencies = [
 
 [[package]]
 name = "tauri-plugin-workchat"
-version = "1.5.2"
+version = "1.5.3"
 dependencies = [
  "serde",
  "serde_json",
@@ -6267,7 +6267,7 @@ checksum = "1ebf944e87a7c253233ad6766e082e3cd714b5d03812acc24c318f549614536e"
 
 [[package]]
 name = "workchat"
-version = "1.5.2"
+version = "1.5.3"
 dependencies = [
  "base64 0.22.1",
  "bytes",
@@ -6308,7 +6308,7 @@ dependencies = [
 
 [[package]]
 name = "workchat-proto"
-version = "1.5.2"
+version = "1.5.3"
 dependencies = [
  "schemars 0.8.22",
  "serde",

@@ -19,7 +19,7 @@ services:
     # The published, public image. The default is pinned to the release this file belongs to, so an update is a conscious
     # step. To follow the newest release instead, put this in .env:
     #   WORKCHAT_IMAGE=ghcr.io/uri-travoski/workchat-claude-server:latest
-    image: ${WORKCHAT_IMAGE:-ghcr.io/uri-travoski/workchat-claude-server:1.5.2}
+    image: ${WORKCHAT_IMAGE:-ghcr.io/uri-travoski/workchat-claude-server:1.5.3}
     restart: unless-stopped
     environment:
       # All optional. The server reads the WORKCHAT_* names.

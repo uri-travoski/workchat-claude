@@ -4,6 +4,13 @@ Release notes for the whole WorkChat repository. The release workflow publishes 
 (`## [1.2.0]` for `v1.2.0`) as the GitHub release notes. Component details: [workchat-server/CHANGELOG.md](workchat-server/CHANGELOG.md),
 [Clients/CHANGELOG.md](Clients/CHANGELOG.md).
 
+## [1.5.3] - 2026-11-25
+
+Launcher icon and pull to refresh. The server is unchanged; the version is kept in step across the repository.
+
+* Android: the app icon is larger and has no white background.
+* Pull down from the top of the chat list or a conversation to reconnect to the server and reload. Shows "Still offline" when the server cannot be reached.
+
 ## [1.5.2] - 2026-11-24
 
 Picture fixes. The server is unchanged; the version is kept in step across the repository.

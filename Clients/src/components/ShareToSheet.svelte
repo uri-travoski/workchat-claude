@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { app, closeSheet, fail, openConversation, sortedRows, toast } from "../lib/app.svelte";
+  import { app, closeSheet, fail, openConversation, sortedRows } from "../lib/app.svelte";
   import { core } from "../lib/core";
   import { channelIcon, matches } from "../lib/chat";
   import { showPreview } from "../lib/attach";
@@ -18,13 +18,9 @@
     try {
       await openConversation(id);
       if (files.length) {
-        // Temporary diagnostics: shows each step of the share on screen.
-        toast(`Share: ${files.length} file(s) to stage`, "info");
         const staged = await core.stagePaths(files.map((f) => f.path));
-        toast(`Share: staged ${staged.length}`, "info");
         showPreview(id, null, staged);
         const s = app.sheet;
-        toast(`Share: sheet is ${s?.kind ?? "none"}`, "info");
         if (s?.kind === "preview" && text.trim()) s.caption = text.trim();
       } else if (text.trim()) {
         await core.sendMessage(id, text.trim());

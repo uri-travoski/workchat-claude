@@ -3,6 +3,13 @@
 All notable changes to the WorkChat apps. The release workflow uses the section matching the tag as the
 GitHub release notes, so add a `## [x.y.z]` heading before tagging.
 
+## [1.5.3] - 2026-11-25
+
+Launcher icon and pull to refresh.
+
+* Android: the app icon is larger and has no white background.
+* Pull down from the top of the chat list or a conversation to reconnect to the server and reload.
+
 ## [1.5.2] - 2026-11-24
 
 Picture fixes.
