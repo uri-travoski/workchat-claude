@@ -50,7 +50,14 @@ class MainActivity : TauriActivity() {
             val l = if (Build.VERSION.SDK_INT >= 33) i.getParcelableArrayListExtra(Intent.EXTRA_STREAM, Uri::class.java) else i.getParcelableArrayListExtra<Uri>(Intent.EXTRA_STREAM)
             l?.let { uris.addAll(it) }
         }
+        // Some senders (Google Photos among them) put the picture in ClipData or the data URI instead of EXTRA_STREAM.
+        if (uris.isEmpty()) {
+            val cd = i.clipData
+            if (cd != null) for (k in 0 until cd.itemCount) cd.getItemAt(k).uri?.let { uris.add(it) }
+        }
+        if (uris.isEmpty()) i.data?.let { uris.add(it) }
         val text = i.getStringExtra(Intent.EXTRA_TEXT) ?: ""
+        android.util.Log.i("WcShare", "action=${i.action} uris=${uris.size} text=${text.length} type=${i.type}")
         i.action = null
         if (uris.isEmpty() && text.isBlank()) return
         // Copying a large video takes a while: not on the UI thread.
