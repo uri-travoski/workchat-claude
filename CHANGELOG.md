@@ -10,6 +10,8 @@ Desktop: paste a copied file.
 
 * Copy a file in the file manager and paste it into a chat: the file is attached, not its path.
 * Copy a picture in an image viewer or editor and paste it: it is attached (as before).
+* A deleted last message no longer shows "Message deleted" in the chat list.
+* The send preview shows transparent pictures on a light checkerboard, not black.
 
 ## [1.5.5] - 2026-11-25
 

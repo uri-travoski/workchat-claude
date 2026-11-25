@@ -92,7 +92,7 @@
 </Sheet>
 
 <style>
-  .hero { position: relative; border-radius: 14px; overflow: hidden; background: #0c1220; display: flex; justify-content: center; max-height: 340px; }
+  .hero { position: relative; border-radius: 14px; overflow: hidden; background: var(--checker); display: flex; justify-content: center; max-height: 340px; }
   .hero img { max-width: 100%; max-height: 340px; object-fit: contain; display: block; }
   .pl { position: absolute; left: 50%; top: 50%; width: 56px; height: 56px; margin: -28px; border-radius: 50%; background: rgba(12, 18, 32, 0.6); color: #fff; display: flex; align-items: center; justify-content: center; padding-left: 3px; }
   .cap1 { display: flex; flex-direction: column; margin: 8px 2px 4px; font-size: 14px; }

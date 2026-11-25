@@ -296,7 +296,8 @@ pub fn make_preview(m: &Message, ctx: &RowCtx, group: bool) -> Preview {
         None
     };
     if m.deleted {
-        return Preview { kind: "deleted".into(), text: "Message deleted".into(), sender, ..Default::default() };
+        // A deleted message shows nothing in the chat list (no "Message deleted").
+        return Preview { kind: "deleted".into(), text: String::new(), sender: None, ..Default::default() };
     }
     if m.kind == MessageKind::System {
         return Preview { kind: "system".into(), text: markup::to_plain(&m.body), ..Default::default() };
