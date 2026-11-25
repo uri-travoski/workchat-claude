@@ -3,7 +3,7 @@
 All notable changes to the WorkChat apps. The release workflow uses the section matching the tag as the
 GitHub release notes, so add a `## [x.y.z]` heading before tagging.
 
-## [1.5.10] - 2026-11-25
+## [1.6.0] - 2026-11-25
 
 Smaller W in the app icon.
 

@@ -4,7 +4,7 @@ Release notes for the whole WorkChat repository. The release workflow publishes 
 (`## [1.2.0]` for `v1.2.0`) as the GitHub release notes. Component details: [workchat-server/CHANGELOG.md](workchat-server/CHANGELOG.md),
 [Clients/CHANGELOG.md](Clients/CHANGELOG.md).
 
-## [1.5.10] - 2026-11-25
+## [1.6.0] - 2026-11-25
 
 Smaller W in the app icon.
 
