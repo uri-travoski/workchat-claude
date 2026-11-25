@@ -64,6 +64,7 @@ export const app = $state({
   me: null as Me | null,
   server: "",
   conn: "offline" as ConnState,
+  refreshing: false,
   connDetail: "",
   users: {} as Record<string, User>,
   rows: {} as Record<string, ChatRow>,
@@ -468,16 +469,25 @@ export function stop() {
 }
 
 /** Pull to refresh (chat list and inside a chat): reconnect to the server, then reload what is on screen. */
+const REFRESH_LIMIT_MS = 30_000;
+
+/** Pull to refresh: reconnect to the server and reload. The spinner runs until the app is connected, or gives up after 30 seconds. */
 export async function refreshNow() {
-  if (app.phase !== "in") return;
+  if (app.phase !== "in" || app.refreshing) return;
+  app.refreshing = true;
+  const deadline = Date.now() + REFRESH_LIMIT_MS;
   try {
     await core.reconnect();
+    await loadSnapshot();
+    while (app.conn !== "online" && Date.now() < deadline) {
+      await new Promise((r) => setTimeout(r, 500));
+    }
+    if (app.conn !== "online") toast("Could not connect to the server. Check the network and try again.", "error");
   } catch (e) {
     fail(e);
-    return;
+  } finally {
+    app.refreshing = false;
   }
-  await loadSnapshot();
-  if (app.conn !== "online") toast("Still offline. Check the network and try again.", "error");
 }
 
 export async function refreshLock() {

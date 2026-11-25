@@ -9,6 +9,7 @@
   import { setPlatform, syncPush } from "./lib/push";
   import { silentUpdateCheck } from "./lib/updates";
   import SheetHost from "./components/SheetHost.svelte";
+  import RefreshSpinner from "./components/RefreshSpinner.svelte";
   import Drawer from "./components/Drawer.svelte";
   import Rail from "./components/Rail.svelte";
   import TopBar from "./components/TopBar.svelte";
@@ -149,6 +150,7 @@
 {/if}
 
 {#if app.phase === "in"}<SheetHost />{/if}
+{#if app.refreshing}<RefreshSpinner />{/if}
 {#if app.pad}<PinPad />{/if}
 {#if dragging}<div class="drop"><div><b>Drop to send</b><span>Photos, videos, audio and documents</span></div></div>{/if}
 

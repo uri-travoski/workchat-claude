@@ -3745,7 +3745,7 @@ dependencies = [
 
 [[package]]
 name = "workchat-proto"
-version = "1.5.3"
+version = "1.5.4"
 dependencies = [
  "schemars",
  "serde",
@@ -3755,7 +3755,7 @@ dependencies = [
 
 [[package]]
 name = "workchat-server"
-version = "1.5.3"
+version = "1.5.4"
 dependencies = [
  "age",
  "anyhow",
@@ -3793,7 +3793,7 @@ dependencies = [
 
 [[package]]
 name = "workchat-testkit"
-version = "1.5.3"
+version = "1.5.4"
 dependencies = [
  "bytes",
  "futures-util",

@@ -3,6 +3,13 @@
 All notable changes to the WorkChat apps. The release workflow uses the section matching the tag as the
 GitHub release notes, so add a `## [x.y.z]` heading before tagging.
 
+## [1.5.4] - 2026-11-25
+
+Pull to refresh shows a spinner.
+
+* Pulling down from the top of the chat list or a conversation shows a spinning circle until the app is connected to the server and the list has reloaded.
+* If the server is not reached within 30 seconds the spinner stops and an error is shown.
+
 ## [1.5.3] - 2026-11-25
 
 Sharing from other apps, launcher icon and pull to refresh.

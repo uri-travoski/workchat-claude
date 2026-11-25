@@ -52,6 +52,11 @@
     <content_attribute id="social-info">mild</content_attribute>
   </content_rating>
   <releases>
+    <release version="1.5.4" date="2026-11-25">
+      <description>
+        <p>Pull to refresh shows a spinner and gives up with an error after 30 seconds.</p>
+      </description>
+    </release>
     <release version="1.5.3" date="2026-11-25">
       <description>
         <p>Larger launcher icon without the white background; pull down to reconnect and refresh.</p>

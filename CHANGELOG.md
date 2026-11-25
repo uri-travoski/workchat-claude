@@ -4,6 +4,13 @@ Release notes for the whole WorkChat repository. The release workflow publishes 
 (`## [1.2.0]` for `v1.2.0`) as the GitHub release notes. Component details: [workchat-server/CHANGELOG.md](workchat-server/CHANGELOG.md),
 [Clients/CHANGELOG.md](Clients/CHANGELOG.md).
 
+## [1.5.4] - 2026-11-25
+
+Pull to refresh shows a spinner.
+
+* Pulling down from the top of the chat list or a conversation shows a spinning circle until the app is connected to the server and the list has reloaded.
+* If the server is not reached within 30 seconds the spinner stops and an error is shown.
+
 ## [1.5.3] - 2026-11-25
 
 Sharing from other apps, launcher icon and pull to refresh. The server is unchanged; the version is kept in step across the repository.
