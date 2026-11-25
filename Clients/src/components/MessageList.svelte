@@ -129,7 +129,7 @@
 
 <style>
   .wrap { position: relative; flex: 1; min-height: 0; display: flex; flex-direction: column; }
-  .list { flex: 1; min-height: 0; padding: 8px 0 10px; }
+  .list { flex: 1; min-height: 0; padding: 18px 0 10px; }
   .older { text-align: center; color: var(--muted); font-size: 12.5px; padding: 10px; }
   .day { display: flex; justify-content: center; margin: 14px 0 4px; }
   .day span { background: var(--surface); border: 1px solid var(--line); color: var(--text-2); font-size: 12.5px; font-weight: 600; padding: 3px 12px; border-radius: 12px; }

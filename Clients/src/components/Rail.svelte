@@ -54,6 +54,7 @@
     <button class="me" aria-label="Profile" title={app.me?.user.display_name ?? ""} onclick={() => (app.tab = "settings")}>
       <Avatar id={app.me?.user.avatar ?? null} initials={initialsOf(app.me?.user.display_name ?? "?")} size={34} conn={app.conn === "online" ? "online" : "offline"} />
     </button>
+    <span class="conn" class:off={app.conn !== "online"}>{app.conn === "online" ? "online" : "offline"}</span>
     {@render btn(settings)}
   </div>
 </nav>
@@ -70,6 +71,8 @@
   button.active { background: rgba(255, 255, 255, 0.18); color: #fff; }
   button.active::before { content: ""; position: absolute; left: -12px; top: 12px; bottom: 12px; width: 3px; border-radius: 0 3px 3px 0; background: #fff; }
   .me { width: 44px; height: 44px; border-radius: 50%; padding: 0; }
+  .conn { font-size: 10px; font-weight: 600; color: #4ade80; margin-bottom: 6px; }
+  .conn.off { color: rgba(255, 255, 255, 0.5); }
   .badge { position: absolute; top: 2px; right: 0; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: #fff; color: var(--navy); font-size: 11px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box; }
   /* Label tooltip to the right of the rail on hover or keyboard focus. */
   .tip { position: absolute; left: calc(100% + 10px); top: 50%; transform: translateY(-50%); background: #1b2230; color: #fff; font-size: 13px; font-weight: 600; padding: 5px 10px; border-radius: 8px; white-space: nowrap; pointer-events: none; opacity: 0; transition: opacity 0.12s; box-shadow: var(--shadow-pop); }

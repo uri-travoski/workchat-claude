@@ -69,7 +69,7 @@
 
 <style>
   .row { display: flex; align-items: center; background: var(--surface); }
-  .row.selected { background: color-mix(in srgb, var(--blue) 9%, var(--surface)); }
+  .row.selected { background: #ebf1f8; box-shadow: inset 3px 0 0 var(--navy); }
   .main { flex: 1; min-width: 0; display: flex; gap: 14px; align-items: center; padding: 10px 16px; text-align: left; }
   .main:hover { background: var(--hover); }
   .row.selected .main:hover { background: transparent; }

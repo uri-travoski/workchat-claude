@@ -305,7 +305,6 @@
       </div>
       {#if rec.mode === "hold"}<span class="lockhint" class:on={rec.lockHint}><Icon name="lock" size={16} /><Icon name="up" size={14} /></span>{/if}
     {:else}
-    <button class="ib" aria-label="Attach" onclick={() => (app.sheet = { kind: "attach", conv: convId, thread: threadRoot })}><Icon name="paperclip" size={24} /></button>
     <div class="field">
       <textarea bind:this={ta} bind:value={text} rows="1" {placeholder} aria-label="Message" onkeydown={onkey} oninput={oninput} onselect={syncSel} onkeyup={syncSel} onclick={syncSel}></textarea>
       {#if app.phone}
@@ -315,6 +314,7 @@
         <button class="inner" aria-label="Emoji" onclick={() => (emojiOpen = !emojiOpen)}><Icon name="smile" size={22} /></button>
         {#if emojiOpen}<EmojiPicker sheet={app.phone} onpick={(e) => void insert(e)} onclose={() => (emojiOpen = false)} />{/if}
       </span>
+      <button class="inner" aria-label="Attach" onclick={() => (app.sheet = { kind: "attach", conv: convId, thread: threadRoot })}><Icon name="paperclip" size={22} /></button>
     </div>
     {/if}
     {#if rec?.mode === "locked"}

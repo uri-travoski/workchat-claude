@@ -43,7 +43,7 @@
     flex: none;
     width: var(--s);
     height: var(--s);
-    border-radius: 50%;
+    border-radius: 12px;
     background: var(--initials-bg);
     color: var(--initials-text);
     align-items: center;
@@ -51,18 +51,18 @@
     font-weight: 600;
   }
   .av.tile {
-    border-radius: calc(var(--s) * 0.27);
+    border-radius: 12px;
     background: linear-gradient(145deg, var(--accent), var(--accent-2));
     color: #fff;
   }
   img {
     width: 100%;
     height: 100%;
-    border-radius: 50%;
+    border-radius: 12px;
     object-fit: cover;
     display: block;
   }
-  .av.tile img { border-radius: calc(var(--s) * 0.27); }
+  .av.tile img { border-radius: 12px; }
   .tile-ico, .ini { display: inline-flex; align-items: center; justify-content: center; letter-spacing: 0.02em; }
   .badge { position: absolute; right: -3px; bottom: -3px; width: calc(var(--s) * 0.38); height: calc(var(--s) * 0.38); min-width: 15px; min-height: 15px; border-radius: 50%; background: var(--surface); color: var(--navy); border: 1.5px solid var(--line); display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18); }
   .badge.bot { color: var(--accent); }
