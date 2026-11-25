@@ -4,6 +4,15 @@ Release notes for the whole WorkChat repository. The release workflow publishes 
 (`## [1.2.0]` for `v1.2.0`) as the GitHub release notes. Component details: [workchat-server/CHANGELOG.md](workchat-server/CHANGELOG.md),
 [Clients/CHANGELOG.md](Clients/CHANGELOG.md).
 
+## [1.5.9] - 2026-11-25
+
+Desktop chat layout, closer to the reference.
+
+* The active chat row has a light blue tint and a navy edge.
+* Avatars have 12px rounded corners.
+* The rail shows online or offline under the profile.
+* The paperclip sits inside the message box, and there is space above the date separator.
+
 ## [1.5.8] - 2026-11-25
 
 Desktop layout, closer to the reference design.

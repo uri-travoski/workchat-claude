@@ -3,6 +3,15 @@
 All notable changes to the WorkChat apps. The release workflow uses the section matching the tag as the
 GitHub release notes, so add a `## [x.y.z]` heading before tagging.
 
+## [1.5.9] - 2026-11-25
+
+Desktop chat layout, closer to the reference.
+
+* The active chat row has a light blue tint and a navy edge.
+* Avatars have 12px rounded corners.
+* The rail shows online or offline under the profile.
+* The paperclip sits inside the message box, and there is space above the date separator.
+
 ## [1.5.8] - 2026-11-25
 
 Desktop layout, closer to the reference design.
