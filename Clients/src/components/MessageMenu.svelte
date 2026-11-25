@@ -1,7 +1,7 @@
 <script lang="ts">
   import { registerLayer } from "../lib/overlays";
   import { untrack } from "svelte";
-  import { app, fail, openThread, toast } from "../lib/app.svelte";
+  import { app, fail, openThread, startSelect, toast } from "../lib/app.svelte";
   import { core, type MessageView } from "../lib/core";
   import { EMOJI_QUICK } from "../lib/emoji";
   import { toPlain } from "../lib/markup";
@@ -39,6 +39,7 @@
   type Item = { label: string; icon: string; danger?: boolean; run: () => void };
   const items = $derived.by((): Item[] => {
     const l: Item[] = [];
+    l.push({ label: "Select", icon: "check", run: () => { close(); startSelect(msg.conv_id, msg.id); } });
     if (!inThread) l.push({ label: "Reply in thread", icon: "thread", run: () => { close(); void openThread(msg.conv_id, msg.thread_root ?? msg.id); } });
     if (msg.body) l.push({ label: "Copy text", icon: "copy", run: () => { close(); void navigator.clipboard?.writeText(toPlain(msg.body) || msg.body).then(() => toast("Copied")).catch(() => {}); } });
     if (mine && msg.body) l.push({ label: "Edit", icon: "pencil", run: () => { close(); edit?.(msg); } });

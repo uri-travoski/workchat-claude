@@ -1,6 +1,6 @@
 <script lang="ts">
   import { tick } from "svelte";
-  import { app } from "../lib/app.svelte";
+  import { app, toggleSelect } from "../lib/app.svelte";
   import type { MessageView } from "../lib/core";
   import { dayKey, dayLabel } from "../lib/format";
   import Icon from "./Icon.svelte";
@@ -38,6 +38,8 @@
     const out: Entry[] = [];
     let prev: MessageView | undefined;
     for (const m of items) {
+      // Deleted messages are not shown at all.
+      if (m.deleted) continue;
       const newDay = !prev || dayKey(prev.ts) !== dayKey(m.ts);
       if (newDay && !inThread) out.push({ kind: "day", key: dayKey(m.ts), label: dayLabel(m.ts) });
       const idx = items.indexOf(m);
@@ -82,6 +84,20 @@
     });
   });
 
+  // While selecting, a click anywhere on a message toggles it (and does nothing else).
+  function pickClick(ev: MouseEvent, id: string) {
+    if (app.select?.conv !== convId) return;
+    ev.preventDefault();
+    ev.stopPropagation();
+    toggleSelect(convId, id);
+  }
+  // Desktop: Ctrl/Cmd-click starts a selection with that message.
+  function modClick(ev: MouseEvent, id: string) {
+    if (!(ev.ctrlKey || ev.metaKey)) return;
+    ev.preventDefault();
+    toggleSelect(convId, id);
+  }
+
   async function onscroll() {
     stick = nearBottom();
     if (stick) jump = false;
@@ -102,7 +118,7 @@
       {#if e.kind === "day"}
         <div class="day"><span>{e.label}</span></div>
       {:else}
-        <div data-mid={e.m.id} class:flash={app.focus?.id === e.m.id}><MessageItem m={e.m} {group} head={e.head} {inThread} {onedit} connector={e.connector} /></div>
+        <div data-mid={e.m.id} class:flash={app.focus?.id === e.m.id} class:picked={app.select?.conv === convId && app.select.ids.includes(e.m.id)} onclickcapture={(ev) => pickClick(ev, e.m.id)} onclick={(ev) => modClick(ev, e.m.id)} role="presentation"><MessageItem m={e.m} {group} head={e.head} {inThread} {onedit} connector={e.connector} /></div>
       {/if}
     {/each}
     {#if typingNames}<div class="typing"><span class="dots"><i></i><i></i><i></i></span> {typingNames}</div>{/if}
@@ -126,5 +142,6 @@
   .jump { position: absolute; right: 14px; bottom: 12px; background: var(--accent); color: #fff; border-radius: 18px; padding: 7px 14px 7px 10px; font-size: 13.5px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; box-shadow: var(--shadow-pop); }
   .end { height: 2px; }
   .flash > :global(.msg) { animation: flash 2.2s ease-out; }
+  .picked { background: color-mix(in srgb, var(--blue) 14%, transparent); }
   @keyframes flash { 0%, 55% { background: color-mix(in srgb, var(--blue) 18%, transparent); } 100% { background: transparent; } }
 </style>

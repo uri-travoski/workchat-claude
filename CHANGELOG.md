@@ -4,6 +4,13 @@ Release notes for the whole WorkChat repository. The release workflow publishes 
 (`## [1.2.0]` for `v1.2.0`) as the GitHub release notes. Component details: [workchat-server/CHANGELOG.md](workchat-server/CHANGELOG.md),
 [Clients/CHANGELOG.md](Clients/CHANGELOG.md).
 
+## [1.5.5] - 2026-11-25
+
+Select several messages; deleted messages are no longer shown.
+
+* Select messages: long-press (phone) or right-click (desktop) a message and choose Select, or Ctrl/Cmd-click on desktop. Tap more messages to add them. The bar at the bottom copies the text, deletes them for you, or deletes your own messages for everyone.
+* Deleted messages are no longer shown as "Message deleted".
+
 ## [1.5.4] - 2026-11-25
 
 Pull to refresh shows a spinner.

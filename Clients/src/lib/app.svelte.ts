@@ -65,6 +65,8 @@ export const app = $state({
   server: "",
   conn: "offline" as ConnState,
   refreshing: false,
+  /** Multi-select of messages in one chat (null when not selecting). */
+  select: null as null | { conv: string; ids: string[] },
   connDetail: "",
   users: {} as Record<string, User>,
   rows: {} as Record<string, ChatRow>,
@@ -537,6 +539,20 @@ export async function openConversation(id: string) {
 export function closeConversation() {
   app.selected = null;
   app.thread = null;
+  app.select = null;
+}
+
+/** Starts selecting messages in a chat with one message picked. */
+export function startSelect(conv: string, id: string) {
+  app.select = { conv, ids: [id] };
+}
+
+/** Adds or removes a message from the selection; leaving the last one ends selecting. */
+export function toggleSelect(conv: string, id: string) {
+  const cur = app.select;
+  if (!cur || cur.conv !== conv) return startSelect(conv, id);
+  const ids = cur.ids.includes(id) ? cur.ids.filter((x) => x !== id) : [...cur.ids, id];
+  app.select = ids.length ? { conv, ids } : null;
 }
 
 export async function loadOlder(id: string): Promise<boolean> {

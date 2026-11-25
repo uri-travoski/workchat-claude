@@ -3,6 +3,13 @@
 All notable changes to the WorkChat apps. The release workflow uses the section matching the tag as the
 GitHub release notes, so add a `## [x.y.z]` heading before tagging.
 
+## [1.5.5] - 2026-11-25
+
+Select several messages; deleted messages are no longer shown.
+
+* Select messages: long-press (phone) or right-click (desktop) a message and choose Select, or Ctrl/Cmd-click on desktop. Tap more messages to add them. The bar at the bottom copies the text, deletes them for you, or deletes your own messages for everyone.
+* Deleted messages are no longer shown as "Message deleted".
+
 ## [1.5.4] - 2026-11-25
 
 Pull to refresh shows a spinner.

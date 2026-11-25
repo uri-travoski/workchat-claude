@@ -8,6 +8,7 @@
   import { toPlain } from "../lib/markup";
   import Avatar from "./Avatar.svelte";
   import Composer from "./Composer.svelte";
+  import SelectBar from "./SelectBar.svelte";
   import Icon from "./Icon.svelte";
   import Menu from "./Menu.svelte";
   import { lockChat, unlockChat } from "../lib/lock";
@@ -150,7 +151,7 @@
 
     {#if app.conn !== "online"}<div class="offline" role="status"><Icon name="wifi" size={15} /> {app.conn === "connecting" ? "Connecting…" : "Offline. Messages will send when you are back online."}</div>{/if}
     {#if c.detached}<button class="latest" onclick={() => backToLatest(id)}><Icon name="down" size={16} /> Jump to latest messages</button>{/if}
-    <Composer convId={id} {editing} oncancelEdit={() => (editing = null)} placeholder="Message…" />
+    {#if app.select?.conv === id}<SelectBar convId={id} />{:else}<Composer convId={id} {editing} oncancelEdit={() => (editing = null)} placeholder="Message…" />{/if}
   </section>
 {/if}
 

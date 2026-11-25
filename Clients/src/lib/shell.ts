@@ -53,6 +53,10 @@ export function handleBack(): boolean {
     app.drawer = false;
     return true;
   }
+  if (app.select) {
+    app.select = null;
+    return true;
+  }
   if (app.pad) {
     app.pad = null;
     return true;
