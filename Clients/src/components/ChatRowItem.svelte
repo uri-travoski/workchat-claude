@@ -47,7 +47,7 @@
         {#if row.locked}<span class="lk" title="Locked chat, currently unlocked" aria-label="Locked chat, currently unlocked"><Icon name="lockopen" size={15} stroke={2} /></span>{/if}
         {#if verified}<svg class="verified" width="16" height="16" viewBox="0 0 24 24" aria-label="Owner"><circle cx="12" cy="12" r="11" fill="var(--blue)" /><path d="m7.5 12.3 3 3 6-6.3" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" /></svg>{/if}
         {#if chip}<span class="role">{chip}</span>{/if}
-        <span class="time" class:blue={unread}>{listTime(row.last_ts)}</span>
+        {#if p.kind !== "none"}<span class="time" class:blue={unread}>{listTime(row.last_ts)}</span>{/if}
       </span>
       <span class="bottom">
         <span class="preview" class:strong={unread} class:accent={p.kind === "voice"}>
@@ -78,7 +78,7 @@
   .title { font-size: 17px; font-weight: 700; letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
   .verified { flex: none; }
   .role { flex: none; font-size: 12px; font-weight: 500; color: var(--chip-text); background: var(--chip); padding: 2px 8px; border-radius: 6px; }
-  .time { margin-left: auto; flex: none; font-size: 13px; font-weight: 500; color: var(--text); }
+  .time { margin-left: auto; flex: none; font-size: 12px; font-weight: 500; color: #64748b; }
   .time.blue { color: var(--blue); }
   .preview { flex: 1; min-width: 0; display: flex; align-items: center; gap: 5px; font-size: 14.5px; color: var(--muted); }
   .preview.strong { color: var(--text); font-weight: 600; }

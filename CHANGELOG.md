@@ -4,6 +4,18 @@ Release notes for the whole WorkChat repository. The release workflow publishes 
 (`## [1.2.0]` for `v1.2.0`) as the GitHub release notes. Component details: [workchat-server/CHANGELOG.md](workchat-server/CHANGELOG.md),
 [Clients/CHANGELOG.md](Clients/CHANGELOG.md).
 
+## [1.5.8] - 2026-11-25
+
+Desktop layout, closer to the reference design.
+
+* The top bar is gone. Your profile is at the bottom of the left rail, above Settings; the WorkChat icon is at the top.
+* Core chats (All, DMs, Channels, Threads) are separated from Files, Saved and Contacts by a divider.
+* The chat list has a title, a compose button, one search bar (Ctrl+K) and pills: All, Unread, Channels, Bots. The floating + button is gone on desktop.
+* Ctrl+N starts a new chat.
+* Timestamps are smaller and grey; empty chats show no timestamp.
+* Channels no longer show a second # badge; pictures show without a border.
+* The empty state offers New Chat, New Channel and Notes to Self.
+
 ## [1.5.7] - 2026-11-25
 
 New app icon.

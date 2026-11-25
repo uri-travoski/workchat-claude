@@ -1,9 +1,12 @@
 <script lang="ts">
   import { app, type Filter, type Tab } from "../lib/app.svelte";
   import { inKind, isDirect, unreadOf } from "../lib/chat";
+  import { initialsOf } from "../lib/people";
+  import Avatar from "./Avatar.svelte";
   import Icon from "./Icon.svelte";
 
-  // Desktop navigation rail (no app tile, no avatar). All Chats, DMs, Channels, Threads, Files, Saved, Contacts; Settings sits at the bottom.
+  // Desktop navigation rail: brand at the top; core messaging (All Chats, DMs, Channels, Threads), a divider, then the
+  // utilities (Files, Saved, Contacts). The profile and Settings sit at the bottom.
   interface Item {
     id: string;
     label: string;
@@ -13,11 +16,13 @@
     badge?: number;
   }
   const rows = $derived(Object.values(app.rows).filter((r) => !r.archived));
-  const items = $derived<Item[]>([
+  const core = $derived<Item[]>([
     { id: "all", label: "All Chats", icon: "allchats", tab: "chats", filter: "all", badge: unreadOf(rows) },
     { id: "dm", label: "DMs", icon: "chat", tab: "chats", filter: "dm", badge: unreadOf(rows.filter(isDirect)) },
     { id: "channel", label: "Channels", icon: "hash", tab: "chats", filter: "channel", badge: unreadOf(rows.filter((r) => inKind(r, "channel"))) },
     { id: "threads", label: "Threads", icon: "thread", tab: "chats", filter: "threads", badge: app.counts?.threads_unread ?? 0 },
+  ]);
+  const utilities = $derived<Item[]>([
     { id: "files", label: "Files", icon: "paperclip", tab: "chats", filter: "files" },
     { id: "saved", label: "Saved", icon: "bookmark", tab: "chats", filter: "saved" },
     { id: "contacts", label: "Contacts", icon: "users", tab: "contacts" },
@@ -39,20 +44,32 @@
 {/snippet}
 
 <nav class="rail" aria-label="Main">
+  <div class="brand"><img src="/app-icon.svg" alt="" width="34" height="34" /></div>
   <div class="tabs">
-    {#each items as it (it.id)}{@render btn(it)}{/each}
+    {#each core as it (it.id)}{@render btn(it)}{/each}
+    <div class="split" role="separator" aria-hidden="true"></div>
+    {#each utilities as it (it.id)}{@render btn(it)}{/each}
   </div>
-  <div class="bottom">{@render btn(settings)}</div>
+  <div class="bottom">
+    <button class="me" aria-label="Profile" title={app.me?.user.display_name ?? ""} onclick={() => (app.tab = "settings")}>
+      <Avatar id={app.me?.user.avatar ?? null} initials={initialsOf(app.me?.user.display_name ?? "?")} size={34} conn={app.conn === "online" ? "online" : "offline"} />
+    </button>
+    {@render btn(settings)}
+  </div>
 </nav>
 
 <style>
-  .rail { position: relative; z-index: 10; width: 72px; flex: none; display: flex; flex-direction: column; align-items: center; padding: 14px 0; background: linear-gradient(180deg, var(--navy) 0%, var(--navy-dark) 100%); }
+  .rail { position: relative; z-index: 10; width: 72px; flex: none; display: flex; flex-direction: column; align-items: center; padding: 12px 0 14px; background: linear-gradient(180deg, var(--navy) 0%, var(--navy-dark) 100%); }
+  .brand { padding: 2px 0 10px; }
+  .brand img { border-radius: 9px; display: block; }
   .tabs { display: flex; flex-direction: column; gap: 6px; flex: 1; align-items: center; }
-  .bottom { display: flex; flex-direction: column; align-items: center; }
+  .split { width: 34px; height: 1px; background: rgba(255, 255, 255, 0.12); margin: 6px 0; }
+  .bottom { display: flex; flex-direction: column; align-items: center; gap: 6px; }
   button { position: relative; width: 48px; height: 48px; border-radius: 14px; display: inline-flex; align-items: center; justify-content: center; color: rgba(255, 255, 255, 0.72); }
   button:hover { background: rgba(255, 255, 255, 0.1); color: #fff; }
   button.active { background: rgba(255, 255, 255, 0.18); color: #fff; }
   button.active::before { content: ""; position: absolute; left: -12px; top: 12px; bottom: 12px; width: 3px; border-radius: 0 3px 3px 0; background: #fff; }
+  .me { width: 44px; height: 44px; border-radius: 50%; padding: 0; }
   .badge { position: absolute; top: 2px; right: 0; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: #fff; color: var(--navy); font-size: 11px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box; }
   /* Label tooltip to the right of the rail on hover or keyboard focus. */
   .tip { position: absolute; left: calc(100% + 10px); top: 50%; transform: translateY(-50%); background: #1b2230; color: #fff; font-size: 13px; font-weight: 600; padding: 5px 10px; border-radius: 8px; white-space: nowrap; pointer-events: none; opacity: 0; transition: opacity 0.12s; box-shadow: var(--shadow-pop); }

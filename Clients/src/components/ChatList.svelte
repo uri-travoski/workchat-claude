@@ -10,6 +10,7 @@
   import Icon from "./Icon.svelte";
   import Menu from "./Menu.svelte";
   import FilesView from "./FilesView.svelte";
+  import TopSearch from "./TopSearch.svelte";
   import SavedView from "./SavedView.svelte";
   import GlobalSearch from "./GlobalSearch.svelte";
   import { signOutAction } from "../lib/actions";
@@ -25,7 +26,10 @@
   // The chat list: what the rail item (desktop) or pill (phone) selects, narrowed by the list box (names only).
   const kind = $derived(app.filter === "dm" ? "dm" : app.filter === "channel" ? "channel" : "all");
   const isChats = $derived(app.filter === "all" || app.filter === "dm" || app.filter === "channel");
-  const shown = $derived(rows.filter((r) => inKind(r, kind) && nameMatches(r, app.listq)));
+  // Desktop pills (All, Unread, Channels, Bots) narrow the list; the phone keeps its own filters.
+  let pill = $state<"all" | "unread" | "channel" | "bot">("all");
+  const pillOk = (r: ChatRow) => pill === "all" || (pill === "unread" ? r.unread > 0 || r.marked_unread : pill === "channel" ? r.kind === "channel" : !!r.is_bot);
+  const shown = $derived(rows.filter((r) => inKind(r, kind) && nameMatches(r, app.listq) && (app.phone || pillOk(r))));
 
   // Pinned chats keep the order the person gave them (server position, else the one saved on this device).
   const LOCAL_KEY = "workchat.pinorder";
@@ -227,7 +231,19 @@
   </header>
   {/if}
 
-  {#if filesPage}{:else if app.phone ? app.searching : isChats}
+  {#if !app.phone && isChats && !filesPage}
+    <div class="dhead">
+      <h2>{viewTitle}</h2>
+      <button class="compose" aria-label="New message" title="New message (Ctrl+N)" onclick={() => (app.sheet = { kind: "newchat" })}><Icon name="pencil" size={18} /></button>
+    </div>
+    <TopSearch />
+    <div class="pills" role="group" aria-label="Show">
+      {#each [["all", "All"], ["unread", "Unread"], ["channel", "Channels"], ["bot", "Bots"]] as [id, label] (id)}
+        <button class:on={pill === id} aria-pressed={pill === id} onclick={() => (pill = id as typeof pill)}>{label}</button>
+      {/each}
+    </div>
+  {/if}
+  {#if filesPage}{:else if app.phone ? app.searching : false}
     <div class="search" class:desk={!app.phone}>
       <Icon name="search" size={18} />
       <input
@@ -245,7 +261,7 @@
         <button class="ib sm" aria-label="More" onclick={(e) => { const r = (e.currentTarget as HTMLElement).getBoundingClientRect(); menu = { x: r.right, y: r.bottom + 4 }; }}><Icon name="dots" size={20} /></button>
       {/if}
     </div>
-  {:else if !app.phone}
+  {:else if !app.phone && !isChats}
     <div class="vhead"><h2>{viewTitle}</h2></div>
   {/if}
 
@@ -313,7 +329,7 @@
     {/if}
   </div>
 
-  {#if (isChats || app.phone) && !filesPage}<button class="fab" aria-label="New message" onclick={() => (app.sheet = { kind: "newchat" })}><Icon name="plus" size={26} stroke={2.2} /></button>{/if}
+  {#if app.phone && !filesPage}<button class="fab" aria-label="New message" onclick={() => (app.sheet = { kind: "newchat" })}><Icon name="plus" size={26} stroke={2.2} /></button>{/if}
 </div>
 
 {#if sortMenu}
@@ -351,7 +367,14 @@
 {/if}
 
 <style>
-  .list { position: relative; display: flex; flex-direction: column; height: 100%; min-height: 0; background: var(--page); }
+  .list { position: relative; display: flex; flex-direction: column; height: 100%; min-height: 0; background: var(--surface); }
+  .dhead { display: flex; align-items: center; justify-content: space-between; padding: 14px 14px 8px 16px; }
+  .dhead h2 { margin: 0; font-size: 22px; font-weight: 800; letter-spacing: -0.01em; }
+  .compose { width: 36px; height: 36px; border-radius: 10px; background: var(--accent); color: #fff; display: inline-flex; align-items: center; justify-content: center; }
+  .compose:hover { filter: brightness(1.12); }
+  .pills { display: flex; gap: 6px; padding: 8px 14px 4px; }
+  .pills button { padding: 5px 12px; border-radius: 999px; background: var(--chip); color: var(--text-2); font-size: 13px; font-weight: 600; }
+  .pills button.on { background: var(--accent); color: #fff; }
   header { display: flex; align-items: center; justify-content: space-between; padding: calc(var(--safe-top) + 12px) 12px 8px 18px; background: var(--surface); }
   h1 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.15; }
   .acts { display: flex; gap: 2px; }

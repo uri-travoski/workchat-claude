@@ -13,7 +13,8 @@
     conn = null,
   }: { id?: string | null; initials?: string; size?: number; tile?: boolean; icon?: string; presence?: string | null; bot?: boolean; conn?: "online" | "offline" | null } = $props();
   // A channel (tile) or a bot account shows a small badge in the bottom corner.
-  const badge = $derived(bot ? "bot" : tile ? "channel" : "");
+  // Channels already show "#" in the avatar, so only bots get a corner badge.
+  const badge = $derived(bot ? "bot" : "");
 
   let broken = $state(false);
   $effect(() => {
@@ -58,8 +59,6 @@
     width: 100%;
     height: 100%;
     border-radius: 50%;
-    border: 2px solid #1b2b47;
-    box-sizing: border-box;
     object-fit: cover;
     display: block;
   }

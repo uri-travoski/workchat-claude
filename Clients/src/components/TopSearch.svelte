@@ -117,6 +117,21 @@
     return r ? r.title : "";
   };
   const idx = (r: Row) => flat.indexOf(r);
+
+  // Ctrl+K (Cmd+K on macOS) puts the cursor in the search bar from anywhere.
+  $effect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        input?.focus();
+      } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "n" && !app.phone) {
+        e.preventDefault();
+        app.sheet = { kind: "newchat" };
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  });
 </script>
 
 <div class="wrap" bind:this={root}>
@@ -125,8 +140,8 @@
     <input
       bind:this={input}
       class="gsearch"
-      placeholder="Search messages, people and files"
-      aria-label="Search messages, people and files"
+      placeholder="Search chats, messages, or files… [Ctrl K]"
+      aria-label="Search chats, messages, or files"
       role="combobox"
       aria-expanded={open && q.length >= 2}
       aria-controls="gs-panel"

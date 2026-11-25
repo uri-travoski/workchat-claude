@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import { app, fail, start, stop } from "./lib/app.svelte";
+  import { app, fail, start, startDm, stop } from "./lib/app.svelte";
   import { core } from "./lib/core";
   import { showPreview, stageBrowserFiles } from "./lib/attach";
 
@@ -34,7 +34,6 @@
   import RefreshSpinner from "./components/RefreshSpinner.svelte";
   import Drawer from "./components/Drawer.svelte";
   import Rail from "./components/Rail.svelte";
-  import TopBar from "./components/TopBar.svelte";
   import ChatList from "./components/ChatList.svelte";
   import Contacts from "./components/Contacts.svelte";
   import Conversation from "./components/Conversation.svelte";
@@ -154,7 +153,6 @@
   </div>
 {:else}
   <div class="desk">
-    <TopBar />
     <div class="cols">
       <Rail />
       <div class="side" style="width:{shownPanes.list}px">
@@ -171,6 +169,11 @@
             <img src="/app-icon.svg" alt="" width="88" height="88" />
             <h2>WorkChat</h2>
             <p>Select a chat to start messaging.</p>
+            <div class="starts">
+              <button onclick={() => (app.sheet = { kind: "newchat" })}>New Chat (Ctrl+N)</button>
+              <button onclick={() => (app.sheet = { kind: "newchat", step: "channel" })}>New Channel</button>
+              <button onclick={() => app.me && void startDm(app.me.user.id)}>Notes to Self</button>
+            </div>
           </div>
         {/if}
       </main>
@@ -199,7 +202,10 @@
   .tab { flex: 1; min-height: 0; }
   .desk { display: flex; flex-direction: column; height: 100%; }
   .cols { flex: 1; min-height: 0; display: flex; }
-  .side { flex: none; display: flex; flex-direction: column; min-height: 0; border-right: 1px solid var(--line); background: var(--page); box-sizing: border-box; }
+  .side { flex: none; display: flex; flex-direction: column; min-height: 0; border-right: 1px solid var(--line); background: var(--surface); box-sizing: border-box; }
+  .starts { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 16px; }
+  .starts button { background: var(--chip); color: var(--text-2); border-radius: 999px; padding: 7px 14px; font-size: 13px; font-weight: 500; }
+  .starts button:hover { background: var(--hover); color: var(--text); }
   .main { flex: 1; min-width: 0; min-height: 0; background: var(--page); }
   .threadcol { flex: none; min-width: 0; border-left: 1px solid var(--line); box-sizing: border-box; }
   .empty { height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: var(--muted); }
