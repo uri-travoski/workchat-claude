@@ -114,4 +114,10 @@ class MainActivity : TauriActivity() {
         setIntent(intent)
         readShare(intent)
     }
+
+    override fun onResume() {
+        super.onResume()
+        // A share can finish copying while the page is not ready yet: ask the page again whenever the app comes forward.
+        web?.evaluateJavascript("window.__wcShareNudge && window.__wcShareNudge()", null)
+    }
 }

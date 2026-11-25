@@ -103,14 +103,17 @@ export function syncBars() {
 
 /** Android: files or text another app shared to WorkChat. Asks which chat should get them. */
 export function takeShared() {
+  // Only once signed in: the share sheet needs the chat list.
+  if (app.phase !== "in") return;
   try {
     const raw = (window as unknown as { WcShare?: { take: () => string } }).WcShare?.take();
     if (!raw) return;
     const d = JSON.parse(raw) as { files: { path: string; name: string }[]; text: string };
     if (!d.files.length && !d.text.trim()) return;
     app.sheet = { kind: "shareto", files: d.files, text: d.text };
-  } catch {
-    /* no share bridge (not Android) */
+  } catch (e) {
+    // Not on Android (no share bridge) or a malformed share; nothing to show.
+    console.warn("share", e);
   }
 }
 
@@ -120,6 +123,10 @@ export async function startShell(): Promise<() => void> {
   const w = window as unknown as { __wcShareNudge?: () => void; WcShare?: { take: () => string } };
   w.__wcShareNudge = takeShared;
   takeShared();
+  // A share that arrived while the page was not ready is picked up when the window gets focus again.
+  const onFocusShare = () => takeShared();
+  window.addEventListener("focus", onFocusShare);
+  offs.push(() => window.removeEventListener("focus", onFocusShare));
   onThemeApplied(syncBars);
   const media = window.matchMedia("(prefers-color-scheme: dark)");
   const bars = () => setTimeout(syncBars, 60);
