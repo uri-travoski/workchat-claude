@@ -60,12 +60,16 @@ class MainActivity : TauriActivity() {
             base.deleteRecursively()
             for (u in uris) {
                 try {
+                    val dir = File(base, UUID.randomUUID().toString()).also { it.mkdirs() }
                     var name = u.lastPathSegment?.substringAfterLast('/') ?: "file"
-                    contentResolver.query(u, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { c ->
-                        if (c.moveToFirst()) c.getString(0)?.takeIf { it.isNotBlank() }?.let { name = it }
+                    // The display name is optional: a provider that refuses the query must not stop the copy.
+                    try {
+                        contentResolver.query(u, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { c ->
+                            if (c.moveToFirst()) c.getString(0)?.takeIf { it.isNotBlank() }?.let { name = it }
+                        }
+                    } catch (_: Throwable) {
                     }
                     name = name.replace('/', '_')
-                    val dir = File(base, UUID.randomUUID().toString()).also { it.mkdirs() }
                     val dst = File(dir, name)
                     contentResolver.openInputStream(u)?.use { ins -> dst.outputStream().use { ins.copyTo(it) } } ?: continue
                     files.put(JSONObject().put("path", dst.absolutePath).put("name", name))
