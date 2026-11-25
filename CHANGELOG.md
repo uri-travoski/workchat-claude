@@ -4,6 +4,12 @@ Release notes for the whole WorkChat repository. The release workflow publishes 
 (`## [1.2.0]` for `v1.2.0`) as the GitHub release notes. Component details: [workchat-server/CHANGELOG.md](workchat-server/CHANGELOG.md),
 [Clients/CHANGELOG.md](Clients/CHANGELOG.md).
 
+## [1.5.7] - 2026-11-25
+
+New app icon.
+
+* The new WorkChat icon is used on desktop, phone (launcher, with a larger symbol on a navy background), in the app, and on the server's web pages and browser tab.
+
 ## [1.5.6] - 2026-11-25
 
 Desktop: paste a copied file.

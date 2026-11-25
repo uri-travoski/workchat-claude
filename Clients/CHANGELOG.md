@@ -3,6 +3,12 @@
 All notable changes to the WorkChat apps. The release workflow uses the section matching the tag as the
 GitHub release notes, so add a `## [x.y.z]` heading before tagging.
 
+## [1.5.7] - 2026-11-25
+
+New app icon.
+
+* The new WorkChat icon is used on desktop, phone (launcher, with a larger symbol on a navy background), in the app, and on the server's web pages and browser tab.
+
 ## [1.5.6] - 2026-11-25
 
 Desktop: paste a copied file.

@@ -1,3 +1,10 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="432" height="432" viewBox="0 0 108 108">
-  <rect width="108" height="108" fill="#FFFFFF"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <defs>
+    <radialGradient id="bgGrad" cx="45%" cy="38%" r="62%">
+      <stop offset="0%" stop-color="#233758" />
+      <stop offset="55%" stop-color="#1A2942" />
+      <stop offset="100%" stop-color="#111C2E" />
+    </radialGradient>
+  </defs>
+  <rect width="512" height="512" fill="url(#bgGrad)" />
 </svg>
