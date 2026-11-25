@@ -6,8 +6,9 @@ Release notes for the whole WorkChat repository. The release workflow publishes 
 
 ## [1.5.3] - 2026-11-25
 
-Launcher icon and pull to refresh. The server is unchanged; the version is kept in step across the repository.
+Sharing from other apps, launcher icon and pull to refresh. The server is unchanged; the version is kept in step across the repository.
 
+* Android: "Share" from Google Photos and other apps now opens "Share to…" with the picture attached. Pick a chat, check the preview, and press Send.
 * Android: the app icon is larger and has no white background.
 * Pull down from the top of the chat list or a conversation to reconnect to the server and reload. Shows "Still offline" when the server cannot be reached.
 
